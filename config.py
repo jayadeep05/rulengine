@@ -8,7 +8,15 @@ class Config:
     # Execution Mode: "TEST" or "LIVE"
     MODE = "LIVE"
 
-    # Upstox API Credentials (set these in a .env file or environment variables)
+    # Deprecated DB settings - will delete later
+    # Database Configuration
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "#JAYA1708!!")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_PORT = os.getenv("DB_PORT", "3306")
+    DB_NAME = os.getenv("DB_NAME", "trade_history")
+
+    # Upstox API Credentials
     UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID", "")
     UPSTOX_CLIENT_SECRET = os.getenv("UPSTOX_CLIENT_SECRET", "")
     UPSTOX_ACCESS_TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "")
@@ -17,10 +25,11 @@ class Config:
     RISK_PER_TRADE_PCT = 0.01  # 1% of capital
     MAX_TRADES_PER_DAY = 5
     MAX_DAILY_LOSS_PCT = -0.02  # -2%
+    TRAILING_SL_ACTIVATION = 1.0  # R-Multiple to start trailing
     MAX_OPEN_TRADES = 2
     CAPITAL = 100000.0  # Example starting capital
     
-    # AI/ML Configuration (set GROQ_API_KEY in a .env file or environment variable)
+    # AI/ML Configuration
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
     USE_GROQ_FILTER = True
     SCORE_THRESHOLD = 4
@@ -33,6 +42,10 @@ class Config:
     TARGET_R_MAX = 2.0
     VOLUME_SPIKE_RATIO = 1.8
     MIN_CANDLE_STRENGTH = 0.6
+    
+    # Universe Filter
+    MIN_STOCK_PRICE = 50.0
+    MAX_STOCK_PRICE = 5000.0
 
     # Symbols mapping (User friendly name -> Upstox Format)
 
@@ -145,7 +158,8 @@ class Config:
                 
     @classmethod
     def save(cls):
-        data = {k: getattr(cls, k) for k in dir(cls) if not k.startswith("__") and not callable(getattr(cls, k)) and k not in ['SYMBOLS_MAPPING', 'UPSTOX_ACCESS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI']}
+        exclude = ['SYMBOLS_MAPPING', 'UPSTOX_ACCESS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
+        data = {k: getattr(cls, k) for k in dir(cls) if not k.startswith("__") and not callable(getattr(cls, k)) and k not in exclude}
         with open("config.json", "w") as f:
             json.dump(data, f, indent=4)
 

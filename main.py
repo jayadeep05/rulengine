@@ -115,12 +115,14 @@ async def trading_cycle_loop():
             if sym_key in all_ltps_raw:
                 name_to_ltp[sym_name] = all_ltps_raw[sym_key]
 
-        # ── STAGE 2: Rank top 15 movers by price change vs prior cycle ──────
-        movers = sorted(
-            [(name, abs(ltp - prev_prices_for_momentum.get(name, ltp)))
-             for name, ltp in name_to_ltp.items()],
-            key=lambda x: x[1], reverse=True
-        )[:15]
+        # ── STAGE 2: Filter by Price Range & Rank top 15 movers ──────
+        valid_movers = []
+        for name, ltp in name_to_ltp.items():
+            if Config.MIN_STOCK_PRICE <= ltp <= Config.MAX_STOCK_PRICE:
+                delta = abs(ltp - prev_prices_for_momentum.get(name, ltp))
+                valid_movers.append((name, delta))
+                
+        movers = sorted(valid_movers, key=lambda x: x[1], reverse=True)[:15]
 
         # Update momentum cache for next cycle (all symbols)
         prev_prices_for_momentum = dict(name_to_ltp)
