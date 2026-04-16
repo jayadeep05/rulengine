@@ -4,11 +4,12 @@ import numpy as np
 def is_fake_breakout(latest: pd.Series, direction: str) -> bool:
     """
     Returns True if the breakout shows classic rejection/trap characteristics.
-    Three rules: wick rejection, low volume, bearish close inside range.
+    Phase 1 Update: Wick > Body rejection, low volume, negative close.
     """
     high = latest['high']
     low = latest['low']
     close = latest['close']
+    open_p = latest['open']
     volume_ratio = latest.get('volume_ratio', 1.0)
 
     candle_range = high - low
@@ -16,20 +17,21 @@ def is_fake_breakout(latest: pd.Series, direction: str) -> bool:
         return True  # Doji = indecision = skip
 
     candle_mid = low + (candle_range / 2)
+    body = abs(close - open_p)
 
     if direction == 'LONG':
-        upper_wick = high - close
-        # Rule 1: Upper wick > 35% of range = buyers rejected at the high
-        if upper_wick / candle_range > 0.35:
+        upper_wick = high - max(open_p, close)
+        # Rule 1 (Phase 1): Upper wick > body = buyers rejected at the high
+        if upper_wick > body:
             return True
         # Rule 2: Closed in bottom half of candle range = failed to hold breakout
         if close < candle_mid:
             return True
 
     elif direction == 'SHORT':
-        lower_wick = close - low
-        # Rule 1: Lower wick > 35% of range = sellers rejected at the low
-        if lower_wick / candle_range > 0.35:
+        lower_wick = min(open_p, close) - low
+        # Rule 1 (Phase 1): Lower wick > body = sellers rejected at the low
+        if lower_wick > body:
             return True
         # Rule 2: Closed in top half = failed to hold breakdown
         if close > candle_mid:
@@ -40,6 +42,7 @@ def is_fake_breakout(latest: pd.Series, direction: str) -> bool:
         return True
 
     return False
+
 
 
 def generate_signals(df: pd.DataFrame) -> dict:
@@ -125,13 +128,41 @@ def generate_signals(df: pd.DataFrame) -> dict:
         if bearish_count < 2:
             is_short = False  # No trend context — lone candle in uptrend
 
+    # ── LATE ENTRY FILTER (Phase 1) ──────────────────────────────────────────
+    if is_long and brk_out > 0:
+        if (close_price - brk_out) / brk_out > 0.015:  # > 1.5% past breakout
+            is_long = False
+
+    if is_short and brk_down > 0:
+        if (brk_down - close_price) / brk_down > 0.015: # > 1.5% past breakdown
+            is_short = False
+
+    # ── VOLUME CONSISTENCY FILTER (Phase 1) ──────────────────────────────────
+    if len(df) >= 3:
+        prev_candle = df.iloc[-3]
+        prev_vol_ratio = prev_candle.get('volume_ratio', 1.0)
+        # Previous candle volume must be at least average (ratio >= 1.0)
+        if prev_vol_ratio < 1.0:
+            is_long = False
+            is_short = False
+
+    # ── EXHAUSTION RULE (Phase 5) ─────────────────────────────────────────────
+    # If stock already moved > 80% of daily ATR -> skip
+    atr_14 = latest.get('atr_14', abs(high_price - low_price))
+    if atr_14 > 0 and len(df) > 0:
+        day_open = df['open'].iloc[0]
+        day_atr_approx = atr_14 * 15 # Approx daily ATR from 1m
+        if abs(close_price - day_open) > (0.8 * day_atr_approx):
+            is_long = False
+            is_short = False
+
     # ── FAKE BREAKOUT DETECTOR ────────────────────────────────────────────────
     if is_long and is_fake_breakout(latest, 'LONG'):
         is_long = False
     if is_short and is_fake_breakout(latest, 'SHORT'):
         is_short = False
 
-    # ── SCORING SYSTEM ────────────────────────────────────────────────────────
+    # ── SCORING SYSTEM (Phase 2: 0-100 Scale) ───────────────────────────────
     score = 0
     direction = 'NONE'
 
@@ -145,50 +176,29 @@ def generate_signals(df: pd.DataFrame) -> dict:
         elif close_price < brk_down:
             direction = 'SHORT'
 
+    # 1. Volume Strength (30 points)
     if vol_ratio >= 2.0:
-        score += 2
+        score += 30
     elif vol_ratio >= 1.5:
-        score += 1
+        score += 20
+    elif vol_ratio >= 1.0:
+        score += 10
 
-    if abs(candle_str) >= min_strength:
-        score += 2
+    # 2. Trend Alignment (30 points)
+    if direction == 'LONG' and close_price > vwap:
+        score += 30
+    elif direction == 'SHORT' and close_price < vwap:
+        score += 30
 
-    if direction == 'LONG':
-        if close_price > vwap:
-            score += 1
-        if close_price > brk_out:
-            score += 1
-    elif direction == 'SHORT':
-        if close_price < vwap:
-            score += 1
-        if close_price < brk_down:
-            score += 1
+    # 3. Price Action Cleanliness (40 points)
+    if abs(candle_str) >= min_strength * 1.5:
+        score += 40
+    elif abs(candle_str) >= min_strength:
+        score += 20
 
     decision = 'AVOID'
     sl = 0.0
     target = 0.0
-
-    # ── SL WITH ATR BUFFER (no more pinpoint SL on candle low) ───────────────
-    atr_abs = latest.get('atr_5', abs(high_price - low_price))
-
-    if score >= 4:
-        if is_long:
-            decision = 'BUY'
-            sl = low_price - (0.3 * atr_abs)  # Buffer below candle low
-            risk = close_price - sl
-            if risk <= 0:
-                decision = 'AVOID'
-            else:
-                target = close_price + (risk * 2.0)  # 2R target
-
-        elif is_short:
-            decision = 'SELL'
-            sl = high_price + (0.3 * atr_abs)  # Buffer above candle high
-            risk = sl - close_price
-            if risk <= 0:
-                decision = 'AVOID'
-            else:
-                target = close_price - (risk * 2.0)
 
     # Determine market condition for UI
     if abs(price_slope) > 0.05:
@@ -197,6 +207,39 @@ def generate_signals(df: pd.DataFrame) -> dict:
         mkt_condition = 'VOLATILE'
     else:
         mkt_condition = 'SIDEWAYS'
+
+    # ── SCORE THRESHOLD FILTER ────────────────────────────────────────────────
+    first_hour = False
+    ts = pd.to_datetime(latest.get('timestamp', df['timestamp'].iloc[-2] if 'timestamp' in df.columns else None))
+    if pd.notnull(ts):
+        if ts.hour == 9 or (ts.hour == 10 and ts.minute <= 15):
+            first_hour = True
+
+    qualifies = False
+    if score >= 70:
+        qualifies = True
+    elif score >= 60 and first_hour: # Only if score >= 60 in first hour
+        qualifies = True
+
+    # ── ADVANCED: DYNAMIC ATR VOLATILITY STOPS ───────────────────────────────
+    if qualifies:
+        if is_long:
+            decision = 'BUY'
+            sl = close_price - (1.5 * atr_14)  # 1.5 ATR Volatility Stop
+            risk = close_price - sl
+            if risk <= 0:
+                decision = 'AVOID'
+            else:
+                target = close_price + (risk * 2.0)  # 2R target
+
+        elif is_short:
+            decision = 'SELL'
+            sl = close_price + (1.5 * atr_14)  # 1.5 ATR Volatility Stop
+            risk = sl - close_price
+            if risk <= 0:
+                decision = 'AVOID'
+            else:
+                target = close_price - (risk * 2.0)
 
     risk = abs(close_price - sl) if sl != 0.0 else 0.0
     rr_ratio = round((abs(target - close_price) / risk), 2) if risk > 0 else 0.0

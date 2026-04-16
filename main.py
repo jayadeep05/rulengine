@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import asyncio
 import logging
-import logging
 import pandas as pd
 from datetime import datetime, time
 import pytz
@@ -19,6 +18,7 @@ from strategy import generate_signals
 from ai_filter import analyze_trade
 from execution import UpstoxExecutionEngine
 from trade_manager import TradeManager
+import market_feed
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -45,29 +45,43 @@ live_prices_cache = {}
 @app.on_event("startup")
 async def startup_event():
     logger.info("Initializing Intelligence and Trading System...")
-    # Connect to Upstox (mock/real depending on MODE)
+    # Connect to Upstox REST API (profile check)
     execution_engine.connect()
-    # Start background scheduler
+    # ── Launch WebSocket real-time market feed (background daemon thread) ──
+    market_feed.start(live_prices_cache, state.live_indices)
+    logger.info("[WS] Upstox WebSocket Market Feed started.")
+    # Start background task loops
     asyncio.create_task(trading_cycle_loop())
-    asyncio.create_task(live_pricing_pump())
+    asyncio.create_task(ws_fallback_pump())
 
-async def live_pricing_pump():
-    """Fetches LTP aggressively for the UI without stalling the math engine."""
+async def ws_fallback_pump():
+    """
+    Lightweight fallback: only polls REST if WebSocket hasn't yet delivered any data
+    (e.g. very first seconds after startup, or during a long reconnect window).
+    Checks every 30 seconds — much gentler than the old 3-second poll.
+    """
     while True:
-        if not state.is_running or state.kill_switch_active:
-            await asyncio.sleep(5)
+        await asyncio.sleep(30)
+        if market_feed.is_live():
+            # WebSocket is healthy — nothing to do
             continue
+        logger.warning("[Fallback] WS has no data yet — firing one-shot REST bulk LTP fetch...")
         try:
             keys = list(Config.SYMBOLS_MAPPING.values())
+            idx_keys = [
+                "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
+                "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
+            ]
+            keys.extend(idx_keys)
             res = execution_engine.get_ltp_bulk(keys)
-            
-            # Map back to human legible symbol names
+            for idx in idx_keys:
+                if idx in res:
+                    state.live_indices[idx] = res[idx]
             for name, key in Config.SYMBOLS_MAPPING.items():
                 if key in res:
                     live_prices_cache[name] = res[key]
         except Exception:
             pass
-        await asyncio.sleep(3)  # Sweep every 3 seconds
 
 # Removed mock data generator. Relying exclusively on real execution engine for data.
 async def trading_cycle_loop():
@@ -158,22 +172,35 @@ async def trading_cycle_loop():
             decision = signal_data['decision']
             final_decision = 'AVOID'
             
-            # 4. Groq AI Filter 
-            if signal_data['score'] >= Config.SCORE_THRESHOLD:
+            # 4. Filter with Multi-Timeframe (MTF) Alignment
+            mtf_approved = True
+            macro_trend = "NONE"
+            if signal_data['score'] >= Config.SCORE_THRESHOLD and decision in ['BUY', 'SELL']:
+                logger.info(f"[{symbol_name}] Pre-Signal detected ({decision}). Checking 60-Min MTF Alignment...")
+                df_60m = execution_engine.get_ohlc(symbol_key, interval="60minute")
+                if not df_60m.empty and len(df_60m) >= 2:
+                    last_1h = df_60m.iloc[-2] # Always use COMPLETED candle
+                    macro_trend = "BULLISH" if last_1h['close'] > last_1h['open'] else "BEARISH"
+                    
+                    if decision == "BUY" and macro_trend == "BEARISH":
+                        mtf_approved = False
+                        logger.warning(f"[{symbol_name}] MTF REJECT: 1-hour trend is BEARISH. Skipping BUY.")
+                    elif decision == "SELL" and macro_trend == "BULLISH":
+                        mtf_approved = False
+                        logger.warning(f"[{symbol_name}] MTF REJECT: 1-hour trend is BULLISH. Skipping SELL.")
+            
+            # 5. Execute Groq AI Check
+            if signal_data['score'] >= Config.SCORE_THRESHOLD and mtf_approved:
                 if Config.USE_GROQ_FILTER:
-                    # Execute Groq AI check
                     logger.info(f"Injecting {symbol_name} signal into Groq AI Check...")
                     ai_decision = analyze_trade(df_features.iloc[-2].to_dict())
                     
-                    if ai_decision == "AVOID":
+                    if ai_decision in ["AVOID", "WEAK"]:
                         final_decision = "AVOID"
-                    elif ai_decision == "WEAK":
-                        final_decision = "AVOID"  # Only trade STRONG
                     else:
                         final_decision = decision
                 else:
                     final_decision = decision # TRADE strictly on rule engine!
-            
             signal_record = {
                 'symbol': symbol_name,
                 'instrument_token': symbol_key,
@@ -248,11 +275,18 @@ def execute_trade(symbol_name: str, symbol_key: str, side: str, signal: dict):
             logger.info(f"Duplicate order blocked for {symbol_name}. Already holding.")
             return
 
-    # Check 5-minute trade cooldown
+    # ── OVERTRADING CONTROL (Phase 4) ────────────────────────────────────────
+    # 1. Global Cooldown (After 2 back-to-back losses)
+    if hasattr(state, 'loss_cooldown_until') and state.loss_cooldown_until:
+        if datetime.now(IST) < state.loss_cooldown_until:
+            logger.info("Global cooldown active due to 2 consecutive losses. Skipping trade.")
+            return
+
+    # 2. Same Stock Re-entry Block (15 mins)
     now = datetime.now(IST)
     last_trade = state.last_trade_time.get(symbol_name)
-    if last_trade and (now - last_trade).total_seconds() < 300:
-        logger.info(f"Cooldown active for {symbol_name}. Skipping trade. (< 5 mins)")
+    if last_trade and (now - last_trade).total_seconds() < 900:  # 15 minutes
+        logger.info(f"Cooldown active for {symbol_name}. Skipping trade. (< 15 mins)")
         return
     
     # ── POSITION SIZING WITH HARD CAP ────────────────────────────────────────
@@ -306,7 +340,8 @@ def execute_trade(symbol_name: str, symbol_key: str, side: str, signal: dict):
         target=signal['target'],
         probability=0.0, # Removed raw param for UI
         score=signal['score'],
-        sl_order_id=sl_res.get('order_id')
+        sl_order_id=sl_res.get('order_id'),
+        metadata=signal.get('metadata')
     )
     trade_manager.active_trades[-1]['instrument_token'] = symbol_key
     state.last_trade_time[symbol_name] = datetime.now(IST)
@@ -341,7 +376,9 @@ def api_get_status():
         "daily_pnl": state.daily_pnl,
         "trades_taken": state.trades_taken,
         "max_trades": Config.MAX_TRADES_PER_DAY,
-        "market_condition": state.market_condition
+        "market_condition": state.market_condition,
+        "indices": state.live_indices,
+        "ws_live": market_feed.is_live()
     }
 
 @app.post("/api/toggle")

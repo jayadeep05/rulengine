@@ -71,7 +71,7 @@ class TradeManager:
         finally:
             db.close()
         
-    def add_trade(self, symbol: str, side: str, entry_price: float, qty: int, sl: float, target: float, probability: float, score: int, sl_order_id: str = None):
+    def add_trade(self, symbol: str, side: str, entry_price: float, qty: int, sl: float, target: float, probability: float, score: int, sl_order_id: str = None, metadata: dict = None):
         trade_id = str(uuid.uuid4())[:8]  # Shorter UUID for easy reading
         trade = {
             'id': trade_id,
@@ -80,6 +80,7 @@ class TradeManager:
             'side': side,
             'entry_price': entry_price,
             'current_price': entry_price, # initial
+            'max_favorable_price': entry_price, # Added for Peak Trailing
             'qty': int(qty),
             'sl': sl,
             'target': target,
@@ -87,6 +88,7 @@ class TradeManager:
             'score': score,
             'pnl': 0.0,
             'status': 'OPEN',
+            'metadata': metadata or {},
             'sl_order_id': sl_order_id
         }
         self.active_trades.append(trade)
@@ -169,49 +171,47 @@ class TradeManager:
 
     def manage_trailing_sl(self, trade: dict, execution_engine=None):
         '''
-        Move SL to breakeven at +1R
-        Trail after +1.5R 
+        ADAPTIVE ATR TRAILING SL (Phase 3)
         '''
         entry = trade['entry_price']
         qty = trade['qty']
         side = trade['side']
         price = trade['current_price']
         sl_order_id = trade.get('sl_order_id')
+        metadata = trade.get('metadata', {})
         
-        # Original sl should be recorded theoretically, here we approximate R based on entry - original SL
-        risk = abs(entry - trade['sl'])
-        if risk == 0:
-            return
+        mkt_condition = metadata.get('market_condition', 'SIDEWAYS')
+        # Use initial ATR saved entirely into trade on entry
+        atr_14 = metadata.get('atr_14')
+        if not atr_14:
+            atr_pct = metadata.get('atr_pct', 0.5) / 100  # Stored as % (e.g. 0.5)
+            atr_14 = entry * atr_pct if entry > 0 else 10.0
             
-        r_multiple = 0
+        if atr_14 <= 0: return
+        
+        # Track Peak Price
+        max_p = trade.get('max_favorable_price', entry)
+        if side == 'BUY': max_p = max(max_p, price)
+        else: max_p = min(max_p, price) if max_p > 0 else price
+        trade['max_favorable_price'] = max_p
+        
+        # Determine Multiplier
+        trailing_mult = 2.5 if mkt_condition == 'TRENDING' else 1.2
+        
+        new_sl = trade['sl']
         if side == 'BUY':
-            r_multiple = (price - entry) / risk
+            candidate_sl = max_p - (trailing_mult * atr_14)
+            # Only move SL up
+            if candidate_sl > trade['sl']:
+                new_sl = candidate_sl
         else:
-            r_multiple = (entry - price) / risk
-            
-        new_sl = None
-        trigger_r = getattr(Config, 'TRAILING_SL_ACTIVATION', 1.0)
-        
-        # Move SL to breakeven
-        if r_multiple >= trigger_r and r_multiple < trigger_r + 0.5:
-            if side == 'BUY' and trade['sl'] < entry:
-                new_sl = entry
-            elif side == 'SELL' and trade['sl'] > entry:
-                new_sl = entry
-                
-        # Trail aggressively after trigger + 0.5R
-        if r_multiple >= trigger_r + 0.5:
-            if side == 'BUY':
-                candidate_sl = entry + (risk * trigger_r)
-                if trade['sl'] < candidate_sl:
-                    new_sl = candidate_sl
-            else:
-                candidate_sl = entry - (risk * trigger_r)
-                if trade['sl'] > candidate_sl:
-                    new_sl = candidate_sl
+            candidate_sl = max_p + (trailing_mult * atr_14)
+            # Only move SL down
+            if candidate_sl < trade['sl']:
+                new_sl = candidate_sl
 
         # If a physically new SL triggers, process it on the server
-        if new_sl and new_sl != trade['sl']:
+        if new_sl and abs(new_sl - trade['sl']) > 0.05: # Prevent micro-modifications
             if execution_engine and sl_order_id:
                 rounded_trigger = round(new_sl * 20) / 20.0
                 mod_res = execution_engine.modify_order(
@@ -222,27 +222,42 @@ class TradeManager:
                     order_type="SL-M"
                 )
                 if mod_res.get('status') == 'success':
-                    trade_logger.info(f"TRAILED PHYSICAL SL: {trade['symbol']} | Old SL: {trade['sl']} | New SL: {new_sl}")
+                    trade_logger.info(f"TRAILED PHYSICAL SL: {trade['symbol']} (Mult: {trailing_mult}x) | Old: {trade['sl']} | New: {new_sl}")
                     trade['sl'] = new_sl
-                    logger.info(f"Successfully trailing SL to {new_sl} for {trade['symbol']}")
                 else:
                     logger.error(f"Failed to trail SL physically via Upstox for {trade['symbol']}")
             else:
-                trade_logger.info(f"TRAILED LOCAL SL: {trade['symbol']} | Old SL: {trade['sl']} | New SL: {new_sl}")
+                trade_logger.info(f"TRAILED LOCAL SL: {trade['symbol']} (Mult: {trailing_mult}x) | Old: {trade['sl']} | New: {new_sl}")
                 trade['sl'] = new_sl
-                logger.info(f"Trailing local SL to {new_sl} for {trade['symbol']}")
 
     def close_trade(self, trade: dict, reason: str):
         trade['status'] = 'CLOSED'
         trade['exit_reason'] = reason
         trade['exit_time'] = datetime.datetime.now().isoformat()
         
+        # Overtrading Control (Phase 4): Consecutive Losses Tracking
+        from config import SystemState
+        if not hasattr(SystemState, 'consecutive_losses'):
+            SystemState.consecutive_losses = 0
+            
+        if trade['pnl'] < 0:
+            SystemState.consecutive_losses += 1
+            if SystemState.consecutive_losses >= 2:
+                import pytz
+                IST = pytz.timezone('Asia/Kolkata')
+                import datetime as dt
+                SystemState.loss_cooldown_until = dt.datetime.now(IST) + dt.timedelta(minutes=30)
+                logger.warning("2 Consecutive losses hit! Global Cooldown enabled for 30 minutes.")
+        else:
+            if trade['pnl'] > 0:
+                SystemState.consecutive_losses = 0 # reset on win
+
         # Move lists
         self.trade_history.append(trade)
         if trade in self.active_trades:
             self.active_trades.remove(trade)
             
-        logger.info(f"Trade closed: {trade['id']}, Reason: {reason}, PnL: {trade['pnl']}")
+        logger.info(f"Trade closed: {trade['id']}, Reason: {reason}, PnL: {trade['pnl']}, Consecutive Losses: {getattr(SystemState, 'consecutive_losses', 0)}")
         trade_logger.info(f"CLOSED TRADE: [id={trade['id']}, symbol={trade['symbol']}, reason={reason}, final_pnl={trade['pnl']}, exit_price={trade['current_price']}]")
 
         # Update Database

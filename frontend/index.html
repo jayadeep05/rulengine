@@ -132,14 +132,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 32px;
+            padding: 10px 24px;
             background: rgba(3, 6, 16, 0.85);
             border-bottom: 1px solid var(--border);
             backdrop-filter: blur(20px);
             position: sticky;
             top: 0;
             z-index: 200;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
         }
 
         .header-left { display: flex; align-items: center; gap: 24px; }
@@ -188,8 +188,8 @@
         .header-right { display: flex; gap: 12px; align-items: center; }
 
         button {
-            padding: 8px 16px; border-radius: 8px; font-weight: 600;
-            font-size: 13px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 6px 14px; border-radius: 6px; font-weight: 600;
+            font-size: 11px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: 'Inter', sans-serif;
             display: flex; align-items: center; justify-content: center; gap: 6px;
         }
@@ -202,7 +202,7 @@
             border-color: rgba(0, 230, 118, 0.4); text-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
         }
 
-        .btn-mode { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+        .btn-mode { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 10px; letter-spacing: 0.5px; }
         .btn-mode.test { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59, 130, 246, 0.3); }
         .btn-mode.live { background: rgba(255, 59, 59, 0.1); color: var(--red); border-color: rgba(255, 59, 59, 0.3); animation: pulse-live 2s infinite; }
 
@@ -220,35 +220,53 @@
         .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
         .btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
 
-        .btn-sm { padding: 6px 12px; font-size: 11px; border-radius: 6px; }
+        .btn-sm { padding: 4px 10px; font-size: 10px; border-radius: 4px; }
         
-        .btn-theme { background: transparent; color: var(--muted); border: none; font-size: 18px; border-radius: 50%; width: 36px; height: 36px; display:flex; align-items:center; justify-content:center; transition: all 0.2s; }
+        .btn-theme { background: transparent; color: var(--muted); border: none; font-size: 16px; border-radius: 50%; width: 30px; height: 30px; display:flex; align-items:center; justify-content:center; transition: all 0.2s; }
         .btn-theme:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
         /* ── LAYOUT ── */
-        .page { padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1800px; margin: 0 auto; }
+        .page { padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1800px; margin: 0 auto; }
+        
+        /* ── INDEX BANNER ── */
+        .index-banner {
+            position: sticky; top: 57px; z-index: 190; backdrop-filter: blur(24px);
+            display: flex; justify-content: space-between; padding: 10px 20px;
+            background: linear-gradient(90deg, rgba(20, 28, 48, 0.4) 0%, rgba(10, 16, 30, 0.6) 100%);
+            border: 1px solid var(--border); border-radius: 8px; margin-bottom: -4px;
+            overflow-x: auto; white-space: nowrap; align-items: center;
+        }
+        [data-theme="light"] .index-banner { 
+            background: #ffffff !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important; 
+            border-color: var(--border-light) !important; 
+        }
+        .idx-item { display: flex; gap: 8px; align-items: baseline; }
+        .idx-name { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; }
+        [data-theme="light"] .idx-name { color: #64748b !important; }
+        .idx-price { font-size: 13px; font-weight: 700; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+        [data-theme="light"] .idx-price { color: var(--text) !important; }
 
         /* ── STAT RIBBON ── */
-        .ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .stat-card {
             background: linear-gradient(180deg, rgba(20, 28, 48, 0.5) 0%, rgba(10, 16, 30, 0.6) 100%);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border);
             border-top: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 16px 20px;
-            display: flex; flex-direction: column; gap: 6px;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex; flex-direction: column; gap: 4px;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
             box-shadow: var(--shadow-sm);
         }
         .stat-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 20px rgba(59, 130, 246, 0.05);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 20px rgba(59, 130, 246, 0.05);
         }
-        .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
-        .stat-val { font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono'; letter-spacing: -0.5px; }
-        .stat-sub { font-size: 11px; color: var(--muted); font-weight: 500; }
+        .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 700; }
+        .stat-val { font-size: 20px; font-weight: 800; font-family: 'JetBrains Mono'; letter-spacing: -0.5px; }
+        .stat-sub { font-size: 10px; color: var(--muted); font-weight: 500; }
 
         .g { color: var(--green) !important; text-shadow: 0 0 12px rgba(0, 230, 118, 0.2); }
         .r { color: var(--red) !important; text-shadow: 0 0 12px rgba(255, 59, 59, 0.2); }
@@ -256,9 +274,9 @@
         .y { color: var(--yellow) !important; text-shadow: 0 0 12px rgba(251, 191, 36, 0.2); }
 
         /* ── MAIN GRID ── */
-        .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
-        .left-col { display: flex; flex-direction: column; gap: 24px; }
-        .right-col { display: flex; flex-direction: column; gap: 24px; }
+        .main-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+        .left-col { display: flex; flex-direction: column; gap: 16px; }
+        .right-col { display: flex; flex-direction: column; gap: 16px; }
 
         /* ── PANEL ── */
         .panel {
@@ -266,95 +284,95 @@
             backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-top: 1px solid var(--border-light);
-            border-radius: 16px;
+            border-radius: 10px;
             overflow: hidden;
             box-shadow: var(--shadow-sm);
         }
         .panel-header {
-            padding: 16px 20px;
+            padding: 12px 16px;
             background: rgba(0, 0, 0, 0.2);
             border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+            font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
         }
-        .panel-header-left { display: flex; align-items: center; gap: 10px; }
-        .panel-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .panel-header-left { display: flex; align-items: center; gap: 8px; }
+        .panel-label { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
 
         /* ── ACTIVE TRADE CARDS ── */
-        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 20px; }
+        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 12px; }
         .trade-card {
             background: linear-gradient(145deg, rgba(20, 28, 48, 0.8) 0%, rgba(10, 16, 30, 0.9) 100%);
             border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px; padding: 20px;
+            border-radius: 8px; padding: 12px;
             position: relative; overflow: hidden;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 10px rgba(0,0,0,0.2);
         }
         .trade-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
         .trade-card.profit::after { background: linear-gradient(90deg, var(--green), #34d399); box-shadow: 0 0 10px rgba(0,230,118,0.5); }
         .trade-card.loss::after { background: linear-gradient(90deg, var(--red), #f87171); box-shadow: 0 0 10px rgba(255,59,59,0.5); }
         
-        .tc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-        .tc-symbol { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .tc-sym-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+        .tc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .tc-symbol { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .tc-sym-name { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
         
-        .side-tag { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap;}
+        .side-tag { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap;}
         .side-tag.buy { background: rgba(0, 230, 118, 0.1); color: var(--green); border-color: rgba(0, 230, 118, 0.2); }
         .side-tag.sell { background: rgba(255, 59, 59, 0.1); color: var(--red); border-color: rgba(255, 59, 59, 0.2); }
         
         .tc-pnl { text-align: right; }
-        .tc-pnl-val { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono'; }
-        .tc-pnl-pct { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono'; font-weight: 600; }
+        .tc-pnl-val { font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono'; }
+        .tc-pnl-pct { font-size: 10px; color: var(--muted); margin-top: 1px; font-family: 'JetBrains Mono'; font-weight: 600; }
 
         .tc-price-row {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'JetBrains Mono'; font-size: 13px;
-            background: rgba(0, 0, 0, 0.3); border-radius: 8px; padding: 10px 14px;
-            margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'JetBrains Mono'; font-size: 12px;
+            background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 8px 10px;
+            margin-bottom: 12px;
             border: 1px solid rgba(255,255,255,0.03);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
-        .tc-ltp { font-size: 20px; font-weight: 800; transition: color 0.3s; }
+        .tc-ltp { font-size: 16px; font-weight: 800; transition: color 0.3s; }
         .price-flash-up { color: var(--green) !important; text-shadow: 0 0 10px rgba(0,230,118,0.5); }
         .price-flash-dn { color: var(--red) !important; text-shadow: 0 0 10px rgba(255,59,59,0.5); }
 
-        .tc-progress { margin-bottom: 16px; }
-        .tc-progress-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono'; font-weight: 600; }
-        .tc-bar-track { height: 6px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
-        .tc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; position: relative; }
+        .tc-progress { margin-bottom: 12px; }
+        .tc-progress-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: 'JetBrains Mono'; font-weight: 600; }
+        .tc-bar-track { height: 4px; background: rgba(0, 0, 0, 0.5); border-radius: 2px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+        .tc-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; position: relative; }
         .tc-bar-fill::after {
             content:''; position: absolute; top:0; left:0; right:0; bottom:0;
             background: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
-            background-size: 1rem 1rem; animation: progress-stripes 1s linear infinite; border-radius: 3px;
+            background-size: 1rem 1rem; animation: progress-stripes 1s linear infinite; border-radius: 2px;
         }
         @keyframes progress-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
         .tc-bar-fill.profit { background: var(--green); box-shadow: 0 0 8px rgba(0,230,118,0.4); }
         .tc-bar-fill.loss { background: var(--red); box-shadow: 0 0 8px rgba(255,59,59,0.4); }
-        .tc-bar-cursor { position: absolute; top: -4px; width: 4px; height: 14px; background: #fff; border-radius: 2px; transition: left 0.5s ease; box-shadow: 0 0 5px #fff; z-index: 2; }
+        .tc-bar-cursor { position: absolute; top: -3px; width: 3px; height: 10px; background: #fff; border-radius: 1px; transition: left 0.5s ease; box-shadow: 0 0 5px #fff; z-index: 2; }
 
-        .tc-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; font-size: 12px; margin-bottom: 16px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; }
-        .tc-stat { display: flex; flex-direction: column; gap: 3px; }
-        .tc-stat-label { color: var(--muted); font-size: 9px; text-transform: uppercase; font-weight: 700;}
-        .tc-stat-val { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 12px; }
+        .tc-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 10px; margin-bottom: 12px; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; }
+        .tc-stat { display: flex; flex-direction: column; gap: 2px; }
+        .tc-stat-label { color: var(--muted); font-size: 8px; text-transform: uppercase; font-weight: 700;}
+        .tc-stat-val { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 11px; }
 
-        .tc-actions { display: flex; gap: 8px; }
-        .tc-status-tag { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap; }
+        .tc-actions { display: flex; gap: 6px; }
+        .tc-status-tag { font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap; }
         .tc-status-tag.sl-placed { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59,130,246,0.2); }
         .tc-status-tag.trailing { background: rgba(0, 230, 118, 0.1); color: var(--green); border-color: rgba(0,230,118,0.2); }
         .tc-status-tag.entered { background: rgba(255, 255, 255, 0.05); color: var(--muted); border-color: rgba(255,255,255,0.1); }
 
         /* ── SCANNER PANEL ── */
         .scanner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
-        .scan-card { padding: 20px; border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; position: relative; }
+        .scan-card { padding: 12px; border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; position: relative; }
         .scan-card:last-child { border-right: none; }
         .scan-card:hover { background: rgba(255, 255, 255, 0.03); }
         
-        .scan-rank { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .scan-rank { font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         .scan-rank i { font-style: normal; color: var(--blue); }
         
-        .scan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .scan-sym { font-size: 18px; font-weight: 800; }
-        .scan-decision { font-size: 12px; font-weight: 800; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 6px; }
-        .scan-price { font-family: 'JetBrains Mono'; font-size: 12px; color: var(--muted); margin-bottom: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .scan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .scan-sym { font-size: 15px; font-weight: 800; }
+        .scan-decision { font-size: 10px; font-weight: 800; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 4px; }
+        .scan-price { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         
         .conf-bar { height: 5px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; margin-bottom: 12px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
         .conf-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
@@ -424,12 +442,12 @@
         /* ── TRADE HISTORY TABLE ── */
         .tbl { width: 100%; border-collapse: collapse; min-width: 650px;}
         .tbl th {
-            padding: 12px 20px; font-size: 10px; color: var(--muted);
+            padding: 10px 16px; font-size: 9px; color: var(--muted);
             border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;
             text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;
             background: rgba(0,0,0,0.2);
         }
-        .tbl td { padding: 14px 20px; font-size: 13px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-family: 'JetBrains Mono'; font-weight: 500; }
+        .tbl td { padding: 10px 16px; font-size: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-family: 'JetBrains Mono'; font-weight: 500; }
         .tbl tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
         /* ── MODALS & TOASTS ── */
@@ -565,6 +583,16 @@
 
     <!-- ══════════════ PAGE ══════════════ -->
     <div class="page">
+
+        <!-- INDEX BANNER -->
+        <div class="index-banner">
+            <div class="idx-item"><span class="idx-name">NIFTY 50</span><span class="idx-price" id="ix-nifty">--</span></div>
+            <div class="idx-item"><span class="idx-name">SENSEX</span><span class="idx-price" id="ix-sensex">--</span></div>
+            <div class="idx-item"><span class="idx-name">NIFTY BANK</span><span class="idx-price" id="ix-bank">--</span></div>
+            <div class="idx-item"><span class="idx-name">FINNIFTY</span><span class="idx-price" id="ix-fin">--</span></div>
+            <div class="idx-item"><span class="idx-name">MIDCPNIFTY</span><span class="idx-price" id="ix-mid">--</span></div>
+            <div class="idx-item"><span class="idx-name">INDIA VIX</span><span class="idx-price" id="ix-vix">--</span></div>
+        </div>
 
         <!-- STAT RIBBON -->
         <div class="ribbon">
@@ -1013,6 +1041,23 @@
                 else if (!state.is_running) { dot.className = 'health-dot warn'; txt.textContent = 'PAUSED'; }
                 else { dot.className = 'health-dot ok'; txt.textContent = 'SYSTEM ONLINE'; }
 
+                // Index Banner Tracking
+                if (state.indices) {
+                    const n = state.indices["NSE_INDEX|Nifty 50"];
+                    const sx = state.indices["BSE_INDEX|SENSEX"];
+                    const b = state.indices["NSE_INDEX|Nifty Bank"];
+                    const f = state.indices["NSE_INDEX|Nifty Fin Service"];
+                    const m = state.indices["NSE_INDEX|NIFTY MID SELECT"];
+                    const v = state.indices["NSE_INDEX|India VIX"];
+                    
+                    document.getElementById('ix-nifty').textContent = n ? parseFloat(n).toFixed(2) : '--';
+                    document.getElementById('ix-sensex').textContent = sx ? parseFloat(sx).toFixed(2) : '--';
+                    document.getElementById('ix-bank').textContent = b ? parseFloat(b).toFixed(2) : '--';
+                    document.getElementById('ix-fin').textContent = f ? parseFloat(f).toFixed(2) : '--';
+                    document.getElementById('ix-mid').textContent = m ? parseFloat(m).toFixed(2) : '--';
+                    document.getElementById('ix-vix').textContent = v ? parseFloat(v).toFixed(2) : '--';
+                }
+
                 // Ribbon
                 const pnl = state.daily_pnl || 0;
                 const pnlEl = document.getElementById('v-pnl');
@@ -1175,7 +1220,7 @@
                     </div>
                     <div class="tc-stat">
                         <div class="tc-stat-label">AI Score</div>
-                        <div class="tc-stat-val y">${t.score || '--'}/10</div>
+                        <div class="tc-stat-val y">${t.score || '--'}/100</div>
                     </div>
                 </div>
 
@@ -1232,15 +1277,15 @@
                     if (!lastSignalSymbols.includes(sym)) {
                         const sig = sorted.find(s => s.symbol === sym);
                         const m = sig.metadata || {};
-                        addTimeline(`SIGNAL ACQUIRED: ${sym}`, `Score ${sig.score}/10 | Vol ${m.volume_ratio}x | RR 1:${m.rr_ratio}`, 'detect');
-                        toast(`🎯 Strong setup detected: ${sym} → ${sig.decision} | Score: ${sig.score}/10`, 'info');
+                        addTimeline(`SIGNAL ACQUIRED: ${sym}`, `Score ${sig.score}/100 | Vol ${m.volume_ratio}x | RR 1:${m.rr_ratio}`, 'detect');
+                        toast(`🎯 Strong setup detected: ${sym} → ${sig.decision} | Score: ${sig.score}/100`, 'info');
                     }
                 });
                 lastSignalSymbols = tradeableSyms;
 
                 box.innerHTML = sorted.map((s, i) => {
                     const m = s.metadata || {};
-                    const confScore = Math.min(100, Math.round((s.score / 10) * 70 + (m.volume_spike ? 15 : 0) + (m.strong_candle ? 10 : 0) + (m.breakout ? 5 : 0)));
+                    const confScore = s.score || 0;
                     const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 40 ? 'var(--yellow)' : 'var(--muted)';
                     const decColor = s.decision === 'BUY' ? 'var(--green)' : s.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
                     const decLabel = s.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${s.decision}`;
@@ -1276,7 +1321,7 @@
 
                 <div class="scan-insights">
                     <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '--'}</span>
-                    <span class="insight-chip ${s.score >= 6 ? 'active' : ''}">Score ${s.score}/10</span>
+                    <span class="insight-chip ${s.score >= 70 ? 'active' : ''}">Score ${s.score}/100</span>
                     <span class="insight-chip">ATR ${m.atr_pct || '--'}%</span>
                     <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
                 </div>

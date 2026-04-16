@@ -1,8 +1,16 @@
 from pydantic import BaseModel
 from typing import List, Optional
 import os
-
 import json
+
+# Native .env loader to securely pull keys without external packages
+if os.path.exists(".env"):
+    with open(".env", "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
 
 class Config:
     # Execution Mode: "TEST" or "LIVE"
@@ -20,7 +28,7 @@ class Config:
     UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID", "")
     UPSTOX_CLIENT_SECRET = os.getenv("UPSTOX_CLIENT_SECRET", "")
     UPSTOX_ACCESS_TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "")
-    REDIRECT_URI = os.getenv("REDIRECT_URI", "https://deepcodev.com/callback")
+    REDIRECT_URI = "https://deepcodev.com/callback"
 
     RISK_PER_TRADE_PCT = 0.01  # 1% of capital
     MAX_TRADES_PER_DAY = 5
@@ -33,7 +41,26 @@ class Config:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
     USE_GROQ_FILTER = True
     SCORE_THRESHOLD = 4
+    SCORE_THRESHOLD_MIN = 3 # Minimum score for a trade
     PROBABILITY_THRESHOLD = 0.65  # Ignored when GROQ is active
+    
+    # Advanced Filtering Toggles
+    USE_VOLUME_FILTER = True
+    USE_MOMENTUM_FILTER = True
+    USE_INDEX_ALIGNMENT = True
+    USE_SYMBOL_COOLDOWN = True
+    
+    # Filtering Thresholds
+    VOLUME_SPIKE_RATIO = 2.0  # (User requested >= 2x)
+    MAX_PRE_ENTRY_MOVE_PCT = 0.02  # 2% max move before entry
+    MAX_WICK_PCT = 0.35  # Max wick rejection %
+    SYMBOLS_COOLDOWN_MINUTES = 120 # 2 hours after SL
+    CONSECUTIVE_LOSS_COOLDOWN_MINUTES = 60 # 1 hour after 2 losses
+    
+    # Adaptive Trailing Settings
+    TRAILING_STYLE = "ADAPTIVE" # "FIXED" or "ADAPTIVE"
+    TRAILING_ATR_MULT_STRONG = 2.0  # Loose trail for strong trend
+    TRAILING_ATR_MULT_WEAK = 1.0    # Tight trail for weak trend
     
     # Strategy configs
     BREAKOUT_PERIOD = 15  # For max/min (10-15 candles)
@@ -168,7 +195,10 @@ Config.load()
 class SystemState:
     daily_pnl: float = 0.0
     trades_taken: int = 0
+    consecutive_losses: int = 0
     kill_switch_active: bool = False
     is_running: bool = True
     last_trade_time: dict = {}
+    blocked_symbols: dict = {} # symbol -> time_until_unblocked
     market_condition: str = "WAITING"
+    live_indices: dict = {}

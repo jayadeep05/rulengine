@@ -5,3 +5,6 @@ numpy
 scikit-learn
 joblib
 requests
+upstox-python-sdk
+websocket-client
+protobuf

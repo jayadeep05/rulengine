@@ -48,9 +48,12 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     df['vwap_distance'] = (df['close'] - df['vwap']) / df['vwap']
 
     # ── NEW: ATR% for volatility/sideways market detection ────────────────────
-    df['atr'] = df['high'] - df['low']
-    df['atr_5'] = df['atr'].rolling(5).mean()
-    df['atr_pct'] = df['atr_5'] / df['close']
+    df['tr1'] = df['high'] - df['low']
+    df['tr2'] = (df['high'] - df['close'].shift(1)).abs()
+    df['tr3'] = (df['low'] - df['close'].shift(1)).abs()
+    df['true_range'] = df[['tr1', 'tr2', 'tr3']].max(axis=1)
+    df['atr_14'] = df['true_range'].rolling(14).mean().fillna(df['high'] - df['low'])
+    df['atr_pct'] = df['atr_14'] / df['close']
 
     # ── NEW: Price slope for trend detection ──────────────────────────────────
     def rolling_slope(series, window=10):
