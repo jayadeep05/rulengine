@@ -226,7 +226,7 @@
         .btn-theme:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
         /* ── LAYOUT ── */
-        .page { padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; max-width: 1800px; margin: 0 auto; }
+        .page { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1800px; margin: 0 auto; }
         
         /* ── INDEX BANNER ── */
         .index-banner {
@@ -299,97 +299,96 @@
         .panel-label { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
 
         /* ── ACTIVE TRADE CARDS ── */
-        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 12px; }
+        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 16px; }
         .trade-card {
-            background: linear-gradient(145deg, rgba(20, 28, 48, 0.8) 0%, rgba(10, 16, 30, 0.9) 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px; padding: 12px;
+            background: linear-gradient(145deg, rgba(20, 28, 48, 0.4) 0%, rgba(10, 16, 30, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 16px;
             position: relative; overflow: hidden;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .trade-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
-        .trade-card.profit::after { background: linear-gradient(90deg, var(--green), #34d399); box-shadow: 0 0 10px rgba(0,230,118,0.5); }
-        .trade-card.loss::after { background: linear-gradient(90deg, var(--red), #f87171); box-shadow: 0 0 10px rgba(255,59,59,0.5); }
+        .trade-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+        .trade-card::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .trade-card.profit::after { background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .trade-card.loss::after { background: var(--red); box-shadow: 0 0 10px var(--red); }
         
-        .tc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .tc-symbol { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-        .tc-sym-name { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
+        .tc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+        .tc-symbol { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .tc-sym-name { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
         
-        .side-tag { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap;}
+        .side-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; border: 1px solid transparent; text-transform: uppercase; }
         .side-tag.buy { background: rgba(0, 230, 118, 0.1); color: var(--green); border-color: rgba(0, 230, 118, 0.2); }
         .side-tag.sell { background: rgba(255, 59, 59, 0.1); color: var(--red); border-color: rgba(255, 59, 59, 0.2); }
         
         .tc-pnl { text-align: right; }
-        .tc-pnl-val { font-size: 18px; font-weight: 800; font-family: 'JetBrains Mono'; }
-        .tc-pnl-pct { font-size: 10px; color: var(--muted); margin-top: 1px; font-family: 'JetBrains Mono'; font-weight: 600; }
+        .tc-pnl-val { font-size: 20px; font-weight: 800; font-family: 'JetBrains Mono'; }
+        .tc-pnl-pct { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'JetBrains Mono'; font-weight: 600; }
 
         .tc-price-row {
             display: flex; align-items: center; gap: 8px;
-            font-family: 'JetBrains Mono'; font-size: 12px;
-            background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 8px 10px;
-            margin-bottom: 12px;
-            border: 1px solid rgba(255,255,255,0.03);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'JetBrains Mono'; font-size: 13px;
+            background: rgba(0, 0, 0, 0.4); border-radius: 8px; padding: 10px 14px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .tc-ltp { font-size: 16px; font-weight: 800; transition: color 0.3s; }
-        .price-flash-up { color: var(--green) !important; text-shadow: 0 0 10px rgba(0,230,118,0.5); }
-        .price-flash-dn { color: var(--red) !important; text-shadow: 0 0 10px rgba(255,59,59,0.5); }
+        .tc-ltp { font-size: 18px; font-weight: 800; }
 
-        .tc-progress { margin-bottom: 12px; }
-        .tc-progress-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-bottom: 4px; font-family: 'JetBrains Mono'; font-weight: 600; }
-        .tc-bar-track { height: 4px; background: rgba(0, 0, 0, 0.5); border-radius: 2px; position: relative; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
-        .tc-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; position: relative; }
-        .tc-bar-fill::after {
-            content:''; position: absolute; top:0; left:0; right:0; bottom:0;
-            background: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
-            background-size: 1rem 1rem; animation: progress-stripes 1s linear infinite; border-radius: 2px;
-        }
-        @keyframes progress-stripes { from { background-position: 1rem 0; } to { background-position: 0 0; } }
-        .tc-bar-fill.profit { background: var(--green); box-shadow: 0 0 8px rgba(0,230,118,0.4); }
-        .tc-bar-fill.loss { background: var(--red); box-shadow: 0 0 8px rgba(255,59,59,0.4); }
-        .tc-bar-cursor { position: absolute; top: -3px; width: 3px; height: 10px; background: #fff; border-radius: 1px; transition: left 0.5s ease; box-shadow: 0 0 5px #fff; z-index: 2; }
+        .tc-progress { margin-bottom: 16px; }
+        .tc-progress-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono'; font-weight: 700; }
+        .tc-bar-track { height: 6px; background: rgba(0, 0, 0, 0.6); border-radius: 3px; position: relative; }
+        .tc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; position: relative; }
+        .tc-bar-fill.profit { background: linear-gradient(90deg, var(--green), #34d399); box-shadow: 0 0 10px rgba(0,230,118,0.3); }
+        .tc-bar-fill.loss { background: linear-gradient(90deg, var(--red), #f87171); box-shadow: 0 0 10px rgba(255,59,59,0.3); }
+        .tc-bar-cursor { position: absolute; top: -4px; width: 4px; height: 14px; background: #fff; border-radius: 2px; box-shadow: 0 0 8px #fff; z-index: 2; }
 
-        .tc-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 10px; margin-bottom: 12px; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px; }
-        .tc-stat { display: flex; flex-direction: column; gap: 2px; }
-        .tc-stat-label { color: var(--muted); font-size: 8px; text-transform: uppercase; font-weight: 700;}
-        .tc-stat-val { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 11px; }
+        .tc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .tc-stat { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px; border: 1px solid rgba(255,255,255,0.03); text-align: center; }
+        .tc-stat-label { color: var(--muted); font-size: 9px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .tc-stat-val { font-family: 'JetBrains Mono'; font-weight: 800; font-size: 13px; }
 
-        .tc-actions { display: flex; gap: 6px; }
-        .tc-status-tag { font-size: 9px; font-weight: 700; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px; border: 1px solid transparent; white-space: nowrap; }
-        .tc-status-tag.sl-placed { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59,130,246,0.2); }
-        .tc-status-tag.trailing { background: rgba(0, 230, 118, 0.1); color: var(--green); border-color: rgba(0,230,118,0.2); }
+        .tc-actions { display: flex; gap: 8px; }
+        .tc-status-tag { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; border: 1px solid transparent; }
+        .tc-status-tag.sl-placed { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59,130,246,0.3); }
+        .tc-status-tag.trailing { background: rgba(0, 230, 118, 0.15); color: var(--green); border-color: rgba(0,230,118,0.4); animation: glow-green 2s infinite; }
+        @keyframes glow-green { 0%, 100% { box-shadow: 0 0 5px rgba(0,230,118,0.2); } 50% { box-shadow: 0 0 15px rgba(0,230,118,0.5); } }
         .tc-status-tag.entered { background: rgba(255, 255, 255, 0.05); color: var(--muted); border-color: rgba(255,255,255,0.1); }
 
         /* ── SCANNER PANEL ── */
         .scanner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
-        .scan-card { padding: 12px; border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; position: relative; }
-        .scan-card:last-child { border-right: none; }
-        .scan-card:hover { background: rgba(255, 255, 255, 0.03); }
-        
-        .scan-rank { font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-        .scan-rank i { font-style: normal; color: var(--blue); }
-        
-        .scan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .scan-sym { font-size: 15px; font-weight: 800; }
-        .scan-decision { font-size: 10px; font-weight: 800; background: rgba(0,0,0,0.3); padding: 3px 6px; border-radius: 4px; }
-        .scan-price { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        
-        .conf-bar { height: 5px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; margin-bottom: 12px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
-        .conf-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-        
-        .scan-checks { display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: 500; }
-        .chk { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-        .chk.pass { color: var(--text); }
-        .chk-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-        .chk.pass .chk-dot { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
-
-        .scan-insights { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-        .insight-chip {
-            font-size: 10px; font-family: 'JetBrains Mono'; font-weight: 700;
-            padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3); color: var(--muted);
+        .scan-card { 
+            padding: 20px; border-right: 1px solid rgba(255,255,255,0.03); 
+            border-bottom: 1px solid rgba(255,255,255,0.03); 
+            transition: all 0.2s ease; position: relative;
         }
-        .insight-chip.active { border-color: rgba(59, 130, 246, 0.4); color: var(--blue); background: rgba(59, 130, 246, 0.1); }
+        .scan-card:hover { background: rgba(255, 255, 255, 0.02); }
+        .scan-card:last-child { border-right: none; }
+        
+        .scan-rank { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .scan-rank i { font-style: normal; color: var(--blue); background: rgba(59, 130, 246, 0.1); padding: 2px 6px; border-radius: 4px; }
+        
+        .scan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .scan-sym { font-size: 18px; font-weight: 800; }
+        .scan-decision { font-size: 11px; font-weight: 800; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); }
+        .scan-price { font-family: 'JetBrains Mono'; font-size: 12px; color: var(--muted); margin-bottom: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        
+        .conf-bar { height: 8px; background: rgba(0, 0, 0, 0.6); border-radius: 4px; margin-bottom: 16px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .conf-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        .scan-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; font-weight: 600; margin-bottom: 16px; }
+        .chk { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 4px; border-radius: 4px; background: rgba(255,255,255,0.01); }
+        .chk.pass { color: var(--text); background: rgba(0, 230, 118, 0.03); }
+        .chk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+        .chk.pass .chk-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+        .scan-insights { display: flex; flex-wrap: wrap; gap: 8px; }
+        .insight-chip {
+            font-size: 10px; font-family: 'JetBrains Mono'; font-weight: 800;
+            padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
+            background: rgba(0,0,0,0.3); color: var(--muted); transition: all 0.2s;
+        }
+        .insight-chip.active { border-color: rgba(59, 130, 246, 0.4); color: var(--blue); background: rgba(59, 130, 246, 0.1); box-shadow: 0 0 10px rgba(59, 130, 246, 0.1); }
 
         /* ── ALERTS PANEL ── */
         .alerts-list { max-height: 280px; overflow-y: auto; }
@@ -500,45 +499,412 @@
         .empty { padding: 48px; text-align: center; color: var(--muted); font-size: 13px;}
         .empty-icon { font-size: 32px; opacity: 0.3; margin-bottom: 12px; filter: grayscale(1); }
 
-        /* ── MOBILE OPTIMIZATION ── */
+        /* ═══════════════════════════════════════════════
+           TABLET (≤1200px)
+        ══════════════════════════════════════════════════ */
         @media (max-width: 1200px) {
             .main-grid { grid-template-columns: 1fr; }
-            .scanner-grid { grid-template-columns: repeat(2, 1fr); border-right: none;}
+            .scanner-grid { grid-template-columns: repeat(2, 1fr); border-right: none; }
             .trade-cards-grid { grid-template-columns: repeat(2, 1fr); }
             .ribbon { grid-template-columns: repeat(3, 1fr); }
             .scan-card { border-right: 1px solid rgba(255,255,255,0.05); }
             .scan-card:nth-child(even) { border-right: none; }
         }
+
+        /* ═══════════════════════════════════════════════
+           MOBILE (≤768px) — Premium Redesign v3
+        ══════════════════════════════════════════════════ */
         @media (max-width: 768px) {
-            .header { padding: 12px 16px; flex-direction: column; gap: 16px; align-items: stretch;}
-            .header-left { justify-content: space-between; }
-            .header-right { flex-wrap: wrap; justify-content: stretch; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;}
-            .btn-danger { grid-column: span 2; }
-            
-            .page { padding: 16px; gap: 16px; }
-            .ribbon { grid-template-columns: repeat(2, 1fr); gap: 12px;}
-            
-            .scanner-grid { grid-template-columns: 1fr; }
-            .scan-card { border-right: none !important; }
-            
-            .trade-cards-grid { grid-template-columns: 1fr; padding: 12px;}
-            .risk-grid { grid-template-columns: 1fr; padding: 12px;}
-            
-            .config-grid { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
-            .modal-box { width: 95% !important; margin: 16px; }
-            
-            /* Remove absolute positioning to fix mobile display */
-            #last-sync { display: none; }
-            .latency-badge { font-size: 10px; padding: 4px 8px; }
-            
-            .tc-price-row { flex-wrap: wrap; }
-            .tc-stats { grid-template-columns: 1fr 1fr; gap:8px;}
-            
-            .toast-wrap { bottom: 16px; right: 16px; left: 16px; }
-            .toast { width: 100%; border-radius: 8px;}
+
+            /* ── Global Reset ── */
+            *, *::before, *::after { box-sizing: border-box; }
+            html, body { overflow-x: hidden; width: 100%; max-width: 100vw; margin: 0; padding: 0; }
+            body { -webkit-font-smoothing: antialiased; }
+
+            /* ── Page Layout ── */
+            .page {
+                padding: 16px;
+                gap: 16px;
+                padding-bottom: 140px; /* bottom bar clearance */
+                max-width: 100%;
+                width: 100%;
+                overflow-x: hidden;
+            }
+
+            /* ── Header: 50px fixed top bar ── */
+            .header {
+                height: 50px;
+                padding: 0 14px;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0;
+                position: sticky; top: 0; z-index: 500;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+            }
+            .header-left { gap: 10px; flex: 1; min-width: 0; overflow: hidden; }
+            .brand { gap: 6px; }
+            .brand-icon { width: 26px; height: 26px; font-size: 13px; }
+            .brand-name { font-size: 14px; font-weight: 800; }
+            .health-badge {
+                padding: 3px 8px;
+                font-size: 10px;
+                gap: 5px;
+                border-radius: 6px;
+                max-width: 120px;
+                flex-shrink: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .latency-badge, #last-sync, #header-toast { display: none !important; }
+            .header-right { display: none !important; }
+
+            /* Mode button - keep compact ── */
+            #btn-theme {
+                display: flex !important;
+                width: 36px; height: 36px; font-size: 16px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                flex-shrink: 0;
+                align-items: center; justify-content: center;
+            }
+
+            /* ── Index Banner ── */
+            .index-banner {
+                position: static;
+                padding: 6px 12px;
+                gap: 20px;
+                justify-content: flex-start;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 10px;
+                height: 44px;
+            }
+            .index-banner::-webkit-scrollbar { display: none; }
+            .idx-item { flex-direction: column; gap: 1px; align-items: center; flex-shrink: 0; }
+            .idx-name { font-size: 8px; }
+            .idx-price { font-size: 11px; font-weight: 700; }
+
+            /* ── Stat Ribbon: 2x2 compact grid ── */
+            .ribbon { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .stat-card { padding: 10px 12px; border-radius: 10px; }
+            .stat-label {
+                font-size: 8px;
+                margin-bottom: 2px;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+            }
+            .stat-val { font-size: 20px; line-height: 1.1; }
+            .stat-sub { font-size: 8px; margin-top: 2px; }
+
+            /* ── Main Grid ── */
+            .main-grid { grid-template-columns: 1fr; gap: 10px; }
+            .left-col, .right-col { gap: 10px; }
+
+            /* ── Panels: tight & clean ── */
+            .panel {
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: none; /* remove heavy shadows on mobile */
+            }
+            .panel-header {
+                padding: 10px 14px;
+                font-size: 11px;
+                min-height: 40px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+            }
+            .panel-header-left { gap: 6px; font-size: 12px; font-weight: 700; }
+
+            /* ── Active Trade Cards: compact single-col ── */
+            .trade-cards-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                gap: 8px;
+            }
+            .trade-card {
+                padding: 12px;
+                border-radius: 10px;
+                backdrop-filter: none; /* skip blur on mobile for perf */
+                box-shadow: none;
+                border: 1px solid rgba(255,255,255,0.07);
+                background: rgba(255,255,255,0.03);
+            }
+            .trade-card:hover { transform: none; } /* disable hover lift on mobile */
+            .trade-card::after { height: 3px; }
+
+            /* Trade card header row */
+            .tc-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+                flex-wrap: nowrap;
+            }
+            .tc-symbol { gap: 6px; flex-wrap: wrap; }
+            .tc-sym-name { font-size: 15px; font-weight: 800; }
+            .side-tag { padding: 3px 6px; font-size: 9px; border-radius: 4px; }
+            .tc-status-tag { font-size: 9px; padding: 3px 6px; border-radius: 4px; }
+            .tc-pnl-val { font-size: 18px; font-weight: 900; }
+            .tc-pnl-pct { font-size: 10px; margin-top: 1px; }
+
+            /* LTP row */
+            .tc-price-row {
+                padding: 8px 10px;
+                margin-bottom: 10px;
+                border-radius: 8px;
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            .tc-ltp { font-size: 16px; font-weight: 800; }
+
+            /* Progress bar */
+            .tc-progress { margin-bottom: 10px; }
+            .tc-progress-labels { font-size: 8px; margin-bottom: 4px; }
+            .tc-bar-track { height: 4px; }
+            .tc-bar-cursor { height: 10px; top: -3px; }
+
+            /* Stats row: 3 compact boxes */
+            .tc-stats {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+                margin-bottom: 10px;
+            }
+            .tc-stat {
+                padding: 6px 4px;
+                border-radius: 6px;
+                background: rgba(255,255,255,0.025);
+                border: 1px solid rgba(255,255,255,0.03);
+                text-align: center;
+            }
+            .tc-stat-label { font-size: 7px; margin-bottom: 2px; }
+            .tc-stat-val { font-size: 11px; font-weight: 700; }
+
+            /* Action buttons */
+            .tc-actions { gap: 8px; }
+            .tc-actions button {
+                min-height: 40px;
+                font-size: 11px;
+                border-radius: 8px;
+                padding: 0 8px;
+            }
+
+            /* ── Scanner / Intelligence ── */
+            .scanner-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .scan-card {
+                border-right: none !important;
+                padding: 12px 14px;
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                transition: none;
+            }
+            .scan-card:last-child { border-bottom: none; }
+            .scan-card:hover { background: none; } /* no hover on touch */
+            .scan-rank { font-size: 9px; margin-bottom: 6px; letter-spacing: 1px; }
+            .scan-top { margin-bottom: 6px; }
+            .scan-sym { font-size: 15px; }
+            .scan-decision { font-size: 10px; padding: 3px 8px; }
+            .scan-price { font-size: 11px; margin-bottom: 10px; }
+            .conf-bar { height: 5px; margin-bottom: 10px; }
+            /* Checks: 2-col mini grid */
+            .scan-checks {
+                grid-template-columns: 1fr 1fr;
+                gap: 4px;
+                margin-bottom: 10px;
+                font-size: 10px;
+            }
+            .chk { padding: 3px 4px; font-size: 10px; }
+            .chk-dot { width: 6px; height: 6px; }
+            .scan-insights { gap: 5px; }
+            .insight-chip { font-size: 9px; padding: 3px 8px; border-radius: 6px; }
+
+            /* ── Empty States: compact placeholder ── */
+            .empty { padding: 20px 16px; font-size: 11px; }
+            .empty-icon { font-size: 20px; margin-bottom: 6px; opacity: 0.25; }
+
+            /* ── Alerts ── */
+            .alerts-list { max-height: 160px; }
+            .alert-item { padding: 8px 14px; font-size: 11px; gap: 8px; }
+            .alert-icon { font-size: 14px; }
+
+            /* ── Risk Grid: compact 2-col ── */
+            .risk-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                padding: 10px;
+            }
+            .risk-block { padding: 10px; border-radius: 8px; }
+            .risk-label { font-size: 8px; margin-bottom: 4px; }
+            .risk-val { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+
+            /* ── System Health ── */
+            .sh-row { padding: 8px 14px; }
+            .sh-label { font-size: 10px; }
+            .sh-val { font-size: 11px; }
+
+            /* ── Timeline ── */
+            .timeline { padding: 10px 14px; max-height: 200px; gap: 0; }
+            .tl-item { gap: 10px; padding-bottom: 12px; }
+            .tl-dot { width: 10px; height: 10px; }
+            .tl-event { font-size: 11px; }
+            .tl-detail { font-size: 9px; }
+            .tl-time { font-size: 9px; }
+
+            /* ── History Table → Card List ── */
+            .tbl thead { display: none; }
+            .tbl, .tbl tbody, .tbl tr, .tbl td { display: block; width: 100%; }
+            .tbl tr {
+                border-radius: 8px;
+                border: 1px solid rgba(255,255,255,0.06);
+                margin: 0 10px 6px 10px;
+                padding: 10px 12px;
+                width: calc(100% - 20px);
+                background: rgba(255,255,255,0.02);
+            }
+            .tbl td {
+                padding: 2px 0;
+                border: none;
+                font-size: 12px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .tbl td::before {
+                content: attr(data-label);
+                font-size: 8px;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 800;
+                font-family: 'Inter', sans-serif;
+            }
+            .tbl td.empty { justify-content: center; }
+            .tbl td.empty::before { display: none; }
+
+            /* ── Modals: bottom sheet ── */
+            .modal { align-items: flex-end; }
+            .modal-box {
+                width: 100% !important;
+                margin: 0;
+                border-radius: 20px 20px 0 0;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            .config-grid { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+            .modal-head { padding: 14px 16px; }
+            .modal-body { padding: 14px 16px; }
+            .modal-foot { padding: 10px 16px; }
+
+            /* ── Toast ── */
+            .toast-wrap { bottom: 96px; right: 10px; left: 10px; }
+            .toast { width: 100%; border-radius: 10px; font-size: 12px; padding: 10px 14px; }
         }
+
+        /* ═══════════════════════════════════════════════
+           MOBILE BOTTOM ACTION BAR
+        ══════════════════════════════════════════════════ */
+        .mobile-bottom-bar { display: none; }
+
+        @media (max-width: 768px) {
+            .mobile-bottom-bar {
+                display: flex;
+                flex-direction: column;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                z-index: 600;
+                background: rgba(3, 6, 16, 0.98);
+                border-top: 1px solid rgba(255,255,255,0.08);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                padding: 16px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                gap: 12px;
+                box-sizing: border-box;
+                width: 100%;
+                max-width: 100vw;
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+            }
+            [data-theme="light"] .mobile-bottom-bar {
+                background: rgba(248,250,252,0.98);
+                border-top-color: rgba(0,0,0,0.1);
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.1);
+            }
+            .footer-data-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                width: 100%;
+            }
+            .footer-pnl {
+                font-size: 26px;
+                font-weight: 800;
+                font-family: 'JetBrains Mono';
+                line-height: 1;
+            }
+            .footer-cap {
+                font-size: 13px;
+                color: var(--muted);
+                font-family: 'JetBrains Mono';
+                font-weight: 600;
+                line-height: 1.2;
+            }
+            .footer-action-row {
+                display: flex;
+                gap: 12px;
+                width: 100%;
+            }
+            .mob-btn-primary {
+                flex: 1;
+                height: 50px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 800;
+                background: var(--blue);
+                color: #ffffff;
+                border: none;
+                display: flex; align-items: center; justify-content: center;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                transition: all 0.2s;
+            }
+            .mob-btn-primary.active {
+                background: rgba(255,255,255,0.08);
+                color: var(--text);
+                border: 1px solid rgba(255,255,255,0.15);
+            }
+            .mob-btn-halt {
+                height: 50px;
+                padding: 0 24px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 800;
+                background: rgba(255,59,59,0.15);
+                color: var(--red);
+                border: 1px solid rgba(255,59,59,0.3);
+                display: flex; align-items: center; justify-content: center;
+                letter-spacing: 0.5px;
+                transition: all 0.2s;
+            }
+            .mob-btn-halt:active {
+                background: var(--red);
+                color: #fff;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════
+           SMALL PHONE (≤480px)
+        ══════════════════════════════════════════════════ */
         @media (max-width: 480px) {
-            .ribbon { grid-template-columns: 1fr; }
+            .ribbon { grid-template-columns: 1fr 1fr; }
+            .stat-val { font-size: 17px; }
+            .tc-stats { grid-template-columns: repeat(3, 1fr); }
+            .risk-grid { grid-template-columns: 1fr 1fr; }
+            .scan-card { padding: 10px 12px; }
+            .mob-btn-primary { font-size: 13px; }
         }
     </style>
 </head>
@@ -550,7 +916,7 @@
         <div class="header-left">
             <div class="brand">
                 <div class="brand-icon">📈</div>
-                <div class="brand-name">Intraday<span>Bot</span></div>
+                <div class="brand-name">Quant<span>Edge</span></div>
             </div>
             <div class="health-badge">
                 <div class="health-dot" id="h-dot"></div>
@@ -581,8 +947,18 @@
         </div>
     </header>
 
-    <!-- ══════════════ PAGE ══════════════ -->
-    <div class="page">
+    <!-- ══════════════ MOBILE BOTTOM ACTION BAR ══════════════ -->
+    <div class="mobile-bottom-bar">
+        <div class="footer-data-row">
+            <div class="footer-pnl" id="footer-pnl">₹0.00</div>
+            <div class="footer-cap" id="footer-cap">Total Cap: ₹--</div>
+        </div>
+        <div class="footer-action-row">
+            <button id="mob-btn-toggle" class="mob-btn-primary" onclick="toggleSystem()">▶ START SYSTEM</button>
+            <button class="mob-btn-halt" onclick="requestEmergency()">HALT</button>
+        </div>
+    </div>
+
 
         <!-- INDEX BANNER -->
         <div class="index-banner">
@@ -634,8 +1010,9 @@
                     </div>
                     <div class="scanner-grid" id="scanner-grid">
                         <div class="scan-card" style="grid-column: 1 / -1">
-                            <div class="empty">
-                                <div class="empty-icon">📡</div>Evaluating market structure across Nifty 100...
+                            <div class="empty" style="padding: 16px 0; text-align: center;">
+                                <div style="font-size: 14px; font-weight: 800; color: var(--text);">Scanning 92 stocks</div>
+                                <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">0 valid setups</div>
                             </div>
                         </div>
                     </div>
@@ -648,8 +1025,8 @@
                         <span class="panel-label" id="v-exposure">No open positions</span>
                     </div>
                     <div class="trade-cards-grid" id="active-trades">
-                        <div class="empty" style="grid-column: 1 / -1">
-                            <div class="empty-icon">📭</div>No active trades. Algorithm is waiting for a high-probability setup.
+                        <div class="empty" style="grid-column: 1 / -1; padding: 16px 0;">
+                            <div style="font-size: 13px; color: var(--muted); text-align: center;">0 Active Positions</div>
                         </div>
                     </div>
                 </div>
@@ -1037,9 +1414,25 @@
 
                 // Health dot
                 const dot = document.getElementById('h-dot'), txt = document.getElementById('h-text');
-                if (state.kill_switch_active) { dot.className = 'health-dot err'; txt.textContent = 'KILL SWITCH ACTIVE'; }
-                else if (!state.is_running) { dot.className = 'health-dot warn'; txt.textContent = 'PAUSED'; }
-                else { dot.className = 'health-dot ok'; txt.textContent = 'SYSTEM ONLINE'; }
+                const mobToggle = document.getElementById('mob-btn-toggle');
+                
+                if (state.kill_switch_active) { 
+                    dot.className = 'health-dot err'; txt.textContent = 'KILL SWITCH ACTIVE'; 
+                }
+                else if (!state.is_running) { 
+                    dot.className = 'health-dot warn'; txt.textContent = 'PAUSED'; 
+                    if (mobToggle) {
+                        mobToggle.innerHTML = '▶ RESUME';
+                        mobToggle.classList.remove('active');
+                    }
+                }
+                else { 
+                    dot.className = 'health-dot ok'; txt.textContent = 'SYSTEM ONLINE'; 
+                    if (mobToggle) {
+                        mobToggle.innerHTML = '⏸ PAUSE';
+                        mobToggle.classList.add('active');
+                    }
+                }
 
                 // Index Banner Tracking
                 if (state.indices) {
@@ -1064,6 +1457,19 @@
                 pnlEl.textContent = `${pnl >= 0 ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}`;
                 pnlEl.className = `stat-val ${pnl >= 0 ? 'g' : 'r'}`;
                 document.getElementById('v-pnl-sub').textContent = pnl >= 0 ? 'Net profit today' : 'Net loss today';
+                
+                // Footer
+                const fPnl = document.getElementById('footer-pnl');
+                if (fPnl) {
+                    fPnl.textContent = `${pnl >= 0 ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}`;
+                    fPnl.className = `footer-pnl ${pnl >= 0 ? 'g' : 'r'}`;
+                }
+                const fCap = document.getElementById('footer-cap');
+                const cap = config.CAPITAL || 100000;
+                if (fCap && cap) {
+                    const totalCap = cap + pnl;
+                    fCap.textContent = `Total Cap: ₹${(totalCap / 1000).toFixed(1)}K`;
+                }
 
                 const trades = state.trades_taken || 0;
                 const maxT = state.max_trades || 5;
@@ -1142,7 +1548,7 @@
                 document.getElementById('r-open-pnl').className = `risk-val ${openPnl >= 0 ? 'g' : 'r'}`;
 
                 if (trades.length === 0) {
-                    box.innerHTML = '<div class="empty" style="grid-column: 1 / -1"><div class="empty-icon">📭</div>No active trades. Algorithm is waiting for a high-probability setup.</div>';
+                    box.innerHTML = '<div class="empty" style="grid-column: 1 / -1; padding: 16px 0;"><div style="font-size: 13px; color: var(--muted); text-align: center;">0 Active Positions</div></div>';
                     return;
                 }
 
@@ -1156,77 +1562,24 @@
                     const qty = t.qty || 0;
                     const isLong = t.side === 'BUY';
                     const isProfit = pnl >= 0;
-                    const pct = entry > 0 ? (((current - entry) / entry) * 100 * (isLong ? 1 : -1)).toFixed(2) : '0.00';
-
-                    // Progress bar: position of current price between SL and Target
-                    const totalRange = Math.abs(target - sl);
-                    let progress = 0;
-                    if (totalRange > 0) {
-                        progress = isLong
-                            ? Math.max(0, Math.min(100, ((current - sl) / totalRange) * 100))
-                            : Math.max(0, Math.min(100, ((sl - current) / totalRange) * 100));
-                    }
-
-                    // Status tag
-                    let status = 'entered', statusLabel = '→ ENTERED';
-                    if (t.sl_order_id) { status = 'sl-placed'; statusLabel = '→ SL PLACED'; }
-                    if ((isLong && sl >= entry) || (!isLong && sl <= entry)) { status = 'trailing'; statusLabel = '→ TRAILING SL'; }
-
-                    // RR calculation
-                    const risk = Math.abs(entry - sl);
-                    const reward = Math.abs(target - sl);
-                    const rr = risk > 0 ? (reward / risk).toFixed(1) : '--';
-
+                    
                     html += `
-            <div class="trade-card ${isProfit ? 'profit' : 'loss'} new-trade">
-                <div class="tc-top">
-                    <div class="tc-symbol">
-                        <span class="tc-sym-name">${t.symbol}</span>
-                        <span class="side-tag ${t.side.toLowerCase()}">${t.side}</span>
-                        <span class="tc-status-tag ${status}">${statusLabel}</span>
-                    </div>
-                    <div class="tc-pnl">
-                        <div class="tc-pnl-val ${isProfit ? 'g' : 'r'}">${isProfit ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}</div>
-                        <div class="tc-pnl-pct ${isProfit ? 'g' : 'r'}">${isProfit ? '+' : ''}${pct}%</div>
-                    </div>
+            <div class="trade-card ${isProfit ? 'profit' : 'loss'} new-trade" style="width: 100%; box-sizing: border-box; display: flex; flex-direction: column; padding: 12px; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px;">${t.symbol} <span class="side-tag ${t.side.toLowerCase()}" style="font-size: 9px; padding: 2px 4px;">${t.side}</span></div>
+                    <div class="${isProfit ? 'g' : 'r'}" style="font-size: 16px; font-weight: 800;">${isProfit ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}</div>
                 </div>
-
-                <div class="tc-price-row">
-                    <div class="tc-ltp" id="tc-ltp-${t.id}">₹${current.toFixed(2)}</div>
-                    <div style="color:var(--muted);font-size:10px;margin-left:4px; font-weight:700;">LTP</div>
-                    <div style="margin-left:auto;font-size:10px;color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-weight:700;">Qty <span style="color:var(--text); font-family:'JetBrains Mono'; font-size:12px; margin-left:4px;">${qty}</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; font-family: 'JetBrains Mono'; color: var(--muted); width: 100%;">
+                    <div>Ent: ₹${entry.toFixed(2)}</div>
+                    <div style="color: var(--text); font-weight: 700;">LTP: <span id="tc-ltp-${t.id}">₹${current.toFixed(2)}</span></div>
                 </div>
-
-                <div class="tc-progress">
-                    <div class="tc-progress-labels">
-                        <span style="color:var(--red)">SL ₹${sl.toFixed(2)}</span>
-                        <span style="color:var(--muted)">Entry ₹${entry.toFixed(2)}</span>
-                        <span style="color:var(--green)">TGT ₹${target.toFixed(2)}</span>
-                    </div>
-                    <div class="tc-bar-track">
-                        <div class="tc-bar-fill ${isProfit ? 'profit' : 'loss'}" style="width:${progress}%"></div>
-                        <div class="tc-bar-cursor" style="left:${progress}%"></div>
-                    </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: 'JetBrains Mono'; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); width: 100%;">
+                    <div style="color: var(--red);">SL: ₹${sl.toFixed(2)}</div>
+                    <div style="color: var(--green);">TGT: ₹${target.toFixed(2)}</div>
                 </div>
-
-                <div class="tc-stats">
-                    <div class="tc-stat">
-                        <div class="tc-stat-label">Value at Risk</div>
-                        <div class="tc-stat-val r">₹${(risk * qty).toFixed(0)}</div>
-                    </div>
-                    <div class="tc-stat">
-                        <div class="tc-stat-label">R:R Ratio</div>
-                        <div class="tc-stat-val b">1:${rr}</div>
-                    </div>
-                    <div class="tc-stat">
-                        <div class="tc-stat-label">AI Score</div>
-                        <div class="tc-stat-val y">${t.score || '--'}/100</div>
-                    </div>
-                </div>
-
-                <div class="tc-actions">
-                    <button class="btn-danger btn-sm" style="flex:1; justify-content:center;" onclick="closeTrade('${t.id}')">🔴 Square Off</button>
-                    <button class="btn-outline btn-sm" style="flex:1; justify-content:center;" onclick="openModifySL('${t.id}', ${sl})">✏️ Modify SL</button>
+                <div class="tc-actions" style="margin-top: 4px; display: flex; gap: 8px; width: 100%;">
+                    <button class="btn-danger btn-sm" style="flex:1; justify-content:center; padding: 8px 0;" onclick="closeTrade('${t.id}')">Square Off</button>
+                    <button class="btn-outline btn-sm" style="flex:1; justify-content:center; padding: 8px 0;" onclick="openModifySL('${t.id}', ${sl})">Modify SL</button>
                 </div>
             </div>`;
                 });
@@ -1263,7 +1616,7 @@
                 const box = document.getElementById('scanner-grid');
 
                 if (!signals || signals.length === 0) {
-                    box.innerHTML = '<div class="scan-card" style="grid-column: 1 / -1"><div class="empty"><div class="empty-icon">📡</div>Evaluating market structure across Nifty 100...</div></div>';
+                    box.innerHTML = '<div class="scan-card" style="grid-column: 1 / -1; padding: 16px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="font-size: 14px; font-weight: 800; color: var(--text);">Scanning 92 stocks</div><div style="font-size: 12px; color: var(--muted); margin-top: 4px;">0 valid setups</div></div>';
                     return;
                 }
 
@@ -1298,28 +1651,28 @@
                     const vwapColor = parseFloat(vwapDist) > 0 ? 'var(--green)' : 'var(--red)';
 
                     return `
-            <div class="scan-card">
+            <div class="scan-card" style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box; text-align: left;">
                 <div class="scan-rank"><i>#${i + 1}</i> Candidate Match</div>
-                <div class="scan-top">
-                    <div class="scan-sym">${s.symbol}</div>
-                    <div class="scan-decision" style="color:${decColor}">${decLabel}</div>
+                <div class="scan-top" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="scan-sym" style="font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;">${s.symbol}</div>
+                    <div class="scan-decision" style="color:${decColor}; font-size: 10px; padding: 2px 6px; white-space: nowrap;">${decLabel}</div>
                 </div>
-                <div class="scan-price">
+                <div class="scan-price" style="display: flex; justify-content: space-between; width: 100%;">
                     <span id="scan-ltp-${s.symbol}" data-prev="${s.entry_price || 0}">₹${(s.entry_price || 0).toFixed(2)}</span>
-                    <span style="color:var(--muted);margin-left:8px; font-family:'Inter'; text-transform:uppercase; font-size:10px;">${brkLabel}</span>
+                    <span style="color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-size:9px; white-space: nowrap;">${brkLabel}</span>
                 </div>
-                <div class="conf-bar">
+                <div class="conf-bar" style="width: 100%;">
                     <div class="conf-fill" style="width:${confScore}%;background:${confColor}; box-shadow: 0 0 10px ${confColor};"></div>
                 </div>
 
-                <div class="scan-checks">
-                    <div class="chk ${m.breakout ? 'pass' : ''}"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line crossed' : '✖ Below breakout'}</div>
-                    <div class="chk ${m.volume_spike ? 'pass' : ''}"><div class="chk-dot"></div>${m.volume_spike ? `✔ Volume surged ${m.volume_ratio}x` : `✖ Low vol ${m.volume_ratio || '--'}x`}</div>
-                    <div class="chk ${m.strong_candle ? 'pass' : ''}"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum supported' : '✖ Weak momentum'}</div>
-                    <div class="chk ${m.vwap_aligned ? 'pass' : ''}"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP aligned (${vwapDist}%)` : `✖ VWAP misaligned`}</div>
+                <div class="scan-checks" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                    <div class="chk ${m.breakout ? 'pass' : ''}" style="width: 100%; justify-content: flex-start;"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line crossed' : '✖ Below breakout'}</div>
+                    <div class="chk ${m.volume_spike ? 'pass' : ''}" style="width: 100%; justify-content: flex-start;"><div class="chk-dot"></div>${m.volume_spike ? `✔ Volume surged ${m.volume_ratio}x` : `✖ Low vol ${m.volume_ratio || '--'}x`}</div>
+                    <div class="chk ${m.strong_candle ? 'pass' : ''}" style="width: 100%; justify-content: flex-start;"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum supported' : '✖ Weak momentum'}</div>
+                    <div class="chk ${m.vwap_aligned ? 'pass' : ''}" style="width: 100%; justify-content: flex-start;"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP aligned (${vwapDist}%)` : `✖ VWAP misaligned`}</div>
                 </div>
 
-                <div class="scan-insights">
+                <div class="scan-insights" style="display: flex; flex-wrap: wrap; gap: 4px; width: 100%;">
                     <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '--'}</span>
                     <span class="insight-chip ${s.score >= 70 ? 'active' : ''}">Score ${s.score}/100</span>
                     <span class="insight-chip">ATR ${m.atr_pct || '--'}%</span>
@@ -1353,14 +1706,14 @@
                     const timeOut = t.exit_time ? new Date(t.exit_time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }) : '--';
                     return `
             <tr>
-                <td style="color:var(--muted)">${timeIn}</td>
-                <td style="font-weight:800; font-family:'Inter'; font-size:14px;">${t.symbol}</td>
-                <td class="${t.side === 'BUY' ? 'g' : 'r'}">${t.side}</td>
-                <td>₹${entry.toFixed(2)}</td>
-                <td style="color:var(--muted)">${timeOut}</td>
-                <td><span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.06); font-family:'Inter'; text-transform:uppercase; font-weight:700;">${t.exit_reason || '--'}</span></td>
-                <td class="${pnl >= 0 ? 'g' : 'r'}" style="font-weight:800; font-size:14px;">${pnl >= 0 ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}</td>
-                <td class="${parseFloat(rMultiple) >= 0 ? 'g' : 'r'}" style="font-weight:800; font-size:14px;">${rMultiple}R</td>
+                <td data-label="Executed" style="color:var(--muted)">${timeIn}</td>
+                <td data-label="Symbol" style="font-weight:800; font-family:'Inter'; font-size:14px;">${t.symbol}</td>
+                <td data-label="Side" class="${t.side === 'BUY' ? 'g' : 'r'}">${t.side}</td>
+                <td data-label="Entry">₹${entry.toFixed(2)}</td>
+                <td data-label="Exit" style="color:var(--muted)">${timeOut}</td>
+                <td data-label="Reason"><span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,255,255,0.06); font-family:'Inter'; text-transform:uppercase; font-weight:700;">${t.exit_reason || '--'}</span></td>
+                <td data-label="Net P&L" class="${pnl >= 0 ? 'g' : 'r'}" style="font-weight:800; font-size:14px;">${pnl >= 0 ? '+' : ''}₹${Math.abs(pnl).toFixed(2)}</td>
+                <td data-label="R-Mult" class="${parseFloat(rMultiple) >= 0 ? 'g' : 'r'}" style="font-weight:800; font-size:14px;">${rMultiple}R</td>
             </tr>`;
                 }).join('');
 

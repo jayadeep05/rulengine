@@ -25,9 +25,9 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "trade_history")
 
     # Upstox API Credentials
-    UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID", "")
-    UPSTOX_CLIENT_SECRET = os.getenv("UPSTOX_CLIENT_SECRET", "")
-    UPSTOX_ACCESS_TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "")
+    UPSTOX_CLIENT_ID = "6528658a-2ce9-44bc-8c70-1100c3b54651"
+    UPSTOX_CLIENT_SECRET = "2yoyfwa9e7"
+    UPSTOX_ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzSkNLODMiLCJqdGkiOiI2OWUxMWQ3ZTY0ZWVlNTQ1YzNhZDYzYTgiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlhdCI6MTc3NjM2MDgzMCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxNzc2Mzc2ODAwfQ.GHzXb84UXc9S1y0mgjddkEX5Wfu-LgG6zY2TpXoSTio"
     REDIRECT_URI = "https://deepcodev.com/callback"
 
     RISK_PER_TRADE_PCT = 0.01  # 1% of capital
