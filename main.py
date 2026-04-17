@@ -48,7 +48,7 @@ async def startup_event():
     # Connect to Upstox REST API (profile check)
     execution_engine.connect()
     # ── Launch WebSocket real-time market feed (background daemon thread) ──
-    market_feed.start(live_prices_cache, state.live_indices)
+    market_feed.start(live_prices_cache, state.live_indices, trade_manager)
     logger.info("[WS] Upstox WebSocket Market Feed started.")
     # Start background task loops
     asyncio.create_task(trading_cycle_loop())

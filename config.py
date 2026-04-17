@@ -25,10 +25,11 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "trade_history")
 
     # Upstox API Credentials
-    UPSTOX_CLIENT_ID = "6528658a-2ce9-44bc-8c70-1100c3b54651"
-    UPSTOX_CLIENT_SECRET = "2yoyfwa9e7"
-    UPSTOX_ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzSkNLODMiLCJqdGkiOiI2OWUxMWQ3ZTY0ZWVlNTQ1YzNhZDYzYTgiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlhdCI6MTc3NjM2MDgzMCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxNzc2Mzc2ODAwfQ.GHzXb84UXc9S1y0mgjddkEX5Wfu-LgG6zY2TpXoSTio"
-    REDIRECT_URI = "https://deepcodev.com/callback"
+    UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID", "6528658a-2ce9-44bc-8c70-1100c3b54651")
+    UPSTOX_CLIENT_SECRET = os.getenv("UPSTOX_CLIENT_SECRET", "2yoyfwa9e7")
+    UPSTOX_ACCESS_TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN", "")
+    ANALYTICS_TOKEN = os.getenv("ANALYTICS_TOKEN", "")
+    REDIRECT_URI = os.getenv("REDIRECT_URI", "https://deepcodev.com/callback")
 
     RISK_PER_TRADE_PCT = 0.01  # 1% of capital
     MAX_TRADES_PER_DAY = 5
@@ -185,7 +186,7 @@ class Config:
                 
     @classmethod
     def save(cls):
-        exclude = ['SYMBOLS_MAPPING', 'UPSTOX_ACCESS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
+        exclude = ['SYMBOLS_MAPPING', 'UPSTOX_ACCESS_TOKEN', 'ANALYTICS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
         data = {k: getattr(cls, k) for k in dir(cls) if not k.startswith("__") and not callable(getattr(cls, k)) and k not in exclude}
         with open("config.json", "w") as f:
             json.dump(data, f, indent=4)

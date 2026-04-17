@@ -226,15 +226,14 @@
         .btn-theme:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
         /* ── LAYOUT ── */
-        .page { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1800px; margin: 0 auto; }
+        .page { padding: 16px; display: flex; flex-direction: column; gap: 16px; max-width: 1800px; margin: 0 auto; box-sizing: border-box; }
         
         /* ── INDEX BANNER ── */
         .index-banner {
-            position: sticky; top: 57px; z-index: 190; backdrop-filter: blur(24px);
-            display: flex; justify-content: space-between; padding: 10px 20px;
+            display: flex; justify-content: space-between; padding: 12px 16px;
             background: linear-gradient(90deg, rgba(20, 28, 48, 0.4) 0%, rgba(10, 16, 30, 0.6) 100%);
-            border: 1px solid var(--border); border-radius: 8px; margin-bottom: -4px;
-            overflow-x: auto; white-space: nowrap; align-items: center;
+            border: 1px solid var(--border); border-radius: 12px; 
+            overflow-x: auto; white-space: nowrap; align-items: center; gap: 16px;
         }
         [data-theme="light"] .index-banner { 
             background: #ffffff !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important; 
@@ -247,15 +246,15 @@
         [data-theme="light"] .idx-price { color: var(--text) !important; }
 
         /* ── STAT RIBBON ── */
-        .ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .ribbon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         .stat-card {
             background: linear-gradient(180deg, rgba(20, 28, 48, 0.5) 0%, rgba(10, 16, 30, 0.6) 100%);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border);
             border-top: 1px solid var(--border-light);
-            border-radius: 10px;
-            padding: 12px 16px;
-            display: flex; flex-direction: column; gap: 4px;
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex; flex-direction: column; gap: 6px;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
             box-shadow: var(--shadow-sm);
         }
@@ -284,7 +283,7 @@
             backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-top: 1px solid var(--border-light);
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
             box-shadow: var(--shadow-sm);
         }
@@ -293,18 +292,18 @@
             background: rgba(0, 0, 0, 0.2);
             border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+            font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
         }
         .panel-header-left { display: flex; align-items: center; gap: 8px; }
         .panel-label { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
 
         /* ── ACTIVE TRADE CARDS ── */
-        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 16px; }
+        .trade-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; padding: 14px 16px; }
         .trade-card {
             background: linear-gradient(145deg, rgba(20, 28, 48, 0.4) 0%, rgba(10, 16, 30, 0.6) 100%);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px; padding: 16px;
+            border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
             position: relative; overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -356,14 +355,14 @@
         .tc-status-tag.entered { background: rgba(255, 255, 255, 0.05); color: var(--muted); border-color: rgba(255,255,255,0.1); }
 
         /* ── SCANNER PANEL ── */
-        .scanner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+        .scanner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px 16px; }
         .scan-card { 
-            padding: 20px; border-right: 1px solid rgba(255,255,255,0.03); 
-            border-bottom: 1px solid rgba(255,255,255,0.03); 
+            padding: 14px; border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 12px;
             transition: all 0.2s ease; position: relative;
+            display: flex; flex-direction: column; gap: 6px;
         }
-        .scan-card:hover { background: rgba(255, 255, 255, 0.02); }
-        .scan-card:last-child { border-right: none; }
+        .scan-card:hover { background: rgba(255, 255, 255, 0.05); }
         
         .scan-rank { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .scan-rank i { font-style: normal; color: var(--blue); background: rgba(59, 130, 246, 0.1); padding: 2px 6px; border-radius: 4px; }
@@ -391,11 +390,11 @@
         .insight-chip.active { border-color: rgba(59, 130, 246, 0.4); color: var(--blue); background: rgba(59, 130, 246, 0.1); box-shadow: 0 0 10px rgba(59, 130, 246, 0.1); }
 
         /* ── ALERTS PANEL ── */
-        .alerts-list { max-height: 280px; overflow-y: auto; }
+        .alerts-list { max-height: 140px; overflow-y: auto; padding: 10px 14px; }
         .alert-item {
-            display: flex; align-items: flex-start; gap: 12px;
-            padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-            font-size: 12px; transition: background 0.2s;
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 13px; transition: background 0.2s; border-radius: 8px;
         }
         .alert-item:hover { background: rgba(255, 255, 255, 0.03); }
         .alert-icon { font-size: 16px; margin-top: 2px; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
@@ -404,10 +403,10 @@
         .alert-time { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono'; font-weight: 500; }
 
         /* ── RISK DASHBOARD ── */
-        .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
-        .risk-block { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; padding: 14px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
-        .risk-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px; }
-        .risk-val { font-size: 20px; font-weight: 800; font-family: 'JetBrains Mono'; margin-bottom: 8px; }
+        .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px; }
+        .risk-block { background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 6px; }
+        .risk-label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .risk-val { font-size: 20px; font-weight: 800; font-family: 'JetBrains Mono'; margin-bottom: 4px; }
         .risk-bar-track { height: 6px; background: rgba(0, 0, 0, 0.4); border-radius: 3px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
         .risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; background: linear-gradient(90deg, var(--green), var(--yellow)); }
         .risk-bar-fill.danger { background: linear-gradient(90deg, var(--yellow), var(--red)); }
@@ -415,14 +414,14 @@
         /* ── SYSTEM HEALTH ── */
         .sh-row {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); font-size: 12px; font-weight: 500;
+            padding: 14px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); font-size: 13px; font-weight: 500;
         }
         .sh-label { color: var(--muted); }
         .sh-val { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 12px; }
 
         /* ── SIGNAL TIMELINE ── */
-        .timeline { padding: 16px 20px; display: flex; flex-direction: column; gap: 0; max-height: 320px; overflow-y: auto; }
-        .tl-item { display: flex; gap: 16px; padding-bottom: 18px; position: relative; }
+        .timeline { padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; max-height: 320px; overflow-y: auto; }
+        .tl-item { display: flex; gap: 14px; position: relative; }
         .tl-item:last-child { padding-bottom: 0; }
         .tl-item:not(:last-child)::before {
             content: ''; position: absolute; left: 6px; top: 20px; bottom: 0; width: 2px;
@@ -439,14 +438,14 @@
         .tl-time { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono'; font-weight: 600; }
 
         /* ── TRADE HISTORY TABLE ── */
-        .tbl { width: 100%; border-collapse: collapse; min-width: 650px;}
+        .tbl { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 650px;}
         .tbl th {
-            padding: 10px 16px; font-size: 9px; color: var(--muted);
+            padding: 10px 18px; font-size: 10px; color: var(--muted);
             border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left;
             text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;
             background: rgba(0,0,0,0.2);
         }
-        .tbl td { padding: 10px 16px; font-size: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-family: 'JetBrains Mono'; font-weight: 500; }
+        .tbl td { padding: 14px 18px; font-size: 13px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-family: 'JetBrains Mono'; font-weight: 500; }
         .tbl tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
         /* ── MODALS & TOASTS ── */
@@ -525,7 +524,7 @@
             .page {
                 padding: 16px;
                 gap: 16px;
-                padding-bottom: 140px; /* bottom bar clearance */
+                padding-bottom: 70px; /* bottom bar clearance */
                 max-width: 100%;
                 width: 100%;
                 overflow-x: hidden;
@@ -547,18 +546,21 @@
             .brand-icon { width: 26px; height: 26px; font-size: 13px; }
             .brand-name { font-size: 14px; font-weight: 800; }
             .health-badge {
-                padding: 3px 8px;
+                padding: 3px 6px;
                 font-size: 10px;
-                gap: 5px;
+                gap: 3px;
                 border-radius: 6px;
-                max-width: 120px;
+                max-width: 90px;
                 flex-shrink: 1;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             .latency-badge, #last-sync, #header-toast { display: none !important; }
-            .header-right { display: none !important; }
+            .header-right { display: flex !important; gap: 8px; }
+            .header-right .btn-toggle { font-size: 11px; padding: 6px 12px; white-space: nowrap; font-weight: 800; border-radius: 6px; }
+            .header-right .btn-danger { font-size: 11px; padding: 6px 12px; white-space: nowrap; font-weight: 800; border-radius: 6px; }
+            .hide-mob { display: none !important; }
 
             /* Mode button - keep compact ── */
             #btn-theme {
@@ -820,8 +822,8 @@
                 border-top: 1px solid rgba(255,255,255,0.08);
                 backdrop-filter: blur(24px);
                 -webkit-backdrop-filter: blur(24px);
-                padding: 16px;
-                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                padding: 12px 16px;
+                padding-bottom: calc(12px + env(safe-area-inset-bottom));
                 gap: 12px;
                 box-sizing: border-box;
                 width: 100%;
@@ -939,25 +941,28 @@
         <div id="header-toast"></div>
         
         <div class="header-right">
-            <button id="btn-theme" class="btn-theme" onclick="toggleTheme()" title="Toggle Light/Dark Mode">☀️</button>
-            <button id="btn-toggle" class="btn-toggle" onclick="toggleSystem()">▶ START SYSTEM</button>
-            <button id="btn-mode" class="btn-mode test" onclick="requestModeSwitch()">TEST MODE</button>
-            <button class="btn-outline" onclick="openConfig()">⚙ Config</button>
-            <button class="btn-danger" onclick="requestEmergency()">🛑 Emergency Halt</button>
+            <button id="btn-theme" class="btn-theme hide-mob" onclick="toggleTheme()" title="Toggle Light/Dark Mode">☀️</button>
+            <button id="btn-toggle" class="btn-toggle" onclick="toggleSystem()">▶ START</button>
+            <button id="btn-mode" class="btn-mode test hide-mob" onclick="requestModeSwitch()">TEST</button>
+            <button class="btn-outline hide-mob" onclick="openConfig()">⚙ Config</button>
+            <button class="btn-danger" onclick="requestEmergency()">🛑 HALT</button>
         </div>
     </header>
 
     <!-- ══════════════ MOBILE BOTTOM ACTION BAR ══════════════ -->
     <div class="mobile-bottom-bar">
-        <div class="footer-data-row">
+        <div class="footer-data-row" style="width: 100%; justify-content: space-between; align-items: center;">
             <div class="footer-pnl" id="footer-pnl">₹0.00</div>
-            <div class="footer-cap" id="footer-cap">Total Cap: ₹--</div>
-        </div>
-        <div class="footer-action-row">
-            <button id="mob-btn-toggle" class="mob-btn-primary" onclick="toggleSystem()">▶ START SYSTEM</button>
-            <button class="mob-btn-halt" onclick="requestEmergency()">HALT</button>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="footer-cap" id="footer-cap">Total Cap: ₹--</div>
+                <button class="btn-theme hide-desk" onclick="openConfig()" style="width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">⚙</button>
+                <button class="btn-theme hide-desk" onclick="toggleTheme()" style="width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">☀️</button>
+            </div>
         </div>
     </div>
+
+    <!-- MAIN PAGE CONTAINER -->
+    <div class="page" id="app-page">
 
 
         <!-- INDEX BANNER -->
@@ -1465,9 +1470,9 @@
                     fPnl.className = `footer-pnl ${pnl >= 0 ? 'g' : 'r'}`;
                 }
                 const fCap = document.getElementById('footer-cap');
-                const cap = config.CAPITAL || 100000;
-                if (fCap && cap) {
-                    const totalCap = cap + pnl;
+                const baseCap = config.CAPITAL || 100000;
+                if (fCap && baseCap) {
+                    const totalCap = baseCap + pnl;
                     fCap.textContent = `Total Cap: ₹${(totalCap / 1000).toFixed(1)}K`;
                 }
 
@@ -1490,11 +1495,11 @@
                 tBtn.className = `btn-toggle${state.is_running ? ' active' : ''}`;
 
                 // Risk dashboard
-                const cap = config.CAPITAL || 100000;
-                document.getElementById('r-capital').textContent = `₹${(cap / 1000).toFixed(0)}K`;
+                const rCap = config.CAPITAL || 100000;
+                document.getElementById('r-capital').textContent = `₹${(rCap / 1000).toFixed(0)}K`;
                 document.getElementById('r-risk-per-trade').textContent = `${config.RISK_PER_TRADE_PCT || 1}%`;
 
-                const maxLoss = Math.abs((config.MAX_DAILY_LOSS_PCT || -0.02) * cap);
+                const maxLoss = Math.abs((config.MAX_DAILY_LOSS_PCT || -0.02) * rCap);
                 const lossUsed = Math.max(0, -pnl);
                 const lossPct = Math.min(100, (lossUsed / maxLoss) * 100);
                 document.getElementById('r-loss-used').textContent = `₹${lossUsed.toFixed(0)} / ₹${maxLoss.toFixed(0)}`;
