@@ -16,9 +16,11 @@ from config import Config, SystemState
 from features import compute_features
 from strategy import generate_signals
 from ai_filter import analyze_trade
-from execution import UpstoxExecutionEngine
 from trade_manager import TradeManager
+from execution import UpstoxExecutionEngine
 import market_feed
+from database import SessionLocal, Trade
+from sqlalchemy import desc
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -115,6 +117,9 @@ async def trading_cycle_loop():
             
         logger.info(f"[{Config.MODE}] Running trading cycle...")
         
+        # Update session capital
+        state.active_capital = execution_engine.get_funds()
+        
         current_prices = {}
         global latest_signals, prev_prices_for_momentum
         new_signals = []
@@ -136,20 +141,20 @@ async def trading_cycle_loop():
                 delta = abs(ltp - prev_prices_for_momentum.get(name, ltp))
                 valid_movers.append((name, delta))
                 
-        movers = sorted(valid_movers, key=lambda x: x[1], reverse=True)[:15]
+        movers = sorted(valid_movers, key=lambda x: x[1], reverse=True)
 
         # Update momentum cache for next cycle (all symbols)
         prev_prices_for_momentum = dict(name_to_ltp)
 
-        scan_targets = [m[0] for m in movers] if movers else list(Config.SYMBOLS_MAPPING.keys())[:15]
-        logger.info(f"Top 15 movers: {scan_targets[:5]}... (scanning {len(scan_targets)} stocks)")
+        scan_targets = [m[0] for m in movers] if movers else list(Config.SYMBOLS_MAPPING.keys())
+        logger.info(f"Scanning {len(scan_targets)} stocks in full universe...")
 
         for symbol_name in scan_targets:
             symbol_key = Config.SYMBOLS_MAPPING.get(symbol_name)
             if not symbol_key:
                 continue
 
-            await asyncio.sleep(0.1)  # Reduced: only 15 stocks now, tighter throttle
+            await asyncio.sleep(0.15)  # Throttled for safety with 90+ stocks
 
             # 1. Fetch 1m OHLCV Data from Upstox
             df = execution_engine.get_ohlc(symbol_key, interval="1minute")
@@ -196,11 +201,14 @@ async def trading_cycle_loop():
                     ai_decision = analyze_trade(df_features.iloc[-2].to_dict())
                     
                     if ai_decision in ["AVOID", "WEAK"]:
+                        logger.info(f"[{symbol_name}] SKIPPED: AI filter returned {ai_decision}")
                         final_decision = "AVOID"
                     else:
                         final_decision = decision
                 else:
                     final_decision = decision # TRADE strictly on rule engine!
+            elif signal_data['score'] < Config.SCORE_THRESHOLD and decision in ['BUY', 'SELL']:
+                logger.info(f"[{symbol_name}] SKIPPED: Score ({signal_data['score']}) below threshold ({Config.SCORE_THRESHOLD})")
             signal_record = {
                 'symbol': symbol_name,
                 'instrument_token': symbol_key,
@@ -229,7 +237,7 @@ async def trading_cycle_loop():
         
         # Check Kill Switch
         daily_pnl = trade_manager.get_daily_pnl()
-        daily_loss_pct = daily_pnl / Config.CAPITAL
+        daily_loss_pct = daily_pnl / state.active_capital if state.active_capital > 0 else 0
         
         state.daily_pnl = daily_pnl
         state.trades_taken = trade_manager.get_trades_taken_today()
@@ -260,15 +268,7 @@ def execute_trade(symbol_name: str, symbol_key: str, side: str, signal: dict):
         logger.error(f"Invalid symbol exception! {symbol_name} missing from mappings.")
         return
 
-    # Fixed Rules Check
-    if trade_manager.get_trades_taken_today() >= Config.MAX_TRADES_PER_DAY:
-        logger.info(f"Max trades per day reached [5]. Skipping {symbol_name}.")
-        return
-        
-    if len(trade_manager.active_trades) >= Config.MAX_OPEN_TRADES:
-        logger.info(f"Max open trades reached [2]. Skipping {symbol_name}.")
-        return
-        
+    # Removed hardcoded max trades per day and max open trades restrictions.
     # Duplicate Order Protection & Cooldown
     for t in trade_manager.active_trades:
         if t['symbol'] == symbol_name:
@@ -290,7 +290,7 @@ def execute_trade(symbol_name: str, symbol_key: str, side: str, signal: dict):
         return
     
     # ── POSITION SIZING WITH HARD CAP ────────────────────────────────────────
-    risk_per_trade = Config.CAPITAL * Config.RISK_PER_TRADE_PCT
+    risk_per_trade = state.active_capital * Config.RISK_PER_TRADE_PCT
     entry = signal['entry_price']
     sl = signal['sl']
 
@@ -302,7 +302,7 @@ def execute_trade(symbol_name: str, symbol_key: str, side: str, signal: dict):
     qty = int(risk_per_trade / sl_distance)
 
     # HARD CAP: Never let position value exceed 20% of capital
-    MAX_POSITION_VALUE = Config.CAPITAL * 0.20
+    MAX_POSITION_VALUE = state.active_capital * 0.20
     max_qty_by_value = int(MAX_POSITION_VALUE / entry) if entry > 0 else 0
     qty = min(qty, max_qty_by_value)
 
@@ -368,6 +368,40 @@ def api_get_active_trades():
 def api_get_trade_history():
     return sorted(trade_manager.trade_history, key=lambda x: x['timestamp'], reverse=True)
 
+@app.get("/api/trades/all-history")
+def api_get_all_history(start_date: str = None, end_date: str = None):
+    db = SessionLocal()
+    try:
+        query = db.query(Trade)
+        
+        if start_date:
+            query = query.filter(Trade.trade_date >= start_date)
+        if end_date:
+            query = query.filter(Trade.trade_date <= end_date)
+            
+        trades = query.order_by(desc(Trade.entry_time)).all()
+        
+        result = []
+        for t in trades:
+            result.append({
+                'id': t.id,
+                'date': t.trade_date.isoformat() if t.trade_date else None,
+                'entry_time': t.entry_time.isoformat() if t.entry_time else None,
+                'exit_time': t.exit_time.isoformat() if t.exit_time else None,
+                'symbol': t.symbol,
+                'side': t.side,
+                'qty': t.quantity or 1,
+                'entry_price': t.entry_price,
+                'exit_price': t.exit_price,
+                'sl': t.sl_price,
+                'pnl': t.realized_pnl or 0.0,
+                'exit_reason': t.exit_reason,
+                'status': t.status if t.status == 'OPEN' else ('Win' if (t.realized_pnl or 0) > 0 else 'Loss' if (t.realized_pnl or 0) < 0 else 'Breakeven')
+            })
+        return result
+    finally:
+        db.close()
+
 @app.get("/api/status")
 def api_get_status():
     return {
@@ -378,7 +412,8 @@ def api_get_status():
         "max_trades": Config.MAX_TRADES_PER_DAY,
         "market_condition": state.market_condition,
         "indices": state.live_indices,
-        "ws_live": market_feed.is_live()
+        "ws_live": market_feed.is_live(),
+        "active_capital": state.active_capital
     }
 
 @app.post("/api/toggle")
@@ -396,8 +431,16 @@ async def api_post_config(request: Request):
     data = await request.json()
     for k, v in data.items():
         if hasattr(Config, k):
+            # For secure token handling: only update if not empty, since UI won't show it back
+            if k == 'UPSTOX_ACCESS_TOKEN' and (not v or v.strip() == ""):
+                continue
             setattr(Config, k, v)
     Config.save()
+    
+    # Reload execution engine headers if token changed
+    if 'UPSTOX_ACCESS_TOKEN' in data and data['UPSTOX_ACCESS_TOKEN'].strip() != "":
+        execution_engine.headers['Authorization'] = f'Bearer {Config.UPSTOX_ACCESS_TOKEN}'
+        
     return {"status": "success", "message": "Configuration updated successfully!"}
 
 @app.post("/api/emergency")

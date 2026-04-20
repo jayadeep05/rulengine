@@ -2,7 +2,10 @@ import logging
 import datetime
 import uuid
 from config import Config
-from database import SessionLocal, Trade, DailyStats, SystemLog
+from database import SessionLocal, Trade, DailyStats, SystemLog, get_ist_now, get_ist_date
+import pytz
+
+IST = pytz.timezone('Asia/Kolkata')
 
 # Dedicated logger for execution storage
 trade_logger = logging.getLogger('trades_log')
@@ -23,17 +26,18 @@ class TradeManager:
     def _load_from_db(self):
         db = SessionLocal()
         try:
-            today = datetime.datetime.utcnow().date()
+            today = get_ist_date()
             # Load OPEN trades
             open_db_trades = db.query(Trade).filter(Trade.status == 'OPEN').all()
             for t in open_db_trades:
                 self.active_trades.append({
                     'id': t.id,
-                    'timestamp': t.entry_time.isoformat() if t.entry_time else datetime.datetime.now().isoformat(),
+                    'timestamp': t.entry_time.isoformat() if t.entry_time else get_ist_now().isoformat(),
                     'symbol': t.symbol,
                     'side': t.side,
                     'entry_price': t.entry_price,
                     'current_price': t.entry_price, # placeholder until LTP fetch
+                    'max_favorable_price': t.entry_price,
                     'qty': t.quantity,
                     'sl': t.sl_price,
                     'target': t.target_price,
@@ -49,7 +53,7 @@ class TradeManager:
             for t in closed_db_trades:
                 self.trade_history.append({
                     'id': t.id,
-                    'timestamp': t.entry_time.isoformat() if t.entry_time else datetime.datetime.now().isoformat(),
+                    'timestamp': t.entry_time.isoformat() if t.entry_time else get_ist_now().isoformat(),
                     'symbol': t.symbol,
                     'side': t.side,
                     'entry_price': t.entry_price,
@@ -75,7 +79,7 @@ class TradeManager:
         trade_id = str(uuid.uuid4())[:8]  # Shorter UUID for easy reading
         trade = {
             'id': trade_id,
-            'timestamp': datetime.datetime.now().isoformat(),
+            'timestamp': get_ist_now().isoformat(),
             'symbol': symbol,
             'side': side,
             'entry_price': entry_price,
@@ -100,14 +104,14 @@ class TradeManager:
         try:
             db_trade = Trade(
                 id=trade_id,
-                trade_date=datetime.datetime.utcnow().date(),
+                trade_date=get_ist_date(),
                 symbol=symbol,
                 side=side,
                 quantity=qty,
                 entry_price=entry_price,
                 sl_price=sl,
                 target_price=target,
-                entry_time=datetime.datetime.utcnow(),
+                entry_time=get_ist_now(),
                 status='OPEN',
                 ai_score=float(score)
             )
@@ -161,7 +165,7 @@ class TradeManager:
                 exit_reason = "Target Hit"
                 
         # Also check time > 3:15 PM
-        now = datetime.datetime.now()
+        now = get_ist_now()
         if now.hour == 15 and now.minute >= 15:
             exit_trade = True
             exit_reason = "Time Exit (> 3:15 PM)"
@@ -233,7 +237,7 @@ class TradeManager:
     def close_trade(self, trade: dict, reason: str):
         trade['status'] = 'CLOSED'
         trade['exit_reason'] = reason
-        trade['exit_time'] = datetime.datetime.now().isoformat()
+        trade['exit_time'] = get_ist_now().isoformat()
         
         # Overtrading Control (Phase 4): Consecutive Losses Tracking
         from config import SystemState
@@ -243,10 +247,7 @@ class TradeManager:
         if trade['pnl'] < 0:
             SystemState.consecutive_losses += 1
             if SystemState.consecutive_losses >= 2:
-                import pytz
-                IST = pytz.timezone('Asia/Kolkata')
-                import datetime as dt
-                SystemState.loss_cooldown_until = dt.datetime.now(IST) + dt.timedelta(minutes=30)
+                SystemState.loss_cooldown_until = datetime.datetime.now(IST) + datetime.timedelta(minutes=30)
                 logger.warning("2 Consecutive losses hit! Global Cooldown enabled for 30 minutes.")
         else:
             if trade['pnl'] > 0:
@@ -267,18 +268,18 @@ class TradeManager:
             if db_trade:
                 db_trade.status = 'CLOSED'
                 db_trade.exit_price = float(trade['current_price'])
-                db_trade.exit_time = datetime.datetime.utcnow()
+                db_trade.exit_time = get_ist_now()
                 db_trade.exit_reason = reason
                 db_trade.realized_pnl = float(trade['pnl'])
                 db_trade.sl_price = float(trade['sl'])
                 db.commit()
                 
             # Update Daily Stats aggregate
-            today = datetime.datetime.utcnow().date()
+            today = get_ist_date()
             stats = db.query(DailyStats).filter(DailyStats.session_date == today).first()
             if not stats:
                 stats = DailyStats(
-                    session_date=today, start_capital=100000.0, end_capital=100000.0,
+                    session_date=today, start_capital=Config.MANUAL_CAPITAL, end_capital=Config.MANUAL_CAPITAL,
                     total_trades_taken=0, winning_trades=0, net_realized_pnl=0.0
                 )
                 db.add(stats)
@@ -287,6 +288,7 @@ class TradeManager:
             if trade['pnl'] > 0:
                 stats.winning_trades += 1
             stats.net_realized_pnl += float(trade['pnl'])
+            stats.end_capital += float(trade['pnl'])
             db.commit()
         except Exception as e:
             logger.error(f"Failed to update trade exit in DB: {e}")
@@ -294,13 +296,13 @@ class TradeManager:
             db.close()
 
     def get_daily_pnl(self) -> float:
-        history_pnl = sum([t['pnl'] for t in self.trade_history if t['timestamp'][:10] == datetime.datetime.now().isoformat()[:10]])
+        history_pnl = sum([t['pnl'] for t in self.trade_history if t['timestamp'][:10] == get_ist_now().isoformat()[:10]])
         active_pnl = sum([t['pnl'] for t in self.active_trades])
         return history_pnl + active_pnl
 
     def get_trades_taken_today(self) -> int:
         count = 0
-        today_str = datetime.datetime.now().isoformat()[:10]
+        today_str = get_ist_now().isoformat()[:10]
         for t in self.trade_history + self.active_trades:
             if t['timestamp'][:10] == today_str:
                 count += 1

@@ -29,6 +29,32 @@ class UpstoxExecutionEngine:
             logger.error(f"Upstox connection error: {e}")
             return False
 
+    def get_funds(self) -> float:
+        """Fetch real user balance (available margin) if LIVE mode is enabled."""
+        if Config.MODE == "TEST" or not getattr(Config, 'USE_LIVE_CAPITAL', False):
+            return getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)
+            
+        try:
+            # Reconstruct headers block just in case token dynamically updated via config
+            hdrs = {
+                'Accept': 'application/json',
+                'Authorization': f'Bearer {Config.UPSTOX_ACCESS_TOKEN}',
+            }
+            url = f"{self.api_v2}/user/get-funds-and-margin"
+            res = requests.get(url, headers=hdrs, timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                if 'data' in data and 'equity' in data['data']:
+                    margin = float(data['data']['equity'].get('available_margin', getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)))
+                    logger.info(f"Fetched live funds from Upstox: {margin}")
+                    return margin
+            else:
+                logger.error(f"Failed to fetch live funds: {res.text}")
+        except Exception as e:
+            logger.error(f"Error fetching live funds: {e}")
+            
+        return getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)
+
     def get_ltp(self, instrument_key: str) -> float:
         """Fetch real-time Last Traded Price (LTP) using Full Market Quotes API."""
         try:

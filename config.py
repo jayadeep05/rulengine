@@ -16,10 +16,9 @@ class Config:
     # Execution Mode: "TEST" or "LIVE"
     MODE = "LIVE"
 
-    # Deprecated DB settings - will delete later
     # Database Configuration
-    DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "#JAYA1708!!")
+    DB_USER = os.getenv("DB_USER", "app_user")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "SecurePassword123!")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "3306")
     DB_NAME = os.getenv("DB_NAME", "trade_history")
@@ -36,7 +35,9 @@ class Config:
     MAX_DAILY_LOSS_PCT = -0.02  # -2%
     TRAILING_SL_ACTIVATION = 1.0  # R-Multiple to start trailing
     MAX_OPEN_TRADES = 2
-    CAPITAL = 100000.0  # Example starting capital
+    CAPITAL = 100000.0  # (LEGACY, kept for minor fallback)
+    USE_LIVE_CAPITAL = False
+    MANUAL_CAPITAL = 100000.0
     
     # AI/ML Configuration
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -133,7 +134,6 @@ class Config:
         "GAIL": "NSE_EQ|INE129A01019",
         "DMART": "NSE_EQ|INE192R01011",
         "GODREJCP": "NSE_EQ|INE102D01028",
-        "VARUN": "NSE_EQ|INE200M01039",
         "TATACONSUM": "NSE_EQ|INE192A01025",
         "VBL": "NSE_EQ|INE200M01039",
         "SHREECEM": "NSE_EQ|INE070A01015",
@@ -186,7 +186,8 @@ class Config:
                 
     @classmethod
     def save(cls):
-        exclude = ['SYMBOLS_MAPPING', 'UPSTOX_ACCESS_TOKEN', 'ANALYTICS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
+        exclude = ['SYMBOLS_MAPPING', 'ANALYTICS_TOKEN', 'UPSTOX_CLIENT_ID', 'UPSTOX_CLIENT_SECRET', 'GROQ_API_KEY', 'REDIRECT_URI', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME']
+        # removed UPSTOX_ACCESS_TOKEN from exclude list so it can be saved config.json
         data = {k: getattr(cls, k) for k in dir(cls) if not k.startswith("__") and not callable(getattr(cls, k)) and k not in exclude}
         with open("config.json", "w") as f:
             json.dump(data, f, indent=4)
@@ -203,3 +204,4 @@ class SystemState:
     blocked_symbols: dict = {} # symbol -> time_until_unblocked
     market_condition: str = "WAITING"
     live_indices: dict = {}
+    active_capital: float = 100000.0
