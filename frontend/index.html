@@ -609,6 +609,12 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
+        .idx-chg {
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
         [data-theme="light"] .idx-price {
             color: var(--text) !important;
         }
@@ -3445,17 +3451,35 @@
 
         <!-- INDEX BANNER -->
         <div class="index-banner">
-            <div class="idx-item"><span class="idx-name">NIFTY 50</span><span class="idx-price" id="ix-nifty">--</span>
+            <div class="idx-item">
+                <span class="idx-name">NIFTY 50</span>
+                <span class="idx-price" id="ix-nifty">--</span>
+                <span class="idx-chg" id="ix-nifty-chg"></span>
             </div>
-            <div class="idx-item"><span class="idx-name">SENSEX</span><span class="idx-price" id="ix-sensex">--</span>
+            <div class="idx-item">
+                <span class="idx-name">SENSEX</span>
+                <span class="idx-price" id="ix-sensex">--</span>
+                <span class="idx-chg" id="ix-sensex-chg"></span>
             </div>
-            <div class="idx-item"><span class="idx-name">NIFTY BANK</span><span class="idx-price" id="ix-bank">--</span>
+            <div class="idx-item">
+                <span class="idx-name">NIFTY BANK</span>
+                <span class="idx-price" id="ix-bank">--</span>
+                <span class="idx-chg" id="ix-bank-chg"></span>
             </div>
-            <div class="idx-item"><span class="idx-name">FINNIFTY</span><span class="idx-price" id="ix-fin">--</span>
+            <div class="idx-item">
+                <span class="idx-name">FINNIFTY</span>
+                <span class="idx-price" id="ix-fin">--</span>
+                <span class="idx-chg" id="ix-fin-chg"></span>
             </div>
-            <div class="idx-item"><span class="idx-name">MIDCPNIFTY</span><span class="idx-price" id="ix-mid">--</span>
+            <div class="idx-item">
+                <span class="idx-name">MIDCPNIFTY</span>
+                <span class="idx-price" id="ix-mid">--</span>
+                <span class="idx-chg" id="ix-mid-chg"></span>
             </div>
-            <div class="idx-item"><span class="idx-name">INDIA VIX</span><span class="idx-price" id="ix-vix">--</span>
+            <div class="idx-item">
+                <span class="idx-name">INDIA VIX</span>
+                <span class="idx-price" id="ix-vix">--</span>
+                <span class="idx-chg" id="ix-vix-chg"></span>
             </div>
         </div>
 
@@ -3477,9 +3501,9 @@
                 <div class="stat-sub" id="v-trades-sub">Session max cap</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Market State</div>
-                <div class="stat-val" id="v-market" style="font-size:16px;font-family:'Inter'">WAITING</div>
-                <div class="stat-sub" id="v-market-sub">--</div>
+                <div class="stat-label">Market Pulse</div>
+                <div class="stat-val" id="v-market" style="font-size:16px;font-family:'Inter'">CALIBRATING</div>
+                <div class="stat-sub" id="v-market-sub">Fetching sentiment...</div>
             </div>
         </div>
 
@@ -3975,19 +3999,34 @@
 
                 // Index Banner Tracking
                 if (state.indices) {
-                    const n = state.indices["NSE_INDEX|Nifty 50"];
-                    const sx = state.indices["BSE_INDEX|SENSEX"];
-                    const b = state.indices["NSE_INDEX|Nifty Bank"];
-                    const f = state.indices["NSE_INDEX|Nifty Fin Service"];
-                    const m = state.indices["NSE_INDEX|NIFTY MID SELECT"];
-                    const v = state.indices["NSE_INDEX|India VIX"];
+                    const idxs = [
+                        { key: "NSE_INDEX|Nifty 50", id: "ix-nifty" },
+                        { key: "BSE_INDEX|SENSEX", id: "ix-sensex" },
+                        { key: "NSE_INDEX|Nifty Bank", id: "ix-bank" },
+                        { key: "NSE_INDEX|Nifty Fin Service", id: "ix-fin" },
+                        { key: "NSE_INDEX|NIFTY MID SELECT", id: "ix-mid" },
+                        { key: "NSE_INDEX|India VIX", id: "ix-vix" }
+                    ];
 
-                    document.getElementById('ix-nifty').textContent = n ? parseFloat(n).toFixed(2) : '--';
-                    document.getElementById('ix-sensex').textContent = sx ? parseFloat(sx).toFixed(2) : '--';
-                    document.getElementById('ix-bank').textContent = b ? parseFloat(b).toFixed(2) : '--';
-                    document.getElementById('ix-fin').textContent = f ? parseFloat(f).toFixed(2) : '--';
-                    document.getElementById('ix-mid').textContent = m ? parseFloat(m).toFixed(2) : '--';
-                    document.getElementById('ix-vix').textContent = v ? parseFloat(v).toFixed(2) : '--';
+                    idxs.forEach(item => {
+                        const ltp = state.indices[item.key];
+                        const prevClose = state.indices_prev_close ? state.indices_prev_close[item.key] : 0;
+                        const elPrice = document.getElementById(item.id);
+                        const elChg = document.getElementById(item.id + '-chg');
+
+                        if (ltp) {
+                            elPrice.textContent = ltp.toFixed(2);
+                            if (prevClose > 0) {
+                                const diff = ltp - prevClose;
+                                const pct = (diff / prevClose) * 100;
+                                const sign = diff >= 0 ? '+' : '';
+                                elChg.textContent = `${sign}${diff.toFixed(2)} (${pct.toFixed(2)}%)`;
+                                elChg.className = `idx-chg ${diff >= 0 ? 'g' : 'r'}`;
+                            } else {
+                                elChg.textContent = '';
+                            }
+                        }
+                    });
                 }
 
                 // Ribbon
@@ -4015,9 +4054,17 @@
                 document.getElementById('v-trades-sub').textContent = `${maxT - trades} operations remaining`;
 
                 const mc = state.market_condition || 'WAITING';
-                document.getElementById('v-market').textContent = mc;
-                document.getElementById('v-market').className = `stat-val ${mc === 'TRENDING' ? 'g' : mc === 'VOLATILE' ? 'y' : ''}`;
-                document.getElementById('v-market-sub').textContent = mc === 'TRENDING' ? '↑ Directional strength detected' : mc === 'VOLATILE' ? '⚡ High fluctuation' : mc === 'SIDEWAYS' ? '↔ Range bound trading' : 'Awaiting session open';
+                const nifty = state.indices ? state.indices["NSE_INDEX|Nifty 50"] : 0;
+                const vix = state.indices ? state.indices["NSE_INDEX|India VIX"] : 0;
+                
+                document.getElementById('v-market').textContent = mc === 'TRENDING' ? 'BULLISH PULSE' : mc === 'VOLATILE' ? 'HIGH VOLATILITY' : mc === 'SIDEWAYS' ? 'NEUTRAL RANGE' : 'WAITING';
+                document.getElementById('v-market').className = `stat-val ${mc === 'TRENDING' ? 'g' : mc === 'VOLATILE' ? 'r' : ''}`;
+                
+                let subText = 'Awaiting session open';
+                if (nifty > 0) {
+                    subText = `Nifty: ${Math.round(nifty)} | VIX: ${vix.toFixed(2)}`;
+                }
+                document.getElementById('v-market-sub').textContent = subText;
 
                 const mBtn = document.getElementById('btn-mode');
                 mBtn.textContent = (config.MODE || 'TEST') + ' MODE';
@@ -4029,23 +4076,30 @@
 
                 // Risk dashboard
                 const rCap = state.active_capital || 100000;
-                document.getElementById('r-capital').textContent = `₹${(rCap / 1000).toFixed(0)}K`;
+                document.getElementById('r-capital').textContent = `₹${(rCap / 1000).toFixed(1)}K`;
                 document.getElementById('r-risk-per-trade').textContent = `${config.RISK_PER_TRADE_PCT ? (config.RISK_PER_TRADE_PCT * 100).toFixed(1) : 1}%`;
 
-                const maxLoss = Math.abs((config.MAX_DAILY_LOSS_PCT || -0.02) * rCap);
+                // Calculate loss limit (handle both positive and negative pct in config)
+                const configLossPct = (config.MAX_DAILY_LOSS_PCT || -0.02);
+                const maxLoss = Math.abs(configLossPct * rCap);
                 const lossUsed = Math.max(0, -pnl);
                 const lossPct = Math.min(100, (lossUsed / maxLoss) * 100);
+                
                 document.getElementById('r-loss-used').textContent = `₹${lossUsed.toFixed(0)} / ₹${maxLoss.toFixed(0)}`;
                 const bar = document.getElementById('r-bar');
-                bar.style.width = lossPct + '%';
-                bar.className = `risk-bar-fill${lossPct > 70 ? ' danger' : ''}`;
+                if (bar) {
+                    bar.style.width = lossPct + '%';
+                    bar.className = `risk-bar-fill${lossPct > 70 ? ' danger' : ''}`;
+                }
 
                 // Win rate
-                const wins = tradeHistory.filter(t => t.pnl > 0).length;
+                const wins = tradeHistory.filter(t => (t.pnl || t.realized_pnl) > 0).length;
                 const total = tradeHistory.length;
                 document.getElementById('r-winrate').textContent = total > 0 ? `${Math.round((wins / total) * 100)}%` : '0%';
 
-            } catch (e) { }
+            } catch (e) {
+                console.error("fetchStatus error:", e);
+            }
         }
 
         // ─── ACTIVE TRADES ───────────────────────────────────────────────────────────

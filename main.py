@@ -26,6 +26,11 @@ from sqlalchemy import desc
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Force logging to use IST
+def ist_converter(*args):
+    return datetime.now(IST).timetuple()
+logging.Formatter.converter = ist_converter
+
 app = FastAPI(title="Intraday Trading System API")
 
 # Mount static folder for UI
@@ -49,12 +54,63 @@ async def startup_event():
     logger.info("Initializing Intelligence and Trading System...")
     # Connect to Upstox REST API (profile check)
     execution_engine.connect()
+    
+    # Initialize state with real data immediately
+    try:
+        logger.info("Performing initial data fetch...")
+        state.active_capital = execution_engine.get_funds()
+        # Initial index fetch
+        idx_keys = [
+            "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
+            "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
+        ]
+        res = execution_engine.get_market_quotes(idx_keys)
+        for idx in idx_keys:
+            if idx in res:
+                state.live_indices[idx] = res[idx]['last_price']
+                if 'ohlc' in res[idx]:
+                    state.index_prev_close[idx] = res[idx]['ohlc'].get('close', 0)
+        logger.info(f"Initial capital: ₹{state.active_capital}, Indices: {len(state.live_indices)} fetched.")
+    except Exception as e:
+        logger.error(f"Error during initial fetch: {e}")
+
     # ── Launch WebSocket real-time market feed (background daemon thread) ──
     market_feed.start(live_prices_cache, state.live_indices, trade_manager)
     logger.info("[WS] Upstox WebSocket Market Feed started.")
     # Start background task loops
     asyncio.create_task(trading_cycle_loop())
     asyncio.create_task(ws_fallback_pump())
+    asyncio.create_task(periodic_stat_sync())
+
+async def periodic_stat_sync():
+    """
+    Independent task to sync capital and indices every 5 minutes, 
+    even when the market is closed or trading is paused.
+    """
+    while True:
+        try:
+            # Sync Capital (only every 5 mins to avoid spamming)
+            new_cap = execution_engine.get_funds()
+            if new_cap > 0:
+                state.active_capital = new_cap
+            
+            # Sync Indices
+            idx_keys = [
+                "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
+                "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
+            ]
+            res = execution_engine.get_market_quotes(idx_keys)
+            for idx in idx_keys:
+                if idx in res:
+                    state.live_indices[idx] = res[idx]['last_price']
+                    if 'ohlc' in res[idx]:
+                        state.index_prev_close[idx] = res[idx]['ohlc'].get('close', 0)
+            
+            logger.info(f"[Sync] Capital: ₹{state.active_capital}")
+        except Exception as e:
+            logger.error(f"[Sync] Error: {e}")
+            
+        await asyncio.sleep(300) # Every 5 minutes
 
 async def ws_fallback_pump():
     """
@@ -117,9 +173,24 @@ async def trading_cycle_loop():
             
         logger.info(f"[{Config.MODE}] Running trading cycle...")
         
-        # Update session capital
+        # Refresh capital and indices for the pulse
         state.active_capital = execution_engine.get_funds()
         
+        # ── GLOBAL MARKET PULSE ──────────────────────────────────────────────
+        nifty_ltp = state.live_indices.get("NSE_INDEX|Nifty 50", 0)
+        vix_ltp = state.live_indices.get("NSE_INDEX|India VIX", 0)
+        
+        if nifty_ltp > 0:
+            # We use a simple sentiment based on VIX and direction
+            if vix_ltp > 18:
+                state.market_condition = "VOLATILE"
+            elif vix_ltp < 12:
+                state.market_condition = "SIDEWAYS"
+            else:
+                state.market_condition = "TRENDING"
+        else:
+            state.market_condition = "WAITING"
+
         current_prices = {}
         global latest_signals, prev_prices_for_momentum
         new_signals = []
@@ -223,8 +294,10 @@ async def trading_cycle_loop():
             }
             new_signals.append(signal_record)
             
+            # Signal record metadata handling
             if 'metadata' in signal_data and signal_data['metadata']:
-                state.market_condition = signal_data['metadata'].get('market_condition', 'WAITING')
+                # Individual stock conditions are now stored in signal metadata only
+                pass
             
             # 6. Risk Management & Execution
             if final_decision in ['BUY', 'SELL']:
@@ -242,8 +315,8 @@ async def trading_cycle_loop():
         state.daily_pnl = daily_pnl
         state.trades_taken = trade_manager.get_trades_taken_today()
         
-        if daily_loss_pct <= Config.MAX_DAILY_LOSS_PCT:
-            logger.critical("KILL SWITCH ACTIVATED! Executing Upstox exit_all_positions()")
+        if daily_loss_pct <= -abs(Config.MAX_DAILY_LOSS_PCT):
+            logger.critical(f"KILL SWITCH ACTIVATED! Daily Loss ({daily_loss_pct*100:.2f}%) hit threshold ({-abs(Config.MAX_DAILY_LOSS_PCT)*100:.2f}%). Executing Upstox exit_all_positions()")
             state.kill_switch_active = True
             state.is_running = False
             
@@ -412,6 +485,7 @@ def api_get_status():
         "max_trades": Config.MAX_TRADES_PER_DAY,
         "market_condition": state.market_condition,
         "indices": state.live_indices,
+        "indices_prev_close": state.index_prev_close,
         "ws_live": market_feed.is_live(),
         "active_capital": state.active_capital
     }

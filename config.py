@@ -10,7 +10,12 @@ if os.path.exists(".env"):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
+                k = k.strip()
+                v = v.strip()
+                # Handle quoted values
+                if len(v) >= 2 and ((v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'"))):
+                    v = v[1:-1]
+                os.environ[k] = v # Use environ[] to allow overrides from .env
 
 class Config:
     # Execution Mode: "TEST" or "LIVE"
@@ -204,4 +209,5 @@ class SystemState:
     blocked_symbols: dict = {} # symbol -> time_until_unblocked
     market_condition: str = "WAITING"
     live_indices: dict = {}
+    index_prev_close: dict = {}
     active_capital: float = 100000.0

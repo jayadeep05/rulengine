@@ -45,11 +45,18 @@ class UpstoxExecutionEngine:
             if res.status_code == 200:
                 data = res.json()
                 if 'data' in data and 'equity' in data['data']:
-                    margin = float(data['data']['equity'].get('available_margin', getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)))
-                    logger.info(f"Fetched live funds from Upstox: {margin}")
-                    return margin
+                    eq = data['data']['equity']
+                    # Try multiple known keys for available funds in Upstox API
+                    margin = eq.get('available_margin') or eq.get('available_funds') or eq.get('net') or eq.get('utilized_margin')
+                    
+                    if margin is not None:
+                        margin = float(margin)
+                        logger.info(f"Fetched live funds from Upstox: ₹{margin}")
+                        return margin
+                    else:
+                        logger.warning(f"Could not find margin field in Upstox response. Keys: {list(eq.keys())}")
             else:
-                logger.error(f"Failed to fetch live funds: {res.text}")
+                logger.error(f"Failed to fetch live funds (Status {res.status_code}): {res.text}")
         except Exception as e:
             logger.error(f"Error fetching live funds: {e}")
             
@@ -122,6 +129,33 @@ class UpstoxExecutionEngine:
         except Exception as e:
             logger.warning(f"LTP bulk fetch error: {e}")
         return prices
+
+    def get_market_quotes(self, instrument_keys: list) -> dict:
+        """Fetch full quote data (OHLC, LTP, etc.) for multiple instruments."""
+        quotes = {}
+        try:
+            if not instrument_keys:
+                return quotes
+            keys_str = ",".join(instrument_keys)
+            url = f"{self.api_v2}/market-quote/quotes?instrument_key={keys_str}"
+            response = requests.get(url, headers=self.headers, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            
+            if 'data' in data:
+                # Map by colon and pipe versions
+                key_map = {}
+                for k in instrument_keys:
+                    key_map[k.replace('|', ':')] = k
+                    key_map[k] = k
+
+                for raw_key, quote_data in data['data'].items():
+                    matched_key = key_map.get(raw_key)
+                    if matched_key:
+                        quotes[matched_key] = quote_data
+        except Exception as e:
+            logger.warning(f"Market quotes fetch error: {e}")
+        return quotes
 
     def get_ohlc(self, instrument_key: str, interval: str = "1minute") -> pd.DataFrame:
         """

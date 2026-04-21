@@ -9,7 +9,7 @@ from config import Config
 IST = pytz.timezone('Asia/Kolkata')
 
 def get_ist_now():
-    return datetime.now(IST).replace(tzinfo=False)
+    return datetime.now(IST)
 
 def get_ist_date():
     return datetime.now(IST).date()
