@@ -24,18 +24,20 @@ logger = logging.getLogger(__name__)
 # ─── Configuration ────────────────────────────────────────────────────────────
 EQUITY_KEYS = list(Config.SYMBOLS_MAPPING.values())
 INDEX_KEYS = [
-    "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
-    "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX",
+    "NSE_INDEX:Nifty 50", "BSE_INDEX:SENSEX", "NSE_INDEX:Nifty Bank",
+    "NSE_INDEX:Nifty Fin Service", "NSE_INDEX:NIFTY MID SELECT", "NSE_INDEX:India VIX",
 ]
-ALL_INSTRUMENT_KEYS = EQUITY_KEYS + INDEX_KEYS
-INDEX_SET = set(INDEX_KEYS) | {k.replace("|", ":") for k in INDEX_KEYS}
+# Subscribe to both colon and pipe formats to ensure compatibility across different Upstox API versions
+ALL_INSTRUMENT_KEYS = EQUITY_KEYS + INDEX_KEYS + [k.replace(":", "|") for k in INDEX_KEYS]
+# Universal set for lookup, matching both pipe and colon formats
+INDEX_SET = set(INDEX_KEYS) | {k.replace(":", "|") for k in INDEX_KEYS}
 
 _REVERSE_MAP: Dict[str, str] = {v: k for k, v in Config.SYMBOLS_MAPPING.items()}
 _REVERSE_MAP.update({v.replace("|", ":"): k for k, v in Config.SYMBOLS_MAPPING.items()})
 
 _prices_cache: Dict[str, float] = {}
 _indices_cache: Dict[str, float] = {}
-_got_first_tick: bool = False
+_last_tick_time: float = 0
 _trade_manager = None
 
 _stop_event = threading.Event()
@@ -143,13 +145,25 @@ def _on_market_message(message):
             
             if ltp is not None:
                 ltp = float(ltp)
-                if instrument_key in INDEX_SET:
-                    _indices_cache[instrument_key.replace(":", "|")] = ltp
+                # Check if it's an index by searching for keywords if exact match in INDEX_SET fails
+                is_index = instrument_key in INDEX_SET or "INDEX" in instrument_key or "VIX" in instrument_key
+                
+                if is_index:
+                    # Normalize to pipe format for UI consistency
+                    normalized_key = instrument_key.replace(":", "|")
+                    _indices_cache[normalized_key] = ltp
                 else:
                     human_name = _REVERSE_MAP.get(instrument_key)
+                    if not human_name:
+                        # Try matching with pipe/colon swap if direct mapping fails
+                        swapped_key = instrument_key.replace(":", "|") if ":" in instrument_key else instrument_key.replace("|", ":")
+                        human_name = _REVERSE_MAP.get(swapped_key)
+                        
                     if human_name:
                         _prices_cache[human_name] = ltp
-                _got_first_tick = True
+                
+                global _last_tick_time
+                _last_tick_time = _time.time()
     except Exception as exc:
         logger.debug(f"[WS-Market] Parse Error: {exc}")
 
@@ -229,5 +243,6 @@ def start(prices_cache: dict, indices_cache: dict, trade_manager=None):
 def stop():
     _stop_event.set()
 
-def is_live() -> bool:
-    return _got_first_tick
+def is_live():
+    # Live if we received a tick in the last 60 seconds
+    return (_time.time() - _last_tick_time) < 60
