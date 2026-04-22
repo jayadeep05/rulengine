@@ -29,6 +29,22 @@ def compute_features(df: pd.DataFrame) -> pd.DataFrame:
     df['volume_ma_20'] = df['volume'].shift(1).rolling(window=20).mean()
     df['volume_ratio'] = df['volume'] / df['volume_ma_20']
     df['volume_ratio'] = df['volume_ratio'].fillna(1.0)
+    
+    # ── Volume baseline 6 candles (30m on 5m chart) ───────────────────────────
+    df['volume_ma_6'] = df['volume'].shift(1).rolling(window=6).mean()
+    df['vol_ratio_6'] = df['volume'] / df['volume_ma_6']
+    df['vol_ratio_6'] = df['vol_ratio_6'].fillna(1.0)
+
+    # ── RSI 14 ────────────────────────────────────────────────────────────────
+    delta = df['close'].diff()
+    gain = (delta.where(delta > 0, 0)).ewm(alpha=1/14, adjust=False).mean()
+    loss = (-delta.where(delta < 0, 0)).ewm(alpha=1/14, adjust=False).mean()
+    rs = gain / loss
+    df['rsi_14'] = 100 - (100 / (1 + rs))
+    df['rsi_14'] = df['rsi_14'].fillna(50)
+
+    # ── EMA 20 ────────────────────────────────────────────────────────────────
+    df['ema_20'] = df['close'].ewm(span=20, adjust=False).mean()
 
     # ── Candle Strength (unchanged — correct formula) ─────────────────────────
     df['high_low_range'] = df['high'] - df['low']

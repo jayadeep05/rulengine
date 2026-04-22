@@ -26,10 +26,12 @@ EQUITY_KEYS = list(Config.SYMBOLS_MAPPING.values())
 INDEX_KEYS = [
     "NSE_INDEX:Nifty 50", "BSE_INDEX:SENSEX", "NSE_INDEX:Nifty Bank",
     "NSE_INDEX:Nifty Fin Service", "NSE_INDEX:NIFTY MID SELECT", "NSE_INDEX:India VIX",
+    "NSE_INDEX:NIFTY FIN SERVICE", "NSE_INDEX:NIFTY BANK", "BSE_INDEX:SENSEX50",
+    "NSE_INDEX:NIFTY MIDCAP 50", "NSE_INDEX:NIFTY 50"
 ]
-# Subscribe to both colon and pipe formats to ensure compatibility across different Upstox API versions
+# Subscriptions for indices: Use BOTH formats for maximum compatibility
 ALL_INSTRUMENT_KEYS = EQUITY_KEYS + INDEX_KEYS + [k.replace(":", "|") for k in INDEX_KEYS]
-# Universal set for lookup, matching both pipe and colon formats
+# Add pipe versions for matching just in case
 INDEX_SET = set(INDEX_KEYS) | {k.replace(":", "|") for k in INDEX_KEYS}
 
 _REVERSE_MAP: Dict[str, str] = {v: k for k, v in Config.SYMBOLS_MAPPING.items()}
@@ -37,7 +39,9 @@ _REVERSE_MAP.update({v.replace("|", ":"): k for k, v in Config.SYMBOLS_MAPPING.i
 
 _prices_cache: Dict[str, float] = {}
 _indices_cache: Dict[str, float] = {}
-_last_tick_time: float = 0
+_indices_prev_close: Dict[str, float] = {}
+_last_equity_tick: float = 0
+_last_index_tick: float = 0
 _trade_manager = None
 
 _stop_event = threading.Event()
@@ -131,39 +135,71 @@ def _patch_sdk():
 
 def _on_market_message(message):
     global _got_first_tick
+    global _last_tick_time
     try:
         feeds = message.get('feeds', {})
         for instrument_key, feed in feeds.items():
-            ltp = None
+            msg = None
             if 'ltpc' in feed:
-                ltp = feed['ltpc'].get('ltp')
+                msg = feed['ltpc']
             elif 'fullFeed' in feed:
                 market = feed['fullFeed'].get('marketFF')
                 index = feed['fullFeed'].get('indexFF')
-                if market: ltp = market.get('ltpc', {}).get('ltp')
-                elif index: ltp = index.get('ltpc', {}).get('ltp')
+                msg = (market or index or {}).get('ltpc', {})
             
-            if ltp is not None:
-                ltp = float(ltp)
-                # Check if it's an index by searching for keywords if exact match in INDEX_SET fails
-                is_index = instrument_key in INDEX_SET or "INDEX" in instrument_key or "VIX" in instrument_key
+            if msg:
+                # Extract ltp and previous close
+                ltp = float(msg.get('ltp', 0))
+                # Upstox V3 often uses 'cp' for previous close in index feeds, but let's check all
+                prev_close = float(msg.get('cp') or msg.get('pc') or msg.get('pclose') or 0)
+                
+                # Check if it's an index (case-insensitive and flexible format)
+                is_index = False
+                upper_key = instrument_key.upper().replace(":", "|")
+                
+                # Check against predefined set
+                for ik in INDEX_SET:
+                    if ik.upper().replace(":", "|") == upper_key:
+                        is_index = True
+                        break
+                
+                # Broad wildcard matching for any index or VIX
+                if not is_index:
+                    is_index = "_INDEX" in upper_key or "NIFTY" in upper_key or "SENSEX" in upper_key or "VIX" in upper_key
                 
                 if is_index:
                     # Normalize to pipe format for UI consistency
                     normalized_key = instrument_key.replace(":", "|")
+                    # Special handling for NIFTY 50 capitalization mismatch
+                    if "NIFTY 50" in upper_key: normalized_key = "NSE_INDEX|Nifty 50"
+                    if "SENSEX" in upper_key and "BSE" in upper_key: normalized_key = "BSE_INDEX|SENSEX"
+                    if "NIFTY BANK" in upper_key: normalized_key = "NSE_INDEX|Nifty Bank"
+
                     _indices_cache[normalized_key] = ltp
+                    if prev_close > 0:
+                        _indices_prev_close[normalized_key] = prev_close
+                    
+                    global _last_index_tick
+                    _last_index_tick = _time.time()
                 else:
+                    # It's an equity
                     human_name = _REVERSE_MAP.get(instrument_key)
                     if not human_name:
-                        # Try matching with pipe/colon swap if direct mapping fails
-                        swapped_key = instrument_key.replace(":", "|") if ":" in instrument_key else instrument_key.replace("|", ":")
-                        human_name = _REVERSE_MAP.get(swapped_key)
+                        # Try with pipe/colon swap
+                        alt_key = instrument_key.replace(":", "|") if ":" in instrument_key else instrument_key.replace("|", ":")
+                        human_name = _REVERSE_MAP.get(alt_key)
                         
                     if human_name:
                         _prices_cache[human_name] = ltp
+                    
+                    global _last_equity_tick
+                    _last_equity_tick = _time.time()
                 
-                global _last_tick_time
                 _last_tick_time = _time.time()
+                
+                # Update Trade Manager with new prices
+                if _trade_manager:
+                    _trade_manager.update_prices(_prices_cache)
     except Exception as exc:
         logger.debug(f"[WS-Market] Parse Error: {exc}")
 
@@ -179,6 +215,7 @@ def _market_loop():
             api_client.configuration = config
             
             streamer = MarketDataStreamerV3(api_client, instrumentKeys=ALL_INSTRUMENT_KEYS, mode="ltpc")
+            logger.info(f"[WS-Market] Subscribing to {len(ALL_INSTRUMENT_KEYS)} keys (including {len(INDEX_KEYS)} indices)")
             
             closed_event = threading.Event()
             _captured = closed_event
@@ -226,10 +263,12 @@ def _portfolio_loop():
 
 # ─── Public API ───────────────────────────────────────────────────────────────
 
-def start(prices_cache: dict, indices_cache: dict, trade_manager=None):
-    global _prices_cache, _indices_cache, _trade_manager, _stop_event
+def start(prices_cache: dict, indices_cache: dict, prev_close_cache: dict = None, trade_manager=None):
+    global _prices_cache, _indices_cache, _indices_prev_close, _trade_manager, _stop_event
     _prices_cache = prices_cache
     _indices_cache = indices_cache
+    if prev_close_cache is not None:
+        _indices_prev_close = prev_close_cache
     _trade_manager = trade_manager
     _stop_event.clear()
 
@@ -244,5 +283,11 @@ def stop():
     _stop_event.set()
 
 def is_live():
-    # Live if we received a tick in the last 60 seconds
-    return (_time.time() - _last_tick_time) < 60
+    # Overall live if either is ticking
+    return is_equity_live() or is_index_live()
+
+def is_equity_live():
+    return (_time.time() - _last_equity_tick) < 30
+
+def is_index_live():
+    return (_time.time() - _last_index_tick) < 5

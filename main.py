@@ -58,9 +58,7 @@ async def startup_event():
     # Initialize state with real data immediately
     try:
         logger.info("Performing initial data fetch...")
-        funds = execution_engine.get_funds()
-        if funds is not None:
-            state.active_capital = funds
+        state.active_capital = execution_engine.get_funds()
         # Initial index fetch
         idx_keys = [
             "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
@@ -68,16 +66,22 @@ async def startup_event():
         ]
         res = execution_engine.get_market_quotes(idx_keys)
         for idx in idx_keys:
-            if idx in res:
-                state.live_indices[idx] = res[idx]['last_price']
-                if 'ohlc' in res[idx]:
-                    state.index_prev_close[idx] = res[idx]['ohlc'].get('close', 0)
+            # Match both pipe and colon versions
+            key_in_res = idx if idx in res else idx.replace("|", ":")
+            if key_in_res in res:
+                quote = res[key_in_res]
+                state.live_indices[idx] = quote['last_price']
+                # For indices, net_change is more reliable to find prev_close
+                if 'net_change' in quote:
+                    state.index_prev_close[idx] = quote['last_price'] - quote['net_change']
+                elif 'ohlc' in quote and 'close' in quote['ohlc']:
+                    state.index_prev_close[idx] = quote['ohlc']['close']
         logger.info(f"Initial capital: ₹{state.active_capital}, Indices: {len(state.live_indices)} fetched.")
     except Exception as e:
         logger.error(f"Error during initial fetch: {e}")
 
     # ── Launch WebSocket real-time market feed (background daemon thread) ──
-    market_feed.start(live_prices_cache, state.live_indices, trade_manager)
+    market_feed.start(live_prices_cache, state.live_indices, state.index_prev_close, trade_manager)
     logger.info("[WS] Upstox WebSocket Market Feed started.")
     # Start background task loops
     asyncio.create_task(trading_cycle_loop())
@@ -93,7 +97,7 @@ async def periodic_stat_sync():
         try:
             # Sync Capital (only every 5 mins to avoid spamming)
             new_cap = execution_engine.get_funds()
-            if new_cap is not None and new_cap > 0:
+            if new_cap > 0:
                 state.active_capital = new_cap
             
             # Sync Indices
@@ -103,10 +107,14 @@ async def periodic_stat_sync():
             ]
             res = execution_engine.get_market_quotes(idx_keys)
             for idx in idx_keys:
-                if idx in res:
-                    state.live_indices[idx] = res[idx]['last_price']
-                    if 'ohlc' in res[idx]:
-                        state.index_prev_close[idx] = res[idx]['ohlc'].get('close', 0)
+                key_in_res = idx if idx in res else idx.replace("|", ":")
+                if key_in_res in res:
+                    quote = res[key_in_res]
+                    state.live_indices[idx] = quote['last_price']
+                    if 'net_change' in quote:
+                        state.index_prev_close[idx] = quote['last_price'] - quote['net_change']
+                    elif 'ohlc' in quote and 'close' in quote['ohlc']:
+                        state.index_prev_close[idx] = quote['ohlc']['close']
             
             logger.info(f"[Sync] Capital: ₹{state.active_capital}")
         except Exception as e:
@@ -116,32 +124,36 @@ async def periodic_stat_sync():
 
 async def ws_fallback_pump():
     """
-    Lightweight fallback: only polls REST if WebSocket hasn't yet delivered any data
-    (e.g. very first seconds after startup, or during a long reconnect window).
-    Checks every 30 seconds — much gentler than the old 3-second poll.
+    Enhanced fallback: 
+    1. If no indices for 5s -> Poll indices every 3s (High frequency fallback)
+    2. If no equities for 30s -> Poll everything every 30s
     """
     while True:
-        await asyncio.sleep(30)
-        if market_feed.is_live():
-            # WebSocket is healthy — nothing to do
-            continue
-        logger.warning("[Fallback] WS has no data yet — firing one-shot REST bulk LTP fetch...")
-        try:
-            keys = list(Config.SYMBOLS_MAPPING.values())
+        await asyncio.sleep(3) # Check every 3 seconds
+        
+        # High-frequency Index Fallback
+        if not market_feed.is_index_live():
             idx_keys = [
                 "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
                 "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
             ]
-            keys.extend(idx_keys)
-            res = execution_engine.get_ltp_bulk(keys)
-            for idx in idx_keys:
-                if idx in res:
-                    state.live_indices[idx] = res[idx]
-            for name, key in Config.SYMBOLS_MAPPING.items():
-                if key in res:
-                    live_prices_cache[name] = res[key]
-        except Exception:
-            pass
+            try:
+                res = execution_engine.get_ltp_bulk(idx_keys)
+                for idx in idx_keys:
+                    if idx in res:
+                        state.live_indices[idx] = res[idx]
+            except Exception as e:
+                logger.debug(f"[Fallback] Index REST error: {e}")
+
+        # General Equity Fallback (Gentle)
+        if not market_feed.is_equity_live():
+            try:
+                keys = list(Config.SYMBOLS_MAPPING.values())
+                res = execution_engine.get_ltp_bulk(keys)
+                for ticker, ltp in res.items():
+                    live_prices_cache[ticker] = ltp
+            except Exception as e:
+                logger.warning(f"[Fallback] Equity REST error: {e}")
 
 # Removed mock data generator. Relying exclusively on real execution engine for data.
 async def trading_cycle_loop():
@@ -176,9 +188,7 @@ async def trading_cycle_loop():
         logger.info(f"[{Config.MODE}] Running trading cycle...")
         
         # Refresh capital and indices for the pulse
-        funds = execution_engine.get_funds()
-        if funds is not None:
-            state.active_capital = funds
+        state.active_capital = execution_engine.get_funds()
         
         # ── GLOBAL MARKET PULSE ──────────────────────────────────────────────
         nifty_ltp = state.live_indices.get("NSE_INDEX|Nifty 50", 0)
@@ -222,6 +232,10 @@ async def trading_cycle_loop():
         prev_prices_for_momentum = dict(name_to_ltp)
 
         scan_targets = [m[0] for m in movers] if movers else list(Config.SYMBOLS_MAPPING.keys())
+        
+        # ── STAGE 3: Pulse existing trades with latest LTPs ────────────────
+        trade_manager.update_prices(name_to_ltp, execution_engine)
+        
         logger.info(f"Scanning {len(scan_targets)} stocks in full universe...")
 
         for symbol_name in scan_targets:

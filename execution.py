@@ -188,7 +188,7 @@ class UpstoxExecutionEngine:
         try:
             url = f"{self.api_v3}/historical-candle/intraday/{instrument_key}/minutes/1"
             
-            response = requests.get(url, headers=self.headers, timeout=10)
+            response = requests.get(url, headers=self._get_headers(True), timeout=10) # OHLC often works with analytics token
             response.raise_for_status()
             data = response.json()
             
@@ -256,7 +256,7 @@ class UpstoxExecutionEngine:
             
             try:
                 url = f"{self.api_v3}/order/place"
-                headers = {**self.headers, 'Content-Type': 'application/json'}
+                headers = {**self._get_headers(), 'Content-Type': 'application/json'}
                 response = requests.post(url, headers=headers, json=payload, timeout=10)
                 
                 response_data = response.json()
@@ -305,7 +305,7 @@ class UpstoxExecutionEngine:
             
         try:
             url = f"{self.api_v3}/order/place"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             response = requests.post(url, headers=headers, json=payload, timeout=10)
             response_data = response.json()
             
@@ -337,7 +337,7 @@ class UpstoxExecutionEngine:
         }
         try:
             url = f"{self.api_v3}/order/modify"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             response = requests.put(url, headers=headers, json=payload, timeout=10)
             response_data = response.json()
             
@@ -357,7 +357,7 @@ class UpstoxExecutionEngine:
 
         try:
             url = f"{self.api_v3}/order/cancel?order_id={order_id}"
-            response = requests.delete(url, headers=self.headers, timeout=10)
+            response = requests.delete(url, headers=self._get_headers(), timeout=10)
             response_data = response.json()
             if response.status_code == 200 and response_data.get('status') == 'success':
                 return {"status": "success"}
@@ -375,7 +375,7 @@ class UpstoxExecutionEngine:
             
         try:
             url = f"{self.api_v2}/order/positions/exit"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             # Payload is empty or can pass tag='intBot'
             response = requests.post(url, headers=headers, json={}, timeout=10)
             response_data = response.json()
