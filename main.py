@@ -58,7 +58,9 @@ async def startup_event():
     # Initialize state with real data immediately
     try:
         logger.info("Performing initial data fetch...")
-        state.active_capital = execution_engine.get_funds()
+        funds = execution_engine.get_funds()
+        if funds is not None:
+            state.active_capital = funds
         # Initial index fetch
         idx_keys = [
             "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
@@ -91,7 +93,7 @@ async def periodic_stat_sync():
         try:
             # Sync Capital (only every 5 mins to avoid spamming)
             new_cap = execution_engine.get_funds()
-            if new_cap > 0:
+            if new_cap is not None and new_cap > 0:
                 state.active_capital = new_cap
             
             # Sync Indices
@@ -174,7 +176,9 @@ async def trading_cycle_loop():
         logger.info(f"[{Config.MODE}] Running trading cycle...")
         
         # Refresh capital and indices for the pulse
-        state.active_capital = execution_engine.get_funds()
+        funds = execution_engine.get_funds()
+        if funds is not None:
+            state.active_capital = funds
         
         # ── GLOBAL MARKET PULSE ──────────────────────────────────────────────
         nifty_ltp = state.live_indices.get("NSE_INDEX|Nifty 50", 0)
@@ -227,8 +231,8 @@ async def trading_cycle_loop():
 
             await asyncio.sleep(0.15)  # Throttled for safety with 90+ stocks
 
-            # 1. Fetch 1m OHLCV Data from Upstox
-            df = execution_engine.get_ohlc(symbol_key, interval="1minute")
+            # 1. Fetch 5m OHLCV Data from Upstox
+            df = execution_engine.get_ohlc(symbol_key, interval="5minute")
             ltp = name_to_ltp.get(symbol_name, 0.0)
 
             if df.empty or ltp == 0.0:

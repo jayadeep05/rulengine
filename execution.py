@@ -10,15 +10,20 @@ class UpstoxExecutionEngine:
     def __init__(self):
         self.api_v2 = "https://api.upstox.com/v2"
         self.api_v3 = "https://api.upstox.com/v3"
-        self.headers = {
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {Config.UPSTOX_ACCESS_TOKEN}',
-        }
         
+    def _get_headers(self, use_analytics=False):
+        token = Config.UPSTOX_ACCESS_TOKEN
+        if use_analytics and Config.ANALYTICS_TOKEN:
+            token = Config.ANALYTICS_TOKEN
+        return {
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {token}',
+        }
+
     def connect(self):
         logger.info("Initializing Upstox API Connection...")
         try:
-            res = requests.get(f"{self.api_v2}/user/profile", headers=self.headers, timeout=10)
+            res = requests.get(f"{self.api_v2}/user/profile", headers=self._get_headers(), timeout=10)
             if res.status_code == 200:
                 logger.info("Connected to Upstox API successfully.")
                 return True
@@ -35,38 +40,46 @@ class UpstoxExecutionEngine:
             return getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)
             
         try:
-            # Reconstruct headers block just in case token dynamically updated via config
-            hdrs = {
-                'Accept': 'application/json',
-                'Authorization': f'Bearer {Config.UPSTOX_ACCESS_TOKEN}',
-            }
+            hdrs = self._get_headers()
             url = f"{self.api_v2}/user/get-funds-and-margin"
             res = requests.get(url, headers=hdrs, timeout=5)
             if res.status_code == 200:
                 data = res.json()
                 if 'data' in data and 'equity' in data['data']:
                     eq = data['data']['equity']
-                    # Try multiple known keys for available funds in Upstox API
-                    margin = eq.get('available_margin') or eq.get('available_funds') or eq.get('net') or eq.get('utilized_margin')
+                    
+                    # Priority list for available funds
+                    margin = None
+                    for key in ['available_margin', 'available_funds', 'net', 'cash']:
+                        val = eq.get(key)
+                        if val is not None:
+                            margin = float(val)
+                            break
                     
                     if margin is not None:
-                        margin = float(margin)
                         logger.info(f"Fetched live funds from Upstox: ₹{margin}")
                         return margin
                     else:
-                        logger.warning(f"Could not find margin field in Upstox response. Keys: {list(eq.keys())}")
+                        logger.warning(f"Could not find any fund fields in Upstox response. Keys: {list(eq.keys())}")
             else:
                 logger.error(f"Failed to fetch live funds (Status {res.status_code}): {res.text}")
         except Exception as e:
             logger.error(f"Error fetching live funds: {e}")
             
-        return getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)
+        return None if Config.MODE == "LIVE" and getattr(Config, 'USE_LIVE_CAPITAL', False) else getattr(Config, 'MANUAL_CAPITAL', Config.CAPITAL)
 
     def get_ltp(self, instrument_key: str) -> float:
         """Fetch real-time Last Traded Price (LTP) using Full Market Quotes API."""
         try:
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={instrument_key}"
-            response = requests.get(url, headers=self.headers, timeout=5)
+            # Indices can use analytics token
+            use_analytics = "INDEX" in instrument_key
+            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            
+            if response.status_code == 401 and not use_analytics:
+                # Try fallback to analytics for any quote if main fails
+                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+
             response.raise_for_status()
             data = response.json()
             
@@ -89,7 +102,13 @@ class UpstoxExecutionEngine:
                 return prices
             keys_str = ",".join(instrument_keys)
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={keys_str}"
-            response = requests.get(url, headers=self.headers, timeout=5)
+            # Check if any index keys are present
+            use_analytics = any("INDEX" in k for k in instrument_keys)
+            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            
+            if response.status_code == 401 and not use_analytics:
+                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+                
             response.raise_for_status()
             data = response.json()
             
@@ -138,7 +157,12 @@ class UpstoxExecutionEngine:
                 return quotes
             keys_str = ",".join(instrument_keys)
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={keys_str}"
-            response = requests.get(url, headers=self.headers, timeout=5)
+            use_analytics = any("INDEX" in k for k in instrument_keys)
+            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            
+            if response.status_code == 401 and not use_analytics:
+                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+
             response.raise_for_status()
             data = response.json()
             
@@ -165,7 +189,7 @@ class UpstoxExecutionEngine:
         try:
             url = f"{self.api_v3}/historical-candle/intraday/{instrument_key}/minutes/1"
             
-            response = requests.get(url, headers=self.headers, timeout=10)
+            response = requests.get(url, headers=self._get_headers(True), timeout=10) # OHLC V3 often works with analytics token
             response.raise_for_status()
             data = response.json()
             
@@ -182,6 +206,18 @@ class UpstoxExecutionEngine:
                 for col in ['open', 'high', 'low', 'close', 'volume']:
                     df[col] = df[col].astype(float)
                     
+                if interval != "1minute":
+                    resample_map = {"5minute": "5min", "15minute": "15min", "30minute": "30min", "60minute": "60min"}
+                    if interval in resample_map:
+                        df = df.set_index('timestamp').resample(resample_map[interval]).agg({
+                            'open': 'first',
+                            'high': 'max',
+                            'low': 'min',
+                            'close': 'last',
+                            'volume': 'sum',
+                            'oi': 'last'
+                        }).dropna().reset_index()
+                        
                 return df
             else:
                 logger.error(f"No candlestick data returned for {instrument_key}: {data}")
@@ -221,7 +257,7 @@ class UpstoxExecutionEngine:
             
             try:
                 url = f"{self.api_v3}/order/place"
-                headers = {**self.headers, 'Content-Type': 'application/json'}
+                headers = {**self._get_headers(), 'Content-Type': 'application/json'}
                 response = requests.post(url, headers=headers, json=payload, timeout=10)
                 
                 response_data = response.json()
@@ -270,7 +306,7 @@ class UpstoxExecutionEngine:
             
         try:
             url = f"{self.api_v3}/order/place"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             response = requests.post(url, headers=headers, json=payload, timeout=10)
             response_data = response.json()
             
@@ -302,7 +338,7 @@ class UpstoxExecutionEngine:
         }
         try:
             url = f"{self.api_v3}/order/modify"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             response = requests.put(url, headers=headers, json=payload, timeout=10)
             response_data = response.json()
             
@@ -322,7 +358,7 @@ class UpstoxExecutionEngine:
 
         try:
             url = f"{self.api_v3}/order/cancel?order_id={order_id}"
-            response = requests.delete(url, headers=self.headers, timeout=10)
+            response = requests.delete(url, headers=self._get_headers(), timeout=10)
             response_data = response.json()
             if response.status_code == 200 and response_data.get('status') == 'success':
                 return {"status": "success"}
@@ -340,7 +376,7 @@ class UpstoxExecutionEngine:
             
         try:
             url = f"{self.api_v2}/order/positions/exit"
-            headers = {**self.headers, 'Content-Type': 'application/json'}
+            headers = {**self._get_headers(), 'Content-Type': 'application/json'}
             # Payload is empty or can pass tag='intBot'
             response = requests.post(url, headers=headers, json={}, timeout=10)
             response_data = response.json()
