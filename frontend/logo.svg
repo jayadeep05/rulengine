@@ -2,22 +2,22 @@
   <defs>
     <!-- Background glow gradient -->
     <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FF6B00" stop-opacity="0"/>
     </radialGradient>
 
     <!-- Main dynamic flame/breakout vector gradient -->
     <linearGradient id="primaryGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1D4ED8"/>
-      <stop offset="45%" stop-color="#3B82F6"/>
-      <stop offset="85%" stop-color="#60A5FA"/>
+      <stop offset="0%" stop-color="#EA580C"/>
+      <stop offset="45%" stop-color="#FF6B00"/>
+      <stop offset="85%" stop-color="#FFAA00"/>
       <stop offset="100%" stop-color="#00E676"/>
     </linearGradient>
 
     <!-- Quantum neural ring gradient -->
     <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#00E676" stop-opacity="0.9"/>
-      <stop offset="50%" stop-color="#3B82F6" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#FF6B00" stop-opacity="0.6"/>
       <stop offset="100%" stop-color="#7C3AED" stop-opacity="0.8"/>
     </linearGradient>
 
@@ -58,15 +58,15 @@
 
   <!-- Idea Spark: Central Radiant Core (Synapse / Lightbulb Core) -->
   <circle cx="32" cy="36" r="3.2" fill="#FFFFFF" filter="url(#coreGlow)"/>
-  <circle cx="32" cy="36" r="1.8" fill="#38BDF8"/>
+  <circle cx="32" cy="36" r="1.8" fill="#FFCC00"/>
 
   <!-- Breakthrough Neural Node at arrowhead peak -->
   <circle cx="44.5" cy="19" r="2" fill="#00E676" filter="url(#neonGlow)"/>
 
   <!-- Spark radiation rays -->
-  <line x1="32" y1="28" x2="32" y2="30.5" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
-  <line x1="26" y1="36" x2="28.5" y2="36" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
-  <line x1="38" y1="36" x2="35.5" y2="36" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
-  <line x1="27.5" y1="31.5" x2="29" y2="33" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
-  <line x1="36.5" y1="31.5" x2="35" y2="33" stroke="#60A5FA" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="32" y1="28" x2="32" y2="30.5" stroke="#FFAA00" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="26" y1="36" x2="28.5" y2="36" stroke="#FFAA00" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="38" y1="36" x2="35.5" y2="36" stroke="#FFAA00" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="27.5" y1="31.5" x2="29" y2="33" stroke="#FFAA00" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="36.5" y1="31.5" x2="35" y2="33" stroke="#FFAA00" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
 </svg>
