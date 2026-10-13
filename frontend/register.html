@@ -11,86 +11,94 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 15px; }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             display: flex; align-items: center; justify-content: center;
-            background: #030610;
+            background: #fafaf9;
             background-image:
-                radial-gradient(circle at 20% 50%, rgba(59,130,246,0.12) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(139,92,246,0.10) 0%, transparent 40%);
+                radial-gradient(circle at 15% 30%, rgba(255, 107, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 70%, rgba(249, 115, 22, 0.07) 0%, transparent 50%),
+                linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
             padding: 2rem;
+            color: #0f172a;
         }
         .card {
-            width: 100%; max-width: 420px;
-            background: rgba(15,23,42,0.85);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 2.5rem 2rem;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+            width: 100%; max-width: 440px;
+            background: #ffffff;
+            border: 1px solid rgba(249, 115, 22, 0.16);
+            border-radius: 24px;
+            padding: 2.75rem 2.25rem;
+            box-shadow: 0 24px 60px -12px rgba(249, 115, 22, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.04);
             animation: fadeUp .5s ease;
         }
         @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
-        .logo { text-align: center; margin-bottom: 1.75rem; }
+        .logo { text-align: center; margin-bottom: 2rem; }
         .logo-icon {
-            width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 0.75rem;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 0.85rem;
+            background: linear-gradient(135deg, #ff6b00, #ea580c);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.6rem; box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+            font-size: 1.6rem; box-shadow: 0 8px 22px rgba(249, 115, 22, 0.35);
+            color: #ffffff;
         }
-        h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; text-align: center; }
-        .subtitle { color: #64748b; font-size: 0.875rem; text-align: center; margin-top: .3rem; margin-bottom: 1.75rem; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; color: #94a3b8; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: .05em; }
+        h1 { font-size: 1.65rem; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; }
+        .subtitle { color: #64748b; font-size: 0.9rem; text-align: center; margin-top: .35rem; margin-bottom: 1.75rem; }
+        .form-group { margin-bottom: 1.15rem; }
+        label { display: block; color: #334155; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: .05em; }
         input {
-            width: 100%; padding: .75rem 1rem;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px; color: #f1f5f9; font-family: inherit; font-size: .95rem;
+            width: 100%; padding: .8rem 1rem;
+            background: #ffffff; border: 1.5px solid #e2e8f0;
+            border-radius: 12px; color: #0f172a; font-family: inherit; font-size: .95rem;
             outline: none; transition: all .2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
-        input:focus { border-color: #3b82f6; background: rgba(59,130,246,0.08); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
-        input::placeholder { color: #475569; }
+        input:focus { border-color: #ff6b00; background: #ffffff; box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.15); }
+        input::placeholder { color: #94a3b8; }
         .pass-wrap { position: relative; }
         .pass-toggle {
             position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
-            cursor: pointer; color: #475569; background: none; border: none; font-size: .9rem; padding: 0;
+            cursor: pointer; color: #94a3b8; background: none; border: none; font-size: .95rem; padding: 4px;
         }
-        .pass-toggle:hover { color: #94a3b8; }
+        .pass-toggle:hover { color: #0f172a; }
         .error-msg {
-            color: #f87171; font-size: .8rem; margin-top: .4rem;
-            padding: .5rem .75rem; background: rgba(239,68,68,.1); border-radius: 8px;
-            display: none;
+            color: #dc2626; font-size: .8rem; margin-top: .4rem;
+            padding: .5rem .75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+            display: none; font-weight: 500;
         }
         .error-msg.show { display: block; }
         .btn-submit {
-            width: 100%; padding: .9rem; margin-top: 1.25rem;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            border: none; border-radius: 10px; color: white;
-            font-family: inherit; font-size: .95rem; font-weight: 600;
-            cursor: pointer; transition: all .25s; box-shadow: 0 6px 20px rgba(59,130,246,0.35);
+            width: 100%; padding: .95rem; margin-top: 1.4rem;
+            background: linear-gradient(135deg, #ff6b00, #ea580c);
+            border: none; border-radius: 12px; color: white;
+            font-family: inherit; font-size: .95rem; font-weight: 700;
+            cursor: pointer; transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
         }
-        .btn-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(59,130,246,0.45); }
+        .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(249, 115, 22, 0.45); background: linear-gradient(135deg, #ff7a1a, #f97316); }
         .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .5rem; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .5rem; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .footer-link { text-align: center; margin-top: 1.5rem; color: #475569; font-size: .85rem; }
-        .footer-link a { color: #60a5fa; text-decoration: none; font-weight: 500; }
-        .footer-link a:hover { text-decoration: underline; }
+        .footer-link { text-align: center; margin-top: 1.6rem; color: #64748b; font-size: .88rem; }
+        .footer-link a { color: #ff6b00; text-decoration: none; font-weight: 600; }
+        .footer-link a:hover { color: #ea580c; text-decoration: underline; }
         .success-banner {
-            background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.3);
-            border-radius: 10px; padding: 1rem; text-align: center; color: #34d399;
-            font-weight: 500; display: none;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 12px; padding: 1rem; text-align: center; color: #16a34a;
+            font-weight: 600; display: none;
         }
-        .strength-bar { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; background: rgba(255,255,255,0.08); }
+        .strength-bar { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; background: #e2e8f0; }
         .strength-fill { height: 100%; border-radius: 2px; transition: all .3s; }
     </style>
 </head>
 <body>
     <div class="card">
-        <div class="logo">
-            <div class="logo-icon">📈</div>
-            <h1>Create Account</h1>
-            <p class="subtitle">Join IntraBot Pro — trade smarter.</p>
+        <div class="logo" style="display:flex;flex-direction:column;align-items:center;margin-bottom:1.2rem;">
+            <div class="brand-icon-wrapper" style="width:48px;height:48px;margin-bottom:8px;">
+                <img src="/static/logo.svg" alt="QuantEdge Logo" class="brand-logo-img" />
+            </div>
+            <div class="brand-name" style="font-size:22px;color:#0f172a;">Quant<span class="brand-accent">Edge</span></div>
+            <p class="subtitle" style="margin-top:4px;">Join QuantEdge — Autonomous Algo Intelligence</p>
         </div>
 
         <div id="successBanner" class="success-banner">

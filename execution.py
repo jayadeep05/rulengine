@@ -7,6 +7,10 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
+class ExecutionSafetyViolation(Exception):
+    """Raised when an operation violates trading safety, credentials, or paper isolation."""
+    pass
+
 class UpstoxExecutionEngine:
     def __init__(self, credentials: dict = None, mode: str = None):
         """
@@ -23,6 +27,11 @@ class UpstoxExecutionEngine:
         self.api_hft = "https://api-hft.upstox.com/v2"
         self._creds = credentials  # per-user credentials dict or None
         self.mode = mode or Config.MODE
+
+    @property
+    def is_paper(self) -> bool:
+        """Isolated paper mode is active if mode is TEST or PAPER_TRADING_MODE is True."""
+        return (str(self.mode).upper() == "TEST") or getattr(Config, "PAPER_TRADING_MODE", False)
 
     def _get_headers(self, use_analytics=False):
         if self._creds:
@@ -353,14 +362,23 @@ class UpstoxExecutionEngine:
         last_order_id = None  # Track any order_id we get back for verification
         
         while retries <= max_retries:
-            logger.info(f"[{self.mode}] API Call: Place {side} {order_type} for {symbol}, Qty: {qty}. Attempt {retries + 1}")
+            logger.info(f"[{'PAPER' if self.is_paper else self.mode}] API Call: Place {side} {order_type} for {symbol}, Qty: {qty}. Attempt {retries + 1}")
             
-            if self.mode == "TEST":
-                logger.info(f"TEST MODE: Simulated successful {side} execution.")
+            if self.is_paper:
+                logger.info(f"PAPER MODE ACTIVE: Simulated successful {side} execution for {symbol}. Zero broker network calls made.")
                 return {
-                    "status": "success", "order_id": f"test_ord_{symbol}_{side}_{retries}",
-                    "filled_quantity": qty, "average_price": price or 0.0
+                    "status": "success",
+                    "order_id": f"paper_ord_{symbol}_{side}_{retries}_{int(_time.time()*1000)}",
+                    "filled_quantity": qty,
+                    "average_price": price or 0.0,
+                    "paper_trade": True
                 }
+            
+            # Strict safety check before ANY live broker call
+            auth_token = self._get_headers().get("Authorization", "").replace("Bearer ", "").strip()
+            if not auth_token:
+                logger.error("LIVE EXECUTION BLOCKED: Missing live Upstox access token. Refusing order placement.")
+                return {"status": "rejected", "reason": "Missing live Upstox access token"}
             
             try:
                 # Use HFT endpoint for intraday order placement (product='I')
@@ -483,10 +501,16 @@ class UpstoxExecutionEngine:
             "slice": False
         }
 
-        if self.mode == "TEST":
-            logger.info(f"TEST MODE: Simulated SL placement at {rounded_sl} (limit {limit_price}).")
-            return {"status": "success", "order_id": f"test_sl_{symbol}_{side}"}
-            
+        if self.is_paper:
+            logger.info(f"PAPER MODE ACTIVE: Simulated SL placement at {rounded_sl} (limit {limit_price}) for {symbol}. Zero broker network calls made.")
+            return {"status": "success", "order_id": f"paper_sl_{symbol}_{side}_{int(_time.time()*1000)}", "paper_trade": True}
+
+        # Strict safety check before ANY live broker call
+        auth_token = self._get_headers().get("Authorization", "").replace("Bearer ", "").strip()
+        if not auth_token:
+            logger.error("LIVE EXECUTION BLOCKED: Missing live Upstox access token for SL. Refusing order placement.")
+            return {"status": "rejected", "reason": "Missing live Upstox access token"}
+
         try:
             # Use HFT endpoint for intraday SL order placement
             url = f"{self.api_hft}/order/place"
@@ -519,9 +543,15 @@ class UpstoxExecutionEngine:
             return {"status": "error", "reason": str(e)}
 
     def modify_order(self, order_id: str, new_price: float, new_trigger: float, qty: int, order_type: str = "SL", transaction_type: str = None) -> dict:
-        if self.mode == "TEST":
-            logger.info(f"TEST MODE: Modifying order {order_id} to trigger {new_trigger}, price {new_price}.")
-            return {"status": "success"}
+        if self.is_paper or str(order_id).startswith("paper_") or str(order_id).startswith("virtual_") or str(order_id).startswith("test_"):
+            logger.info(f"PAPER MODE ACTIVE: Modifying order {order_id} to trigger {new_trigger}, price {new_price}. Zero broker network calls made.")
+            return {"status": "success", "paper_trade": True}
+
+        # Strict safety check before ANY live broker call
+        auth_token = self._get_headers().get("Authorization", "").replace("Bearer ", "").strip()
+        if not auth_token:
+            logger.error("LIVE EXECUTION BLOCKED: Missing live Upstox access token for modify_order.")
+            return {"status": "rejected", "reason": "Missing live Upstox access token"}
 
         # Calculate limit price with 0.1% / 3-tick (0.15) buffer if SL Limit price is 0 (Fix A)
         if order_type == "SL" and new_price == 0:
@@ -581,9 +611,15 @@ class UpstoxExecutionEngine:
             return {"status": "error", "reason": str(e)}
 
     def cancel_order(self, order_id: str) -> dict:
-        if self.mode == "TEST":
-            logger.info(f"TEST MODE: Canceling order {order_id}.")
-            return {"status": "success"}
+        if self.is_paper or str(order_id).startswith("paper_") or str(order_id).startswith("virtual_") or str(order_id).startswith("test_"):
+            logger.info(f"PAPER MODE ACTIVE: Canceling order {order_id}. Zero broker network calls made.")
+            return {"status": "success", "paper_trade": True}
+
+        # Strict safety check before ANY live broker call
+        auth_token = self._get_headers().get("Authorization", "").replace("Bearer ", "").strip()
+        if not auth_token:
+            logger.error("LIVE EXECUTION BLOCKED: Missing live Upstox access token for cancel_order.")
+            return {"status": "rejected", "reason": "Missing live Upstox access token"}
 
         try:
             # Use HFT endpoint for order cancellation
@@ -600,9 +636,15 @@ class UpstoxExecutionEngine:
             return {"status": "error"}
 
     def exit_all_positions(self) -> dict:
-        if self.mode == "TEST":
-            logger.info("TEST MODE: Simulated Exit All Positions.")
-            return {"status": "success"}
+        if self.is_paper:
+            logger.info("PAPER MODE ACTIVE: Simulated Exit All Positions. Zero broker network calls made.")
+            return {"status": "success", "paper_trade": True}
+
+        # Strict safety check before ANY live broker call
+        auth_token = self._get_headers().get("Authorization", "").replace("Bearer ", "").strip()
+        if not auth_token:
+            logger.error("LIVE EXECUTION BLOCKED: Missing live Upstox access token for exit_all_positions.")
+            return {"status": "rejected", "reason": "Missing live Upstox access token"}
             
         try:
             url = f"{self.api_v2}/order/positions/exit"
@@ -748,4 +790,98 @@ class UpstoxExecutionEngine:
                 "intraday_supported": False,
                 "reason": str(e)
             }
+
+
+class PaperExecutionEngine(UpstoxExecutionEngine):
+    """
+    Dedicated isolated Paper Execution Engine.
+    Guarantees zero network calls to broker order endpoints.
+    Tracks simulated virtual fills, order statuses, and virtual positions locally.
+    """
+    def __init__(self, credentials: dict = None, initial_balance: float = None):
+        super().__init__(credentials=credentials, mode="TEST")
+        self.mode = "TEST"
+        self._initial_balance = initial_balance or getattr(Config, 'MANUAL_CAPITAL', 25000.0)
+        self._virtual_balance = self._initial_balance
+        self._virtual_orders = []
+        self._virtual_positions = {}  # symbol -> {qty, entry_price, side}
+
+    @property
+    def is_paper(self) -> bool:
+        return True
+
+    def get_funds(self, force_live: bool = False) -> float:
+        return float(self._virtual_balance)
+
+    def place_order_with_retry(self, symbol: str, side: str, qty: int, order_type: str = 'MARKET', price: float = 0.0, max_retries: int = 1) -> dict:
+        import time as _t
+        order_id = f"paper_ord_{symbol}_{side}_{int(_t.time()*1000)}"
+        avg_price = float(price or self.get_ltp(symbol) or 100.0)
+        record = {
+            "order_id": order_id,
+            "symbol": symbol,
+            "side": side.upper(),
+            "quantity": int(qty),
+            "price": avg_price,
+            "order_type": order_type,
+            "status": "complete",
+            "filled_quantity": int(qty),
+            "average_price": avg_price,
+            "timestamp": _t.time(),
+            "paper_trade": True
+        }
+        self._virtual_orders.append(record)
+        logger.info(f"[PaperExecutionEngine] Placed virtual order {order_id}: {side} {qty} {symbol} @ {avg_price:.2f}")
+        return {
+            "status": "success",
+            "order_id": order_id,
+            "filled_quantity": int(qty),
+            "average_price": avg_price,
+            "paper_trade": True
+        }
+
+    def place_stop_loss(self, symbol: str, side: str, qty: int, sl_price: float) -> dict:
+        import time as _t
+        order_id = f"paper_sl_{symbol}_{side}_{int(_t.time()*1000)}"
+        logger.info(f"[PaperExecutionEngine] Placed virtual SL order {order_id}: {symbol} {side} SL={sl_price:.2f}")
+        return {
+            "status": "success",
+            "order_id": order_id,
+            "paper_trade": True
+        }
+
+    def modify_order(self, order_id: str, new_price: float, new_trigger: float, qty: int, order_type: str = "SL", transaction_type: str = None) -> dict:
+        logger.info(f"[PaperExecutionEngine] Modified virtual order {order_id}: trigger={new_trigger:.2f}")
+        return {"status": "success", "paper_trade": True}
+
+    def cancel_order(self, order_id: str) -> dict:
+        logger.info(f"[PaperExecutionEngine] Canceled virtual order {order_id}")
+        return {"status": "success", "paper_trade": True}
+
+    def exit_all_positions(self) -> dict:
+        logger.info("[PaperExecutionEngine] Virtual exit all positions called.")
+        self._virtual_positions.clear()
+        return {"status": "success", "paper_trade": True}
+
+    def get_order_book(self) -> list:
+        return list(self._virtual_orders)
+
+    def get_order_status(self, order_id: str) -> dict:
+        for ord_info in self._virtual_orders:
+            if ord_info.get("order_id") == order_id:
+                return {
+                    "status": "success",
+                    "order_status": "complete",
+                    "filled_quantity": ord_info["filled_quantity"],
+                    "quantity": ord_info["quantity"],
+                    "average_price": ord_info["average_price"],
+                    "paper_trade": True
+                }
+        return {
+            "status": "success",
+            "order_status": "complete",
+            "filled_quantity": 0,
+            "paper_trade": True
+        }
+
 

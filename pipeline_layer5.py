@@ -171,6 +171,18 @@ class ClaudeAnalyzer:
         if not feature_payloads:
             return []
 
+        active_evaluator = getattr(Config, "ACTIVE_AI_EVALUATOR", "claude")
+        if active_evaluator in ("second_ai", "consensus", "local_rule") or not Config.ANTHROPIC_API_KEY:
+            try:
+                from ai_evaluator import MultiModelEvaluator
+                evaluator = MultiModelEvaluator()
+                mkt_ctx = {"nifty_trend": nifty_trend, "nifty_change_pct": nifty_change_pct, "vix": vix_value}
+                logger.info(f"[Layer 5] Routing analysis via MultiModelEvaluator (mode: {active_evaluator})")
+                guarded_decisions = evaluator.evaluate_setups(feature_payloads, mkt_ctx, evaluator_mode=active_evaluator)
+                return guarded_decisions
+            except Exception as eval_err:
+                logger.error(f"[Layer 5] MultiModelEvaluator error: {eval_err}")
+
         now = datetime.now(IST)
         time_str = now.strftime("%H:%M")
         date_str = now.strftime("%d-%b-%Y")
@@ -217,9 +229,15 @@ class ClaudeAnalyzer:
 
         except Exception as e:
             error_type = type(e).__name__
-            logger.error(f"[Layer 5] Claude API call failed: {error_type}: {e}")
+            logger.error(f"[Layer 5] Claude API call failed: {error_type}: {e}. Falling back to MultiModelEvaluator.")
             alert_claude_api_failed(time_str, error_type)
-            return []
+            try:
+                from ai_evaluator import MultiModelEvaluator
+                evaluator = MultiModelEvaluator()
+                mkt_ctx = {"nifty_trend": nifty_trend, "nifty_change_pct": nifty_change_pct, "vix": vix_value}
+                return evaluator.evaluate_setups(feature_payloads, mkt_ctx, evaluator_mode="local_rule")
+            except Exception:
+                return []
 
         # Parse response
         decisions = self._parse_response(raw_text, feature_payloads, time_str)

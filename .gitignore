@@ -30,6 +30,7 @@ venv/
 ENV/
 env/
 .env/
+.venv/
 
 # ML Models
 *.pkl
@@ -47,3 +48,9 @@ config.json
 *.sql
 scratch/
 intradaybot.service
+
+# Android build outputs & caches
+android_app/build/
+android_app/**/build/
+android_app/.gradle/
+android_app/local.properties

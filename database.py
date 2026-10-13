@@ -17,30 +17,55 @@ def get_ist_now():
 def get_ist_date():
     return datetime.now(IST).date()
 
-def create_database_if_not_exists():
-    """Connects to MySQL server and creates the database if it doesn't exist."""
-    try:
-        connection = pymysql.connect(
-            host=Config.DB_HOST,
-            user=Config.DB_USER,
-            password=Config.DB_PASSWORD,
-            port=int(Config.DB_PORT)
-        )
-        cursor = connection.cursor()
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {Config.DB_NAME}")
-        connection.commit()
-        cursor.close()
-        connection.close()
-        print(f"SUCCESS: MySQL Database '{Config.DB_NAME}' ensured.")
-    except Exception as e:
-        print(f"FAILED: to connect to MySQL or create database: {e}")
+def get_database_engine():
+    """Connects to Supabase / PostgreSQL, MySQL, or falls back gracefully to SQLite."""
+    # 1. Supabase / PostgreSQL Cloud Database
+    supabase_url = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL") or getattr(Config, "SUPABASE_DB_URL", "")
+    if supabase_url:
+        try:
+            pg_url = supabase_url
+            if pg_url.startswith("postgres://"):
+                pg_url = pg_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif pg_url.startswith("postgresql://") and not pg_url.startswith("postgresql+psycopg2://"):
+                pg_url = pg_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            eng = create_engine(pg_url, echo=False, pool_recycle=1800, pool_pre_ping=True)
+            with eng.connect() as test_conn:
+                pass
+            print("SUCCESS: Connected to Supabase / PostgreSQL Cloud Database.")
+            return eng
+        except Exception as e:
+            print(f"WARNING: Supabase connection failed ({e}). Checking alternatives...")
 
-# Ensure database exists before creating SQLAlchemy engine
-create_database_if_not_exists()
+    # 2. MySQL fallback
+    use_sqlite = getattr(Config, 'DB_DIALECT', 'auto') == 'sqlite'
+    if not use_sqlite and Config.DB_HOST:
+        try:
+            connection = pymysql.connect(
+                host=Config.DB_HOST,
+                user=Config.DB_USER,
+                password=Config.DB_PASSWORD,
+                port=int(Config.DB_PORT),
+                connect_timeout=2
+            )
+            cursor = connection.cursor()
+            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {Config.DB_NAME}")
+            connection.commit()
+            cursor.close()
+            connection.close()
+            mysql_url = f"mysql+pymysql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{Config.DB_NAME}"
+            eng = create_engine(mysql_url, echo=False, pool_recycle=3600)
+            with eng.connect() as test_conn:
+                pass
+            print(f"SUCCESS: MySQL Database '{Config.DB_NAME}' connected.")
+            return eng
+        except Exception as e:
+            print(f"INFO: MySQL not reachable ({e}). Falling back to SQLite local database.")
+    
+    # 3. SQLite fallback
+    sqlite_url = "sqlite:///trade_history.db"
+    return create_engine(sqlite_url, echo=False, connect_args={"check_same_thread": False})
 
-# Setup SQLAlchemy
-DB_URL = f"mysql+pymysql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{Config.DB_NAME}"
-engine = create_engine(DB_URL, echo=False, pool_recycle=3600)
+engine = get_database_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -419,12 +444,13 @@ def get_db():
 def init_db():
     try:
         Base.metadata.create_all(bind=engine)
-        print(f"SUCCESS: Executed MySQL Table Migrations for '{Config.DB_NAME}'")
-        # Safe raw ALTER to add columns if they don't exist
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            # v1 column: sl_order_id
-            result = conn.execute(text("SHOW COLUMNS FROM trades LIKE 'sl_order_id'")).fetchone()
+        print(f"SUCCESS: Executed Table Migrations on database '{engine.url}'")
+        # Safe raw ALTER to add columns if they don't exist (MySQL only)
+        if engine.dialect.name == "mysql":
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                # v1 column: sl_order_id
+                result = conn.execute(text("SHOW COLUMNS FROM trades LIKE 'sl_order_id'")).fetchone()
             if not result:
                 conn.execute(text("ALTER TABLE trades ADD COLUMN sl_order_id VARCHAR(100) NULL"))
                 print("SUCCESS: Added sl_order_id column to trades table")

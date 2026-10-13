@@ -1,22 +1,42 @@
+# Core Web & API
 fastapi
 uvicorn
+python-multipart
+pydantic
+requests
+aiohttp
+httpx
+
+# Data Analysis & Mathematical Indicators
 pandas
-numpy
+numpy<2.0
+scipy
 scikit-learn
 joblib
-requests
+
+# Backtesting & Portfolio Analytics
+# Note: plotly is pinned to <6.0.0 due to removal of scattermapbox in Plotly 6+
+plotly<6.0.0
+vectorbt
+
+# Broker Integration (Upstox API V2/V3)
 upstox-python-sdk
 websocket-client
 protobuf
+
+# Database & Cryptography
 sqlalchemy
 pymysql
-pytz
-pydantic
-python-dotenv
+psycopg2-binary
 cryptography
-groq
 bcrypt
-python-multipart
+python-dotenv
+pytz
+
+# AI / LLM Multi-Model Evaluators
 anthropic
-scipy
-aiohttp
+groq
+
+# Testing
+pytest
+pytest-asyncio

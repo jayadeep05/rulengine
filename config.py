@@ -19,15 +19,16 @@ if os.path.exists(env_file_path):
                 os.environ[k] = v # Use environ[] to allow overrides from .env
 
 class Config:
-    # Execution Mode: "TEST" or "LIVE"
-    MODE = "LIVE"
+    # Execution Mode: "TEST" or "LIVE" — Default is strictly "TEST" for safety
+    MODE = os.getenv("MODE", "TEST")
 
     # Database Configuration
     DB_USER = os.getenv("DB_USER", "app_user")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "SecurePassword123!")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "3306")
     DB_NAME = os.getenv("DB_NAME", "trade_history")
+    DB_DIALECT = os.getenv("DB_DIALECT", "auto")  # "auto", "mysql", "sqlite"
 
     # Upstox API Credentials
     UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID", "6528658a-2ce9-44bc-8c70-1100c3b54651")
@@ -40,13 +41,13 @@ class Config:
 
     MAX_TRADES_PER_DAY = 5
     MAX_DAILY_LOSS_PCT = -0.02  # (Legacy fallback)
-    DAILY_LOSS_LIMIT = 1000.0  # Max loss in ₹ before kill-switch
+    DAILY_LOSS_LIMIT = float(os.getenv("DAILY_LOSS_LIMIT", "1000.0"))  # Max loss in ₹ before kill-switch
     TRAILING_SL_ACTIVATION = 1.0  # R-Multiple to start trailing
     MAX_OPEN_TRADES = 2
     MAX_POSITION_PCT = 0.10  # Maximum 10% of capital allocated to any single trade during pilot
-    CAPITAL = 100000.0  # (LEGACY, kept for minor fallback)
-    USE_LIVE_CAPITAL = False
-    MANUAL_CAPITAL = 100000.0
+    CAPITAL = float(os.getenv("INITIAL_CAPITAL", "25000.0"))  # Configurable virtual balance (₹25,000)
+    USE_LIVE_CAPITAL = os.getenv("USE_LIVE_CAPITAL", "false").lower() == "true"
+    MANUAL_CAPITAL = float(os.getenv("INITIAL_CAPITAL", "25000.0"))
     
     # AI/ML Configuration
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -85,7 +86,8 @@ class Config:
     MIN_STOCK_PRICE = 50.0
     MAX_STOCK_PRICE = 5000.0
 
-    PAPER_TRADING_MODE = os.getenv("PAPER_TRADING_MODE", "false").lower() == "true"
+    # ── Paper Trading Mode (Default True for safety) ──────────────────────────
+    PAPER_TRADING_MODE = os.getenv("PAPER_TRADING_MODE", "true").lower() == "true"
 
     # ── v2 Pipeline & Risk Controls (Section 6) ──────────────────────────────
     MAX_CONSECUTIVE_LOSSES   = 2       # stops new entries after 2 consecutive losses
@@ -103,17 +105,41 @@ class Config:
     SECTOR_DATA_REFRESH_MIN  = 30      # refresh sector performance every 30 minutes
 
     # ── AI / LLM Configuration ────────────────────────────────────────────────
+    # Primary Evaluator: Claude (Anthropic)
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-    ANTHROPIC_MODEL   = "claude-sonnet-5"
+    ANTHROPIC_MODEL   = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
     ANTHROPIC_MAX_TOKENS = 4000
     ANTHROPIC_TEMPERATURE = 0.0
+
+    # Secondary Evaluator: Optional Second AI Model (Groq / Gemini / OpenRouter / Ollama / OpenAI)
+    OPENAI_API_KEY     = os.getenv("OPENAI_API_KEY", "")
+    GROQ_API_KEY       = os.getenv("GROQ_API_KEY", "")
+    GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY", "")
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+    SECOND_AI_PROVIDER = os.getenv("SECOND_AI_PROVIDER", "groq" if os.getenv("GROQ_API_KEY") else ("gemini" if os.getenv("GEMINI_API_KEY") else ("openrouter" if os.getenv("OPENROUTER_API_KEY") else ("openai" if os.getenv("OPENAI_API_KEY") else "local_rule"))))
+    SECOND_AI_MODEL    = os.getenv("SECOND_AI_MODEL", "")
+    
+    # Auto-resolve API key for active provider if not explicitly specified
+    _prov = SECOND_AI_PROVIDER.lower() if SECOND_AI_PROVIDER else ""
+    if _prov == "groq":
+        _default_key = GROQ_API_KEY
+    elif _prov == "gemini":
+        _default_key = GEMINI_API_KEY
+    elif _prov == "openrouter":
+        _default_key = OPENROUTER_API_KEY
+    elif _prov == "openai":
+        _default_key = OPENAI_API_KEY
+    else:
+        _default_key = ""
+    SECOND_AI_API_KEY  = os.getenv("SECOND_AI_API_KEY", _default_key)
+    
+    # Active Evaluator Selector: "claude", "second_ai", "consensus", "local_rule"
+    ACTIVE_AI_EVALUATOR = os.getenv("ACTIVE_AI_EVALUATOR", "second_ai" if SECOND_AI_API_KEY or _prov == "ollama" else ("claude" if os.getenv("ANTHROPIC_API_KEY") else "local_rule"))
 
     # ── Telegram Alerting ─────────────────────────────────────────────────────
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
-
-    # ── Paper Trading Mode ────────────────────────────────────────────────────
-    PAPER_TRADING_MODE = os.getenv("PAPER_TRADING_MODE", "false").lower() == "true"
 
     # Symbols mapping (User friendly name -> Upstox Format)
 

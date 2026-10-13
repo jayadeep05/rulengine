@@ -1,0 +1,498 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800&family=JetBrains+Mono:wght@600;700&display=swap');
+
+/* ==========================================================================
+   QuantEdge IntraBot — Mobile Adaptation & Glassmorphism Design System
+   ========================================================================== */
+
+:root {
+  --glass-header-bg: rgba(8, 14, 28, 0.72);
+  --glass-header-border: rgba(255, 255, 255, 0.12);
+  --glass-header-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+
+  --glass-nav-bg: rgba(6, 12, 26, 0.82);
+  --glass-nav-border: rgba(255, 255, 255, 0.14);
+  --glass-nav-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  --glass-card-bg: rgba(14, 22, 42, 0.68);
+  --glass-card-border: rgba(255, 255, 255, 0.09);
+  --glass-card-hover: rgba(22, 34, 62, 0.85);
+
+  --neon-orange: #ff6b00;
+  --neon-orange-glow: rgba(255, 107, 0, 0.4);
+  --neon-green: #00e676;
+  --neon-green-glow: rgba(0, 230, 118, 0.4);
+  --neon-red: #ff4d4d;
+  --neon-red-glow: rgba(255, 77, 77, 0.4);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-theme="light"] {
+  --glass-header-bg: rgba(255, 255, 255, 0.78);
+  --glass-header-border: rgba(0, 0, 0, 0.08);
+  --glass-header-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+
+  --glass-nav-bg: rgba(255, 255, 255, 0.9);
+  --glass-nav-border: rgba(0, 0, 0, 0.1);
+  --glass-nav-shadow: 0 -8px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  --glass-card-bg: rgba(255, 255, 255, 0.82);
+  --glass-card-border: rgba(0, 0, 0, 0.07);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BRAND TYPOGRAPHY & IDEA LOGO SYSTEM
+   ══════════════════════════════════════════════════════════════════════════ */
+.brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.brand-icon-wrapper {
+  position: relative !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.brand-logo-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 0 12px rgba(255, 107, 0, 0.45)) !important;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease !important;
+}
+
+.brand:hover .brand-logo-img {
+  transform: scale(1.1) rotate(2deg) !important;
+  filter: drop-shadow(0 0 18px rgba(255, 107, 0, 0.75)) !important;
+}
+
+.brand-text-group {
+  display: flex !important;
+  flex-direction: column !important;
+  line-height: 1.1 !important;
+}
+
+.brand-name {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif !important;
+  font-size: 19px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.6px !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0px !important;
+}
+
+.brand-name .brand-accent {
+  background: linear-gradient(135deg, #ff7b00 0%, #ffaa00 50%, #00e676 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 0 24px rgba(255, 107, 0, 0.45);
+  font-weight: 900 !important;
+}
+
+[data-theme="light"] .brand-name {
+  color: #0f172a !important;
+}
+
+.brand-badge {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  color: var(--muted) !important;
+  text-transform: uppercase !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  margin-top: 2px !important;
+}
+
+.brand-badge-dot {
+  width: 5px !important;
+  height: 5px !important;
+  background: #00e676 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 8px #00e676 !important;
+  display: inline-block !important;
+  animation: pulse-dot 1.8s infinite ease-in-out !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   1. GLASSMORPHISM HEADER (DESKTOP & MOBILE)
+   ══════════════════════════════════════════════════════════════════════════ */
+.header {
+  background: var(--glass-header-bg) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border-bottom: 1px solid var(--glass-header-border) !important;
+  box-shadow: var(--glass-header-shadow), inset 0 -1px 0 rgba(255, 255, 255, 0.06) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.brand-name span {
+  color: var(--neon-orange) !important;
+  text-shadow: 0 0 14px var(--neon-orange-glow);
+}
+
+/* Glassmorphism badges in header */
+.health-badge {
+  background: rgba(0, 230, 118, 0.1) !important;
+  border: 1px solid rgba(0, 230, 118, 0.28) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.health-dot {
+  box-shadow: 0 0 10px #00e676 !important;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+.latency-badge {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Glass Buttons */
+.btn-toggle {
+  background: rgba(0, 230, 118, 0.15) !important;
+  color: var(--neon-green) !important;
+  border: 1px solid rgba(0, 230, 118, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-toggle:active {
+  transform: scale(0.96);
+  background: rgba(0, 230, 118, 0.3) !important;
+}
+
+.btn-danger {
+  background: rgba(255, 77, 77, 0.15) !important;
+  color: var(--neon-red) !important;
+  border: 1px solid rgba(255, 77, 77, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 0 16px rgba(255, 77, 77, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.btn-danger:active {
+  transform: scale(0.96);
+  background: rgba(255, 77, 77, 0.3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   2. GLASSMORPHISM BOTTOM NAVIGATION BAR (DOCK) — ANDROID APK ONLY
+   ══════════════════════════════════════════════════════════════════════════ */
+#android-bottom-nav {
+  display: none !important; /* Strictly hidden on all web pages */
+}
+
+/* ONLY shown inside the native Android APK */
+.is-android-app #android-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: calc(64px + var(--safe-bottom)) !important;
+  padding-bottom: var(--safe-bottom) !important;
+  background: var(--glass-nav-bg) !important;
+  backdrop-filter: blur(32px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(220%) !important;
+  border-top: 1px solid var(--glass-nav-border) !important;
+  box-shadow: var(--glass-nav-shadow) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-around !important;
+  z-index: 9999 !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+}
+
+.mob-nav-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 14px !important;
+  border-radius: 14px !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  position: relative !important;
+  min-width: 60px !important;
+}
+
+.mob-nav-item.active {
+  color: #ff8533 !important;
+  background: rgba(255, 107, 0, 0.16) !important;
+  border: 1px solid rgba(255, 107, 0, 0.4) !important;
+  box-shadow: 0 0 18px rgba(255, 107, 0, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+.mob-nav-icon {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  margin-bottom: 3px !important;
+  transition: transform 0.25s ease !important;
+}
+
+.mob-nav-item.active .mob-nav-icon {
+  transform: scale(1.15) !important;
+}
+
+.mob-nav-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   3. MOBILE-FIRST RESPONSIVE ADAPTATIONS (≤ 768px)
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  body {
+    padding-top: var(--safe-top) !important;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden !important;
+  }
+
+  /* Extra bottom padding strictly for the Android APK */
+  body.is-android-app {
+    padding-bottom: calc(76px + var(--safe-bottom)) !important;
+  }
+
+  .header {
+    height: calc(56px + var(--safe-top)) !important;
+    padding-top: var(--safe-top) !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  .header-left {
+    gap: 10px !important;
+  }
+
+  .header-right {
+    gap: 8px !important;
+  }
+
+  .brand-icon {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 15px !important;
+  }
+
+  .brand-name {
+    font-size: 15px !important;
+  }
+
+  /* Page container spacing */
+  .page {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  .is-android-app .page {
+    padding-bottom: calc(76px + var(--safe-bottom)) !important;
+  }
+
+  /* ── Horizontal Swipeable Index Ticker ── */
+  .index-banner {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 8px !important;
+    padding: 6px 2px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .index-banner::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .idx-item {
+    flex: 0 0 auto !important;
+    background: var(--glass-card-bg) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    border: 1px solid var(--glass-card-border) !important;
+    border-radius: 14px !important;
+    padding: 8px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    min-width: 114px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  .idx-name {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: var(--muted) !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .idx-price {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    color: var(--text) !important;
+  }
+
+  .idx-chg {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+
+  /* ── Stat Ribbon Cards ── */
+  .ribbon {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .stat-card {
+    background: var(--glass-card-bg) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--glass-card-border) !important;
+    border-radius: 16px !important;
+    padding: 12px 14px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28) !important;
+    transition: transform 0.2s ease, border-color 0.2s ease !important;
+  }
+
+  .stat-card:active {
+    transform: scale(0.98);
+  }
+
+  .stat-label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .stat-val {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+  }
+
+  /* Active Position spans both columns */
+  .stat-card:nth-child(4) {
+    grid-column: 1 / -1 !important;
+    background: rgba(18, 28, 54, 0.8) !important;
+    border: 1px solid rgba(255, 107, 0, 0.3) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 107, 0, 0.15) !important;
+  }
+
+  /* ── Glassmorphism Panels (Radar & Scanner) ── */
+  .panel {
+    background: var(--glass-card-bg) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid var(--glass-card-border) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+    overflow: hidden !important;
+    margin-bottom: 14px !important;
+  }
+
+  .panel-header {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 12px 16px !important;
+  }
+
+  /* ── Mobile History & Config Bottom Sheet ── */
+  #history-screen {
+    position: fixed !important;
+    top: var(--safe-top) !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: rgba(8, 14, 28, 0.94) !important;
+    backdrop-filter: blur(28px) !important;
+    -webkit-backdrop-filter: blur(28px) !important;
+    border-top: 1px solid rgba(255, 107, 0, 0.35) !important;
+    border-radius: 24px 24px 0 0 !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.7) !important;
+    z-index: 1050 !important;
+    padding-bottom: calc(76px + var(--safe-bottom)) !important;
+  }
+
+  #hist-topbar {
+    padding: 16px 18px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  #hist-filter-panel {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    padding: 12px 16px !important;
+  }
+
+  .hf-preset-chip, .hf-type-chip {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+  }
+
+  #hist-summary {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 12px 16px !important;
+  }
+
+  .hsum-card {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px !important;
+    padding: 8px 12px !important;
+  }
+
+  /* Config modal on mobile */
+  #config-modal .modal-content,
+  .modal-dialog {
+    width: 94% !important;
+    max-width: 440px !important;
+    border-radius: 20px !important;
+    background: rgba(10, 16, 32, 0.96) !important;
+    backdrop-filter: blur(28px) !important;
+    -webkit-backdrop-filter: blur(28px) !important;
+    border: 1px solid rgba(255, 107, 0, 0.3) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75) !important;
+  }
+}

@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">QuantEdge IntraBot</string>
+    <string name="server_url_default">http://10.0.2.2:8000</string>
+    <string name="server_settings_title">Trading Server Settings</string>
+    <string name="server_settings_hint">Enter Server Address (e.g., http://192.168.1.5:8000 or http://10.0.2.2:8000)</string>
+    <string name="exit_prompt">Press BACK again to exit QuantEdge</string>
+    <string name="connecting_msg">Connecting to IntraBot...</string>
+    <string name="offline_msg">Cannot reach trading server. Verify server is running.</string>
+</resources>

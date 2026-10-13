@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — IntraBot Pro</title>
+    <meta name="description" content="Register a new IntraBot Pro trading account.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="auth-client.js"></script>
+    <script src="android-adapter.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 15px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            background: #fafaf9;
+            background-image:
+                radial-gradient(circle at 15% 30%, rgba(255, 107, 0, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 70%, rgba(249, 115, 22, 0.07) 0%, transparent 50%),
+                linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+            padding: 2rem;
+            color: #0f172a;
+        }
+        .card {
+            width: 100%; max-width: 440px;
+            background: #ffffff;
+            border: 1px solid rgba(249, 115, 22, 0.16);
+            border-radius: 24px;
+            padding: 2.75rem 2.25rem;
+            box-shadow: 0 24px 60px -12px rgba(249, 115, 22, 0.12), 0 8px 24px -4px rgba(0, 0, 0, 0.04);
+            animation: fadeUp .5s ease;
+        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo-icon {
+            width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 0.85rem;
+            background: linear-gradient(135deg, #ff6b00, #ea580c);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; box-shadow: 0 8px 22px rgba(249, 115, 22, 0.35);
+            color: #ffffff;
+        }
+        h1 { font-size: 1.65rem; font-weight: 800; color: #0f172a; text-align: center; letter-spacing: -0.5px; }
+        .subtitle { color: #64748b; font-size: 0.9rem; text-align: center; margin-top: .35rem; margin-bottom: 1.75rem; }
+        .form-group { margin-bottom: 1.15rem; }
+        label { display: block; color: #334155; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: .05em; }
+        input {
+            width: 100%; padding: .8rem 1rem;
+            background: #ffffff; border: 1.5px solid #e2e8f0;
+            border-radius: 12px; color: #0f172a; font-family: inherit; font-size: .95rem;
+            outline: none; transition: all .2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        input:focus { border-color: #ff6b00; background: #ffffff; box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.15); }
+        input::placeholder { color: #94a3b8; }
+        .pass-wrap { position: relative; }
+        .pass-toggle {
+            position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
+            cursor: pointer; color: #94a3b8; background: none; border: none; font-size: .95rem; padding: 4px;
+        }
+        .pass-toggle:hover { color: #0f172a; }
+        .error-msg {
+            color: #dc2626; font-size: .8rem; margin-top: .4rem;
+            padding: .5rem .75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+            display: none; font-weight: 500;
+        }
+        .error-msg.show { display: block; }
+        .btn-submit {
+            width: 100%; padding: .95rem; margin-top: 1.4rem;
+            background: linear-gradient(135deg, #ff6b00, #ea580c);
+            border: none; border-radius: 12px; color: white;
+            font-family: inherit; font-size: .95rem; font-weight: 700;
+            cursor: pointer; transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+        }
+        .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(249, 115, 22, 0.45); background: linear-gradient(135deg, #ff7a1a, #f97316); }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .5rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .footer-link { text-align: center; margin-top: 1.6rem; color: #64748b; font-size: .88rem; }
+        .footer-link a { color: #ff6b00; text-decoration: none; font-weight: 600; }
+        .footer-link a:hover { color: #ea580c; text-decoration: underline; }
+        .success-banner {
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 12px; padding: 1rem; text-align: center; color: #16a34a;
+            font-weight: 600; display: none;
+        }
+        .strength-bar { height: 4px; border-radius: 2px; margin-top: 6px; transition: all .3s; background: #e2e8f0; }
+        .strength-fill { height: 100%; border-radius: 2px; transition: all .3s; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo" style="display:flex;flex-direction:column;align-items:center;margin-bottom:1.2rem;">
+            <div class="brand-icon-wrapper" style="width:48px;height:48px;margin-bottom:8px;">
+                <img src="logo.svg" alt="QuantEdge Logo" class="brand-logo-img" />
+            </div>
+            <div class="brand-name" style="font-size:22px;color:#0f172a;">Quant<span class="brand-accent">Edge</span></div>
+            <p class="subtitle" style="margin-top:4px;">Join QuantEdge — Autonomous Algo Intelligence</p>
+        </div>
+
+        <div id="successBanner" class="success-banner">
+            ✅ Account created! Redirecting to dashboard...
+        </div>
+
+        <form id="registerForm" novalidate>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required>
+                <div class="error-msg" id="emailErr"></div>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" autocomplete="username" placeholder="trader_name" required>
+                <div class="error-msg" id="usernameErr"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="pass-wrap">
+                    <input type="password" id="password" name="password" autocomplete="new-password" placeholder="8+ characters" required>
+                    <button type="button" class="pass-toggle" id="togglePass" aria-label="Toggle password">👁️</button>
+                </div>
+                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                <div class="error-msg" id="passErr"></div>
+            </div>
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="pass-wrap">
+                    <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" placeholder="Repeat password" required>
+                    <button type="button" class="pass-toggle" id="toggleConfirm" aria-label="Toggle confirm">👁️</button>
+                </div>
+                <div class="error-msg" id="confirmErr"></div>
+            </div>
+            <div class="error-msg" id="globalErr"></div>
+            <button type="submit" class="btn-submit" id="submitBtn">Create Account</button>
+        </form>
+
+        <div class="footer-link">Already have an account? <a href="/login">Sign in</a></div>
+    </div>
+
+    <script>
+        // -- Password strength
+        document.getElementById('password').addEventListener('input', function () {
+            const v = this.value;
+            const fill = document.getElementById('strengthFill');
+            const score = [/.{8,}/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(r => r.test(v)).length;
+            const colors = ['#ef4444','#f59e0b','#3b82f6','#10b981'];
+            const widths = ['25%','50%','75%','100%'];
+            fill.style.width = score > 0 ? widths[score - 1] : '0%';
+            fill.style.background = score > 0 ? colors[score - 1] : 'transparent';
+        });
+
+        // -- Toggle password visibility
+        function makeToggle(inputId, btnId) {
+            document.getElementById(btnId).addEventListener('click', () => {
+                const inp = document.getElementById(inputId);
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+            });
+        }
+        makeToggle('password', 'togglePass');
+        makeToggle('confirmPassword', 'toggleConfirm');
+
+        // -- Form submission
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            clearErrors();
+
+            const email    = document.getElementById('email').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm  = document.getElementById('confirmPassword').value;
+
+            let valid = true;
+            if (!email.includes('@')) { showErr('emailErr', 'Enter a valid email.'); valid = false; }
+            if (!username || username.length < 2) { showErr('usernameErr', 'Username must be at least 2 characters.'); valid = false; }
+            if (password.length < 8) { showErr('passErr', 'Password must be at least 8 characters.'); valid = false; }
+            if (password !== confirm) { showErr('confirmErr', 'Passwords do not match.'); valid = false; }
+            if (!valid) return;
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Creating account...';
+
+            try {
+                const res  = await fetch('/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Store token + show success
+                    if (data.access_token) localStorage.setItem('access_token', data.access_token);
+                    document.getElementById('successBanner').style.display = 'block';
+                    document.getElementById('registerForm').style.display = 'none';
+                    setTimeout(() => {
+                        // Redirect to credentials setup first
+                        window.location.href = '/credentials';
+                    }, 1500);
+                } else {
+                    showErr('globalErr', data.detail || 'Registration failed. Try again.');
+                    btn.disabled = false; btn.innerHTML = 'Create Account';
+                }
+            } catch (err) {
+                showErr('globalErr', 'Network error. Please try again.');
+                btn.disabled = false; btn.innerHTML = 'Create Account';
+            }
+        });
+
+        function showErr(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg; el.classList.add('show');
+        }
+        function clearErrors() {
+            document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
+        }
+    </script>
+</body>
+</html>

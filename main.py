@@ -2305,9 +2305,9 @@ def api_get_performance_report(user: dict = Depends(require_auth), db=Depends(ge
     }
 
 @app.get("/api/status")
-def api_get_status(user: dict = Depends(require_auth)):
+def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     uid = user["uid"]
-    bot = get_bot(uid)
+    bot = get_or_create_bot(uid, db)
     global_halt = not get_global_trading_enabled()
     if not bot:
         return {
@@ -2800,5 +2800,86 @@ def api_get_feed_health(user: dict = Depends(require_auth)):
 def api_get_pipeline_stats(user: dict = Depends(require_auth)):
     """Return pipeline statistics for daily summary display."""
     return _pipeline_stats
+
+
+# ── Backtesting & Walk-Forward Endpoints ─────────────────────────────────────
+_last_backtest_report: dict = {}
+
+class BacktestRequest(BaseModel):
+    symbol: str = "RELIANCE"
+    initial_capital: float = 25000.0
+    daily_loss_limit: float = 1000.0
+    risk_per_trade: float = 200.0
+    days: int = 10
+    trailing_sl_mode: str = "ADAPTIVE"
+
+@app.post("/api/v2/backtest/run")
+def api_run_backtest(req: BacktestRequest, user: dict = Depends(require_auth)):
+    """Run an intraday backtest using the 5-layer pipeline and Indian cost model."""
+    global _last_backtest_report
+    from backtesting_engine import BacktestConfig, IndianIntradayBacktestEngine, BacktestReport
+    from benchmark_comparison import generate_benchmark_dataset
+    import dataclasses
+
+    config = BacktestConfig(
+        initial_capital=req.initial_capital,
+        daily_loss_limit=req.daily_loss_limit,
+        risk_per_trade=req.risk_per_trade,
+        trailing_sl_mode=req.trailing_sl_mode
+    )
+    dataset = generate_benchmark_dataset(symbols=[req.symbol], days=req.days)
+    df = dataset.get(req.symbol)
+    if df is None or df.empty:
+        raise HTTPException(status_code=400, detail=f"No data available for symbol {req.symbol}")
+
+    engine = IndianIntradayBacktestEngine(config=config)
+    report = engine.run(req.symbol, df)
+    _last_backtest_report = dataclasses.asdict(report)
+    return _last_backtest_report
+
+@app.get("/api/v2/backtest/report")
+def api_get_backtest_report(user: dict = Depends(require_auth)):
+    """Return the most recently executed backtest report."""
+    if not _last_backtest_report:
+        return {"status": "no_report_available", "message": "Run a backtest first via POST /api/v2/backtest/run"}
+    return _last_backtest_report
+
+@app.post("/api/v2/backtest/walk-forward")
+def api_run_walk_forward(req: BacktestRequest, user: dict = Depends(require_auth)):
+    """Run chronological walk-forward validation (train/test out-of-sample)."""
+    from backtesting_engine import BacktestConfig, IndianIntradayBacktestEngine, WalkForwardValidator
+    from benchmark_comparison import generate_benchmark_dataset
+    import dataclasses
+
+    config = BacktestConfig(
+        initial_capital=req.initial_capital,
+        daily_loss_limit=req.daily_loss_limit,
+        risk_per_trade=req.risk_per_trade,
+        trailing_sl_mode=req.trailing_sl_mode
+    )
+    dataset = generate_benchmark_dataset(symbols=[req.symbol], days=req.days)
+    df = dataset.get(req.symbol)
+    if df is None or df.empty:
+        raise HTTPException(status_code=400, detail=f"No data available for symbol {req.symbol}")
+
+    engine = IndianIntradayBacktestEngine(config=config)
+    validator = WalkForwardValidator(engine=engine)
+    res = validator.run_out_of_sample(req.symbol, df, train_ratio=0.60)
+    return {
+        "symbol": res["symbol"],
+        "train_period": res["train_period"],
+        "test_period": res["test_period"],
+        "in_sample": dataclasses.asdict(res["in_sample"]),
+        "out_of_sample": dataclasses.asdict(res["out_of_sample"]),
+        "robustness_score": res["robustness_score"],
+        "is_overfitted": res["is_overfitted"]
+    }
+
+@app.get("/api/v2/backtest/benchmark")
+def api_get_benchmark_comparison(user: dict = Depends(require_auth)):
+    """Return reproducible Before-vs-After benchmark comparison."""
+    from benchmark_comparison import run_benchmark_comparison
+    return run_benchmark_comparison()
+
 
 

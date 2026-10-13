@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.IntraBot" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:statusBarColor">@color/status_bar_color</item>
+        <item name="android:navigationBarColor">@color/bg_base</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorPrimary">@color/brand_orange</item>
+        <item name="colorSecondary">@color/trading_green</item>
+        <item name="android:windowBackground">@color/bg_base</item>
+    </style>
+</resources>

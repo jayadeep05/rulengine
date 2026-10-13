@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Position Strategy Dashboard</title>
+    <!-- Auth: must be first, intercepts all fetch() -->
+    <script src="auth-client.js"></script>
+    <script src="android-adapter.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="mobile-glass.css">
+    <style>
+        :root {
+            --bg-color: #fafaf9;
+            --glass-bg: #ffffff;
+            --glass-border: rgba(249, 115, 22, 0.16);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #ff6b00;
+            --accent-hover: #ea580c;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 15.5px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #fafaf9;
+            background-image:
+                radial-gradient(circle at 15% 40%, rgba(255, 107, 0, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 70%, rgba(249, 115, 22, 0.07) 0%, transparent 40%),
+                linear-gradient(rgba(249, 115, 22, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249, 115, 22, 0.025) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 1.5rem 2rem;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .bg-glow {
+            display: none;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, #ff6b00, #ea580c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            grid-column: 1 / -1;
+            letter-spacing: -0.5px;
+        }
+
+        .glass-panel {
+            background: #ffffff;
+            border: 1px solid rgba(249, 115, 22, 0.16);
+            border-radius: 20px;
+            padding: 1.4rem 1.75rem;
+            box-shadow: 0 20px 45px -10px rgba(249, 115, 22, 0.1), 0 4px 16px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 24px 50px -10px rgba(249, 115, 22, 0.16);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            color: var(--text-main);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.15);
+        }
+
+        .mode-toggle-wrapper {
+            display: flex;
+            background: #fff7ed;
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid #fed7aa;
+            position: relative;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Buttons */
+        .btn-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translate(-50%, -50%) scale(0);
+            border-radius: 50%;
+            transition: transform 0.5s ease;
+        }
+
+        button:active::after {
+            transform: translate(-50%, -50%) scale(1);
+            transition: 0s;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-start:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-stop:hover {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Dashboard specific */
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-STOPPED {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .status-RUNNING {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        .status-LEG_A_CLOSED {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-CLOSED {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        /* ── LIGHT THEME ── */
+        [data-theme="light"] {
+            --bg-color: #f4f7fb;
+            --glass-bg: #ffffff;
+            --glass-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --success: #059669;
+            --danger: #dc2626;
+        }
+
+        [data-theme="light"] body {
+            background: var(--bg-color);
+            background-image: none;
+        }
+
+        [data-theme="light"] .glass-panel {
+            background: var(--glass-bg);
+            border-color: var(--glass-border);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] h1 {
+            background: linear-gradient(to right, #2563eb, #7c3aed);
+            -webkit-background-clip: text;
+        }
+
+        [data-theme="light"] .leg-card {
+            background: #f8fafc;
+            border-color: var(--glass-border);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+        
+        [data-theme="light"] .leg-a {
+            background: linear-gradient(145deg, rgba(5, 150, 105, 0.08) 0%, #f8fafc 100%);
+            border-top: 2px solid var(--success);
+        }
+
+        [data-theme="light"] .leg-b {
+            background: linear-gradient(145deg, rgba(220, 38, 38, 0.08) 0%, #f8fafc 100%);
+            border-top: 2px solid var(--danger);
+        }
+
+        [data-theme="light"] .form-group input,
+        [data-theme="light"] .form-group select {
+            background: #ffffff;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            color: var(--text-main);
+        }
+
+        [data-theme="light"] .status-STOPPED { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); }
+        [data-theme="light"] .status-RUNNING { background: rgba(5, 150, 105, 0.1); color: var(--success); }
+        [data-theme="light"] .status-LEG_A_CLOSED { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+        [data-theme="light"] .status-CLOSED { background: rgba(220, 38, 38, 0.1); color: var(--danger); }
+        
+        [data-theme="light"] .btn-theme {
+            border-color: #cbd5e1;
+            color: #0f172a;
+        }
+        
+        [data-theme="light"] .mode-toggle-wrapper { 
+            background: #e2e8f0; 
+            border-color: #cbd5e1;
+        }
+        
+        [data-theme="light"] .mode-toggle-active {
+            color: #ffffff !important;
+        }
+
+        .btn-theme {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            font-size: 1.25rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.3s;
+        }
+
+        .btn-theme:after { display: none; }
+        .btn-theme:hover { background: rgba(255,255,255,0.1); }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .leg-card {
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        
+        .leg-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .leg-a {
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.4) 100%);
+            border-top: 2px solid #10b981;
+        }
+
+        .leg-b {
+            background: linear-gradient(145deg, rgba(239, 68, 68, 0.08) 0%, rgba(15, 23, 42, 0.4) 100%);
+            border-top: 2px solid #ef4444;
+        }
+
+        .metric-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .pnl-positive {
+            color: var(--success);
+        }
+
+        .pnl-negative {
+            color: var(--danger);
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Top Nav */
+        .nav-link {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-glow"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px;">
+        <div class="brand" onclick="window.location.href='index.html'">
+            <div class="brand-icon-wrapper">
+                <img src="logo.svg" alt="QuantEdge Logo" class="brand-logo-img" />
+            </div>
+            <div class="brand-text-group">
+                <div class="brand-name">Quant<span class="brand-accent">Edge</span></div>
+                <div class="brand-badge"><span class="brand-badge-dot"></span>DUAL STRATEGY MATRIX</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <a href="index.html" class="nav-link" style="margin:0;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Terminal
+            </a>
+            <div id="btn-theme" class="btn-theme" style="position:static;width:36px;height:36px;" onclick="toggleTheme()" title="Toggle Theme">☀️</div>
+        </div>
+    </div>
+
+    <h1>Dual Position Strategy</h1>
+
+    <div class="container">
+        <!-- Configuration Panel -->
+        <div class="glass-panel">
+            <h2>⚙️ Strategy Configuration</h2>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label>Execution Mode</label>
+                <div class="mode-toggle-wrapper">
+                    <label id="lblManual" class="mode-toggle-active" style="flex: 1; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #fff; background: rgba(59, 130, 246, 0.9); border: 1px solid rgba(59, 130, 246, 0.5); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); transition: all 0.3s; margin-bottom: 0;">
+                        <input type="radio" name="execMode" value="MANUAL" checked onchange="toggleMode()" style="display:none;"> 🖐️ Manual Select
+                    </label>
+                    <label id="lblAuto" style="flex: 1; text-align: center; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--text-muted); background: transparent; border: 1px solid transparent; transition: all 0.3s; margin-bottom: 0;">
+                        <input type="radio" name="execMode" value="AUTO" onchange="toggleMode()" style="display:none;"> 🤖 Auto AI Select
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="instGroup">
+                <label>Instrument</label>
+                <select id="instA"></select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantity (Per Leg)</label>
+                    <input type="number" id="qtyA" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Upward Target (%)</label>
+                    <input type="number" id="trigUp" step="0.01" value="0.005">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Downward Stop (%)</label>
+                    <input type="number" id="trigDown" step="0.01" value="0.005">
+                </div>
+                <div class="form-group">
+                    <label>Leg B Target (%)</label>
+                    <input type="number" id="legBProfit" step="0.01" value="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Leg B Trailing SL (%)</label>
+                    <input type="number" id="legBTrail" step="0.001" value="0.005">
+                </div>
+            </div>
+
+            <div class="btn-container">
+                <button class="btn-start" onclick="startStrategy()">Start Strategy</button>
+                <button class="btn-stop" onclick="stopStrategy()">Stop & Square Off</button>
+            </div>
+        </div>
+
+        <!-- Live Dashboard Panel -->
+        <div class="glass-panel">
+            <div class="header-flex">
+                <h2>📊 Live Monitoring</h2>
+                <div id="statusBadge" class="status-badge status-STOPPED">STOPPED</div>
+            </div>
+
+            <div class="cards-grid">
+                <!-- Leg A Card -->
+                <div class="leg-card leg-a">
+                    <h3 style="margin-bottom: 1rem; color: #10b981;">Leg A (Long)</h3>
+                    <div class="metric-group">
+                        <span class="metric-label">Instrument</span>
+                        <span class="metric-value" id="disp_instA">-</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Quantity</span>
+                        <span class="metric-value" id="disp_qtyA">0</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Entry Price</span>
+                        <span class="metric-value" id="disp_entryA">₹0.00</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Current Price</span>
+                        <span class="metric-value" id="disp_currA">₹0.00</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Exit Price</span>
+                        <span class="metric-value" id="disp_exitA">-</span>
+                    </div>
+                    <div class="metric-group" style="margin-top: 1rem;">
+                        <span class="metric-label">Unrealized PnL</span>
+                        <span class="metric-value" id="disp_pnlA">₹0.00</span>
+                    </div>
+                </div>
+
+                <!-- Leg B Card -->
+                <div class="leg-card leg-b">
+                    <h3 style="margin-bottom: 1rem; color: #ef4444;">Leg B (Short)</h3>
+                    <div class="metric-group">
+                        <span class="metric-label">Instrument</span>
+                        <span class="metric-value" id="disp_instB">-</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Quantity</span>
+                        <span class="metric-value" id="disp_qtyB">0</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Entry Price</span>
+                        <span class="metric-value" id="disp_entryB">₹0.00</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Current Price</span>
+                        <span class="metric-value" id="disp_currB">₹0.00</span>
+                    </div>
+                    <div class="metric-group">
+                        <span class="metric-label">Dynamic SL</span>
+                        <span class="metric-value" id="disp_slB">-</span>
+                    </div>
+                    <div class="metric-group" style="margin-top: 1rem;">
+                        <span class="metric-label">Unrealized PnL</span>
+                        <span class="metric-value" id="disp_pnlB">₹0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <h3 style="color: var(--text-muted); font-weight: 400; font-size: 1rem;">Total Strategy PnL</h3>
+                <div id="disp_totalPnl" style="font-size: 2.5rem; font-weight: 800; margin-top: 0.5rem;">₹0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let symbolMapping = {};
+
+        // Load symbols
+        async function loadSymbols() {
+            try {
+                const res = await fetch('/api/symbols');
+                const data = await res.json();
+                symbolMapping = data;
+
+                const selectA = document.getElementById('instA');
+
+                for (const [name, token] of Object.entries(data)) {
+                    let optA = new Option(name, token);
+                    selectA.add(optA);
+                }
+            } catch (e) {
+                console.error("Failed to load symbols", e);
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            document.getElementById('btn-theme').innerText = newTheme === 'light' ? '🌙' : '☀️';
+        }
+
+        function toggleMode() {
+            const mode = document.querySelector('input[name="execMode"]:checked').value;
+            const instGroup = document.getElementById('instGroup');
+            const lblManual = document.getElementById('lblManual');
+            const lblAuto = document.getElementById('lblAuto');
+            
+            if (mode === 'AUTO') {
+                instGroup.style.opacity = '0.4';
+                instGroup.style.pointerEvents = 'none';
+                document.getElementById('instA').disabled = true;
+                
+                lblAuto.className = 'mode-toggle-active';
+                lblAuto.style.background = 'rgba(139, 92, 246, 0.9)';
+                lblAuto.style.border = '1px solid rgba(139, 92, 246, 0.5)';
+                lblAuto.style.boxShadow = '0 4px 10px rgba(139, 92, 246, 0.3)';
+                lblAuto.style.color = '#fff';
+                
+                lblManual.className = '';
+                lblManual.style.background = 'transparent';
+                lblManual.style.border = '1px solid transparent';
+                lblManual.style.boxShadow = 'none';
+                lblManual.style.color = 'var(--text-muted)';
+            } else {
+                instGroup.style.opacity = '1';
+                instGroup.style.pointerEvents = 'auto';
+                document.getElementById('instA').disabled = false;
+                
+                lblManual.className = 'mode-toggle-active';
+                lblManual.style.background = 'rgba(59, 130, 246, 0.9)';
+                lblManual.style.border = '1px solid rgba(59, 130, 246, 0.5)';
+                lblManual.style.boxShadow = '0 4px 10px rgba(59, 130, 246, 0.3)';
+                lblManual.style.color = '#fff';
+                
+                lblAuto.className = '';
+                lblAuto.style.background = 'transparent';
+                lblAuto.style.border = '1px solid transparent';
+                lblAuto.style.boxShadow = 'none';
+                lblAuto.style.color = 'var(--text-muted)';
+            }
+        }
+
+        // Action Handlers
+        async function startStrategy() {
+            const mode = document.querySelector('input[name="execMode"]:checked').value;
+            const inst = mode === 'AUTO' ? 'AUTO_AI' : document.getElementById('instA').value;
+
+            const payload = {
+                exec_mode: mode,
+                instrument_A: inst,
+                instrument_B: inst,
+                qty_A: document.getElementById('qtyA').value,
+                qty_B: document.getElementById('qtyA').value,
+                trigger_up_pct: document.getElementById('trigUp').value,
+                trigger_down_pct: document.getElementById('trigDown').value,
+                leg_B_profit_target_pct: document.getElementById('legBProfit').value,
+                leg_B_trail_sl_pct: document.getElementById('legBTrail').value
+            };
+
+            const res = await fetch('/api/dual/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'error') alert(data.message);
+        }
+
+        async function stopStrategy() {
+            const res = await fetch('/api/dual/stop', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'error') alert(data.message);
+        }
+
+        // Polling loop
+        async function pollStatus() {
+            try {
+                const res = await fetch('/api/dual/status');
+                const state = await res.json();
+
+                // Update Badge
+                const badge = document.getElementById('statusBadge');
+                badge.className = 'status-badge status-' + state.status;
+                badge.innerText = state.status.replace('_', ' ');
+
+                // Reverse lookup symbol names
+                const getName = (token) => Object.keys(symbolMapping).find(k => symbolMapping[k] === token) || token;
+
+                // Update Cards
+                document.getElementById('disp_instA').innerText = getName(state.instrument_A) || '-';
+                document.getElementById('disp_qtyA').innerText = state.qty_A;
+                document.getElementById('disp_entryA').innerText = `₹${state.entry_price_A.toFixed(2)}`;
+                document.getElementById('disp_currA').innerText = `₹${state.current_price_A.toFixed(2)}`;
+                document.getElementById('disp_exitA').innerText = state.leg_A_exit_price > 0 ? `₹${state.leg_A_exit_price.toFixed(2)}` : '-';
+
+                document.getElementById('disp_instB').innerText = getName(state.instrument_B) || '-';
+                document.getElementById('disp_qtyB').innerText = state.qty_B;
+                document.getElementById('disp_entryB').innerText = `₹${state.entry_price_B.toFixed(2)}`;
+                document.getElementById('disp_currB').innerText = `₹${state.current_price_B.toFixed(2)}`;
+                document.getElementById('disp_slB').innerText = state.leg_B_sl_price > 0 ? `₹${state.leg_B_sl_price.toFixed(2)}` : '-';
+
+                // PnL Formatting
+                const formatPnl = (el, val) => {
+                    el.innerText = `₹${val.toFixed(2)}`;
+                    el.className = 'metric-value ' + (val > 0 ? 'pnl-positive' : (val < 0 ? 'pnl-negative' : ''));
+                };
+
+                formatPnl(document.getElementById('disp_pnlA'), state.pnl_A);
+                formatPnl(document.getElementById('disp_pnlB'), state.pnl_B);
+
+                const totalPnl = state.pnl_A + state.pnl_B;
+                const totalEl = document.getElementById('disp_totalPnl');
+                totalEl.innerText = `₹${totalPnl.toFixed(2)}`;
+                totalEl.style.color = totalPnl > 0 ? 'var(--success)' : (totalPnl < 0 ? 'var(--danger)' : 'var(--text-main)');
+
+            } catch (e) {
+                // Ignore silent poll errors
+            }
+        }
+
+        // Init
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('btn-theme').innerText = '🌙';
+        }
+
+        loadSymbols().then(() => {
+            pollStatus();
+            setInterval(pollStatus, 1000);
+        });
+    </script>
+</body>
+
+</html>

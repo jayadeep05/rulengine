@@ -1,0 +1,10 @@
+<resources>
+    <color name="bg_base">#060913</color>
+    <color name="bg_panel">#0D1424</color>
+    <color name="brand_orange">#FF6B00</color>
+    <color name="trading_green">#00E676</color>
+    <color name="trading_red">#FF4D4D</color>
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="status_bar_color">#060913</color>
+</resources>
