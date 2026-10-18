@@ -22,15 +22,16 @@ class UpstoxExecutionEngine:
         """
         self.api_v2  = "https://api.upstox.com/v2"
         self.api_v3  = "https://api.upstox.com/v3"
-        # Official Upstox docs: https://upstox.com/developer/api-documentation/v3/place-order
-        # Correct URL: https://api-hft.upstox.com/v2/order/place  (V2 is the correct HFT endpoint)
-        self.api_hft = "https://api-hft.upstox.com/v2"
+        # Standard Upstox V2 REST endpoint for orders (api-hft is not a public REST endpoint)
+        self.api_hft = "https://api.upstox.com/v2"
         self._creds = credentials  # per-user credentials dict or None
         self.mode = mode or Config.MODE
 
     @property
     def is_paper(self) -> bool:
-        """Isolated paper mode is active if mode is TEST or PAPER_TRADING_MODE is True."""
+        """Isolated paper mode is active if mode is TEST, or if global FORCE_PAPER_TRADING is explicitly set."""
+        if str(self.mode).upper() == "LIVE":
+            return bool(os.getenv("FORCE_PAPER_TRADING", "false").lower() == "true")
         return (str(self.mode).upper() == "TEST") or getattr(Config, "PAPER_TRADING_MODE", False)
 
     def _get_headers(self, use_analytics=False):

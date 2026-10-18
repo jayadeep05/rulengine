@@ -115,7 +115,7 @@ def send_alert(user_id: Optional[int], message: str):
 
 def _db():
     """Return a DB session for use outside of FastAPI dependency injection."""
-    return next(get_db())
+    return SessionLocal()
 
 
 @app.on_event("startup")
@@ -179,30 +179,33 @@ async def startup_event():
     asyncio.create_task(periodic_stat_sync())
     asyncio.create_task(dynamic_discovery_loop())
 
-    # Auto-resume bots that were running before the server restarted
-    db_resume = _db()
+    # Auto-resume and register background trading tasks for all configured users
+    db_resume = SessionLocal()
+    registered_count = 0
     try:
         from database import UserConfig, UserCredential
-        running_configs = db_resume.query(UserConfig).filter(UserConfig.is_running == 1).all()
-        for r_cfg in running_configs:
-            uid = r_cfg.user_id
-            # Verify they have credentials set
-            creds = db_resume.query(UserCredential).filter(UserCredential.user_id == uid).first()
-            if creds and creds.upstox_access_token:
-                bot = get_or_create_bot(uid, db_resume)
+        all_user_creds = db_resume.query(UserCredential).all()
+        for creds in all_user_creds:
+            uid = creds.user_id
+            bot = get_or_create_bot(uid, db_resume)
+            now_t = datetime.now(IST).time()
+            is_market_hours = (time(9, 15) <= now_t <= time(15, 15)) and datetime.now(IST).weekday() < 5
+            cfg = db_resume.query(UserConfig).filter(UserConfig.user_id == uid).first()
+            if is_market_hours and cfg and cfg.is_running == 1 and not bot.state.kill_switch_active:
                 bot.state.is_running = True
                 bot.state.status = "RUNNING"
-                await ensure_user_bot_task(uid, db_resume)
-                logger.info(f"[Startup] Auto-resumed running trading cycle task for user_id={uid}")
+            await ensure_user_bot_task(uid, db_resume)
+            registered_count += 1
+            logger.info(f"[Startup] Autonomous trading task registered for user_id={uid} (running={bot.state.is_running})")
     except Exception as e:
-        logger.error(f"[Startup] Error auto-resuming user bots: {e}")
+        logger.error(f"[Startup] Error registering user bots: {e}")
     finally:
         db_resume.close()
 
     # ── Startup Health-Check Telegram Alert ───────────────────────────────────
     try:
         now_ist = datetime.now(IST)
-        resumed_count = len(running_configs) if 'running_configs' in dir() else 0
+        resumed_count = registered_count
         startup_msg = (
             f"✅ <b>intradayBot server started</b>\n"
             f"🕐 Time: {now_ist.strftime('%d-%b-%Y %H:%M:%S')} IST\n"
@@ -228,19 +231,13 @@ async def dynamic_discovery_loop():
         logger.error(f"[Discovery] Cannot import universe/config: {e}")
         return
 
-    # Wait until 9:15 AM
-    while True:
-        now = datetime.now(IST)
-        if now.hour > 9 or (now.hour == 9 and now.minute >= 15):
-            break
-        await asyncio.sleep(60)
-
     while True:
         try:
             now = datetime.now(IST)
-            # Stop discovering after 2:30 PM
-            if now.hour >= 14 and now.minute >= 30:
-                await asyncio.sleep(3600)
+            is_weekday = now.weekday() < 5
+            is_market_hours = is_weekday and (time(9, 15) <= now.time() < time(14, 30))
+            if not is_market_hours:
+                await asyncio.sleep(60)
                 continue
 
             # Need a valid bot/execution engine to fetch data
@@ -361,11 +358,18 @@ async def dynamic_discovery_loop():
 
 async def periodic_stat_sync():
     """
-    Sync shared indices every 5 minutes (not user-specific).
+    Sync shared indices every 5 minutes during market hours (not user-specific).
     Per-user capital is synced inside each user's trading cycle.
     """
     while True:
         try:
+            now = datetime.now(IST)
+            is_weekday = now.weekday() < 5
+            is_market_hours = is_weekday and (time(9, 15) <= now.time() <= time(15, 30))
+            if not is_market_hours:
+                await asyncio.sleep(60)
+                continue
+
             idx_keys = [
                 "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
                 "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
@@ -390,7 +394,15 @@ async def ws_fallback_pump():
     Fallback REST polling for indices/equities when WebSocket is stale.
     """
     while True:
-        await asyncio.sleep(3)
+        now = datetime.now(IST)
+        is_weekday = now.weekday() < 5
+        is_market_hours = is_weekday and (time(9, 15) <= now.time() <= time(15, 30))
+        
+        if not is_market_hours:
+            await asyncio.sleep(60)
+            continue
+
+        await asyncio.sleep(10)
 
         if not market_feed.is_index_live():
             idx_keys = [
@@ -663,16 +675,24 @@ async def user_trading_cycle(user_id: int):
     orb_obs_complete = False   # ORB: True once 9:30 AM observation window closes
     orb_last_scan    = 0.0     # ORB: timestamp of last 1-min breakout scan
     last_l3_scan     = 0.0     # Momentum: timestamp of last 5-min Layer 3-5 scan
+    token_refreshed_today = False
+    last_token_refresh_attempt = 0.0
     
     # Recovery: Load watchlist from DB if restarting mid-day
     now = datetime.now(IST)
     current_date = now.date()
     
-    # Recovery: check if daily summary or reconciliation was already done today
+    # Recovery: check if daily summary, reconciliation, or token refresh was already done today
     db_rec = SessionLocal()
     try:
-        from database import SystemLog
+        from database import SystemLog, UserCredential
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Check if token was already updated today
+        cred_chk = db_rec.query(UserCredential).filter(UserCredential.user_id == user_id).first()
+        if cred_chk and cred_chk.updated_at and cred_chk.updated_at.date() == current_date:
+            token_refreshed_today = True
+            logger.info(f"[USER {user_id}] Recovered state: Upstox token was already refreshed today.")
         
         # Query DAILY_SUMMARY
         summary_log = db_rec.query(SystemLog).filter(
@@ -762,6 +782,8 @@ async def user_trading_cycle(user_id: int):
             reconciliation_done = False
             ws_disconnected = False
             orb_obs_complete = False
+            token_refreshed_today = False
+            last_token_refresh_attempt = 0.0
             orb.reset()
             layer5.reset()
             
@@ -773,11 +795,6 @@ async def user_trading_cycle(user_id: int):
                 logger.error(f"Error resetting VIX alerts: {reset_err}")
                 
             current_date = now.date()
-
-        # ── Per-user controls ─────────────────────────────────────────────
-        if not bot.state.is_running or bot.state.kill_switch_active:
-            await asyncio.sleep(10)
-            continue
 
         logger.info(f"[USER {user_id}] Heartbeat: Trading cycle active. Trades: {len(bot.tm.active_trades)}, Watchlist: {len(layer2.active_watchlist)}")
 
@@ -797,15 +814,30 @@ async def user_trading_cycle(user_id: int):
                     name_to_ltp[sym_name] = _shared_prices[sym_key]
             bot.tm.update_prices(name_to_ltp, bot.engine)
 
-        # ── 08:00 AM+ — Automated TOTP Token Generation ────────────────────
-        if (now.hour == 8 and now.minute >= 0) or not bot.engine.connect():
+        # ── 08:00 AM — Automated TOTP Token Generation (Runs ONCE per day) ──
+        import time as _t
+        now_ts = _t.time()
+        should_refresh_morning = (now.hour == 8 and not token_refreshed_today)
+        is_token_failing = not bot.engine.connect()
+        can_retry_failed_token = (now_ts - last_token_refresh_attempt) > 3600  # at most once per hour
+
+        if should_refresh_morning or (is_token_failing and can_retry_failed_token):
+            last_token_refresh_attempt = now_ts
             try:
                 from upstox_auth_manager import auto_refresh_and_apply
                 logger.info(f"[USER {user_id}] Checking / Refreshing Upstox Token via TOTP...")
-                res = auto_refresh_and_apply()
+                res = auto_refresh_and_apply(silent=token_refreshed_today)
                 if res.get("status") == "success":
-                    reload_bot_credentials(user_id, _db())
+                    token_refreshed_today = True
+                    from database import SessionLocal
+                    with SessionLocal() as s_db:
+                        reload_bot_credentials(user_id, s_db)
                     bot = get_bot(user_id)
+                    if bot and "access_token" in res:
+                        new_tok = res["access_token"]
+                        bot.creds["upstox_access_token"] = new_tok
+                        bot.engine._creds["upstox_access_token"] = new_tok
+                        _shared_engine._creds["upstox_access_token"] = new_tok
             except Exception as e:
                 logger.error(f"[USER {user_id}] Failed auto-refreshing Upstox token: {e}")
 
@@ -857,9 +889,38 @@ async def user_trading_cycle(user_id: int):
                 logger.error(f"[USER {user_id}] Layer 1 failed: {e}")
                 layer1_done = True  # Don't retry infinitely
 
-        # ── 09:15 AM+ — Market hours logic ────────────────────────────────
+        # ── 09:15 AM+ — Market hours logic & Autonomous Daily Startup ──────
         if now.time() < time(9, 15):
-            await asyncio.sleep(30)
+            await asyncio.sleep(15)
+            continue
+
+        # Autonomous Daily Startup: Automatically activate trading at 09:15 AM on trading days
+        is_weekday = now.weekday() < 5
+        is_market_active = time(9, 15) <= now.time() < time(15, 15)
+        if is_weekday and is_market_active and not bot.state.is_running and not bot.state.kill_switch_active:
+            bot.state.is_running = True
+            bot.state.status = "RUNNING"
+            logger.info(f"[AUTONOMOUS] 09:15 AM IST — Automatically started trading system for user_id={user_id} (Mode: {bot.config.get('MODE', 'LIVE')})")
+            try:
+                from telegram_alert import send_telegram
+                send_telegram(
+                    f"🚀 <b>IntradayBot Auto-Started!</b>\n"
+                    f"Market session is OPEN (09:15 AM IST).\n"
+                    f"Mode: <b>{bot.config.get('MODE', 'LIVE')}</b>\n"
+                    f"Autonomous trading is now active."
+                )
+            except Exception:
+                pass
+            from database import SessionLocal, UserConfig
+            with SessionLocal() as db_start:
+                u_cfg = db_start.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+                if u_cfg:
+                    u_cfg.is_running = 1
+                    db_start.commit()
+
+        # If user explicitly paused system or kill-switch tripped, pause new trading
+        if not bot.state.is_running or bot.state.kill_switch_active:
+            await asyncio.sleep(10)
             continue
 
         # ── ORB Phase 1: Observation window (9:15 AM – 9:30 AM) ─────────
@@ -957,6 +1018,18 @@ async def user_trading_cycle(user_id: int):
                     db_log.close()
             except Exception as e:
                 logger.error(f"[USER {user_id}] Daily summary failed: {e}")
+
+            # Transition bot state to STANDBY for the night
+            if bot.state.is_running:
+                bot.state.is_running = False
+                bot.state.status = "STANDBY"
+                logger.info(f"[AUTONOMOUS] 15:30 PM IST — Market session closed. System transitioned to STANDBY for the night.")
+                from database import SessionLocal, UserConfig
+                with SessionLocal() as db_night:
+                    u_cfg = db_night.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+                    if u_cfg:
+                        u_cfg.is_running = 0
+                        db_night.commit()
 
         # ── 15:35 PM — Reconciliation ────────────────────────────────────
         if now.time() >= time(15, 35) and not reconciliation_done:
@@ -1340,7 +1413,7 @@ async def user_trading_cycle(user_id: int):
             logger.critical(f"[USER {user_id}] KILL SWITCH! Daily Loss ={daily_pnl:.2f}")
             bot.state.kill_switch_active = True
             bot.state.is_running = False
-            if not Config.PAPER_TRADING_MODE:
+            if not bot.engine.is_paper:
                 bot.engine.exit_all_positions()
             for trade in list(bot.tm.active_trades):
                 bot.tm.close_trade(trade, "KILL SWITCH", execution_engine=bot.engine)
@@ -1526,7 +1599,7 @@ async def _execute_v2_trade(user_id: int, bot, decision: dict, layer3_signals: l
         return
 
     # Step 5 — Place entry order (or simulate in paper mode)
-    is_paper = Config.PAPER_TRADING_MODE or (bot.engine.mode == 'TEST')
+    is_paper = bot.engine.is_paper
     if is_paper:
         logger.info(f"[USER {user_id}] PAPER TRADE WOULD ENTER: {direction} {symbol} @ ₹{ltp:.2f}")
         order_id = f"paper_{symbol}_{side}"
@@ -1911,6 +1984,7 @@ async def upsert_user_credentials(
         )
         # Reload the engine with new credentials (hot-reload)
         reload_bot_credentials(user_id, db)
+        await ensure_user_bot_task(user_id, db)
 
         # ALSO update the shared components (shared engine & market feed WebSocket)
         from credential_service import get_decrypted_credentials
@@ -2387,7 +2461,7 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
         "upstox_updated_at":  bot.creds.get("updated_at"),
         "ws_live":            market_feed.is_live() if 'market_feed' in globals() else False,
         "global_halt":        global_halt,
-        "paper_trading":      Config.PAPER_TRADING_MODE or (bot.config.get("MODE", "TEST") == 'TEST'),
+        "paper_trading":      bot.engine.is_paper,
     }
 
 class ToggleRequest(BaseModel):
@@ -2501,6 +2575,7 @@ async def api_update_config(payload: dict, user: dict = Depends(require_auth), d
     reload_user_config(uid, db)
     if creds_updated:
         reload_bot_credentials(uid, db)
+        await ensure_user_bot_task(uid, db)
         
         # ALSO update the shared components (shared engine & market feed WebSocket)
         from credential_service import get_decrypted_credentials

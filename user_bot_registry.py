@@ -64,15 +64,32 @@ def get_bot(user_id: int) -> Optional[UserBot]:
     return _registry.get(user_id)
 
 
-def reload_bot_credentials(user_id: int, db):
+def reload_bot_credentials(user_id: int, db=None):
     """Called after credential update to refresh engine without stopping bot."""
     from credential_service import get_decrypted_credentials
-    creds = get_decrypted_credentials(db, user_id)
-    if user_id in _registry:
-        _registry[user_id].refresh_credentials(creds)
-    else:
-        # Bot hasn't been created yet — will pick up fresh creds on next call
-        _registry[user_id] = UserBot(user_id=user_id, credentials=creds)
+    from database import SessionLocal
+    standalone = False
+    if db is None:
+        db = SessionLocal()
+        standalone = True
+    try:
+        try:
+            db.expire_all()
+        except Exception:
+            pass
+        creds = get_decrypted_credentials(db, user_id)
+        if user_id in _registry:
+            _registry[user_id].refresh_credentials(creds)
+        else:
+            _registry[user_id] = UserBot(user_id=user_id, credentials=creds)
+        try:
+            import market_feed
+            market_feed.update_credentials(creds)
+        except Exception:
+            pass
+    finally:
+        if standalone:
+            db.close()
 
 
 def all_bots() -> Dict[int, UserBot]:

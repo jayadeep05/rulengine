@@ -151,7 +151,7 @@ def update_system_token(access_token: str) -> bool:
     return True
 
 
-def auto_refresh_and_apply() -> dict:
+def auto_refresh_and_apply(silent: bool = False) -> dict:
     """
     One-click runner: Generates token and applies it to the system.
     """
@@ -160,12 +160,13 @@ def auto_refresh_and_apply() -> dict:
         new_token = res["access_token"]
         update_system_token(new_token)
         
-        # Send telegram alert if configured
-        try:
-            from telegram_alert import send_telegram
-            send_telegram(f"✅ <b>Upstox Token Auto-Refreshed!</b>\nUser: {res.get('user_name')}\nStatus: Active for today's market session.")
-        except Exception:
-            pass
+        # Send telegram alert if configured and not explicitly silenced
+        if not silent:
+            try:
+                from telegram_alert import send_telegram
+                send_telegram(f"✅ <b>Upstox Token Auto-Refreshed!</b>\nUser: {res.get('user_name')}\nStatus: Active for today's market session.")
+            except Exception:
+                pass
 
     return res
 

@@ -28,7 +28,7 @@ def get_database_engine():
                 pg_url = pg_url.replace("postgres://", "postgresql+psycopg2://", 1)
             elif pg_url.startswith("postgresql://") and not pg_url.startswith("postgresql+psycopg2://"):
                 pg_url = pg_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-            eng = create_engine(pg_url, echo=False, pool_recycle=1800, pool_pre_ping=True)
+            eng = create_engine(pg_url, echo=False, pool_size=10, max_overflow=5, pool_recycle=1800, pool_pre_ping=True)
             with eng.connect() as test_conn:
                 pass
             print("SUCCESS: Connected to Supabase / PostgreSQL Cloud Database.")
@@ -197,7 +197,7 @@ class DailyStats(Base):
     __tablename__ = "daily_sessions"
 
     id                = Column(Integer, primary_key=True, autoincrement=True)
-    user_id           = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id           = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # nullable for legacy rows
     session_date      = Column(Date, default=get_ist_date, index=True)
     start_capital     = Column(Float)
     end_capital       = Column(Float)

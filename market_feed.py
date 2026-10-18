@@ -48,7 +48,7 @@ _shared_creds = None
 
 _stop_event = threading.Event()
 
-# ─── Auth Helper ──────────────────────────────────────────────────────────────
+_last_auth_error_log = {}
 
 def _get_authorized_url(api_type: str = "market"):
     """Fetches a fresh authorized URL."""
@@ -72,7 +72,11 @@ def _get_authorized_url(api_type: str = "market"):
             uri = data.get('data', {}).get('authorizedRedirectUri') or data.get('data', {}).get('authorized_redirect_uri')
             if uri:
                 return uri
-        logger.error(f"[Auth] {api_type} FAILED ({response.status_code}): {response.text}")
+        now_ts = _time.time()
+        last_log = _last_auth_error_log.get(api_type, 0)
+        if (now_ts - last_log) > 600:
+            logger.error(f"[Auth] {api_type} FAILED ({response.status_code}): {response.text}")
+            _last_auth_error_log[api_type] = now_ts
     except Exception as e:
         logger.error(f"[Auth] {api_type} EXCEPTION: {e}")
     return None
@@ -253,13 +257,18 @@ def _market_loop():
             _time.sleep(10)
 
 def _portfolio_loop():
+    backoff = 30
     while not _stop_event.is_set():
         try:
-            api_client = upstox_client.ApiClient()
-            config = upstox_client.Configuration()
             token = _shared_creds.get("upstox_access_token") if _shared_creds else None
             if not token:
                 token = Config.UPSTOX_ACCESS_TOKEN
+            if not token:
+                _time.sleep(30)
+                continue
+
+            api_client = upstox_client.ApiClient()
+            config = upstox_client.Configuration()
             config.access_token = token
             api_client.configuration = config
             
@@ -274,10 +283,17 @@ def _portfolio_loop():
             streamer.auto_reconnect(enable=False)
             streamer.connect()
             _cap.wait()
-        except: pass
-        _time.sleep(15)
+            backoff = 30
+        except Exception:
+            pass
+        _time.sleep(backoff)
+        backoff = min(backoff * 2, 300)
 
 # ─── Public API ───────────────────────────────────────────────────────────────
+
+def update_credentials(credentials: dict):
+    global _shared_creds
+    _shared_creds = credentials
 
 def start(prices_cache: dict, indices_cache: dict, prev_close_cache: dict = None, trade_manager=None, timestamps_cache: dict = None, credentials: dict = None):
     global _prices_cache, _indices_cache, _indices_prev_close, _trade_manager, _stop_event, _tick_timestamps, _shared_creds
