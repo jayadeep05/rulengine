@@ -281,7 +281,6 @@ class UpstoxExecutionEngine:
                     return {
                         "status": "success",
                         "order_status": o.get('status'),
-                        "status_message": o.get('status_message', '') or o.get('rejection_reason', ''),
                         "filled_quantity": int(o.get('filled_quantity', 0)),
                         "quantity": int(o.get('quantity', 0)),
                         "average_price": float(o.get('average_price', 0.0))
@@ -405,15 +404,6 @@ class UpstoxExecutionEngine:
                     filled_qty = qty  # Default to requested qty
                     avg_price = 0.0
                     if status_res.get('status') == 'success':
-                        order_status = str(status_res.get('order_status', '')).lower()
-                        if order_status in ('rejected', 'cancelled', 'failed'):
-                            rejection_msg = status_res.get('status_message') or f"Order {order_status} on broker"
-                            logger.error(f"Upstox RMS Rejection for order {order_id}: {rejection_msg}")
-                            return {
-                                "status": "rejected",
-                                "order_id": order_id,
-                                "reason": rejection_msg
-                            }
                         filled_qty = status_res.get('filled_quantity', qty)
                         avg_price = status_res.get('average_price', 0.0)
                     
