@@ -2687,17 +2687,67 @@ async def api_manual_trade(
     uid = user["uid"]
     bot = get_or_create_bot(uid, db)
     
-    if len(bot.tm.active_trades) > 0:
-        raise HTTPException(status_code=400, detail="Cannot place manual trade. An active trade already exists.")
+    max_open = getattr(bot.config, 'max_open_trades', 3) if hasattr(bot, 'config') else 3
+    if len(bot.tm.active_trades) >= max_open:
+        raise HTTPException(status_code=400, detail=f"Cannot place manual trade. Max open trades limit ({max_open}) reached.")
         
     symbol_key = Config.SYMBOLS_MAPPING.get(body.symbol)
     if not symbol_key:
-        raise HTTPException(status_code=400, detail="Unknown symbol.")
+        try:
+            from nifty500_instruments import get_universe
+            symbol_key = get_universe().get(body.symbol)
+        except Exception:
+            pass
+    if not symbol_key:
+        symbol_key = f"NSE_EQ|{body.symbol}"
+        
+    side = body.side.upper()
+    if side not in ("BUY", "SELL"):
+        raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
+        
+    qty = max(1, int(body.qty))
+    order_type = "LIMIT" if (body.price and body.price > 0) else "MARKET"
+    
     res = bot.engine.place_order_with_retry(
-        symbol_key, body.side, body.qty,
-        order_type="LIMIT" if body.price else "MARKET", price=body.price
+        symbol_key, side, qty,
+        order_type=order_type, price=body.price
     )
-    return {"status": res.get("status"), "order_id": res.get("order_id")}
+    
+    order_status = res.get("status", "success")
+    order_id = res.get("order_id") or f"MAN_{int(_time.time()*1000)}"
+    
+    if order_status in ("success", "COMPLETE"):
+        entry_price = float(body.price) if (body.price and body.price > 0) else bot.engine.get_ltp(symbol_key)
+        if entry_price <= 0:
+            entry_price = float(_shared_prices.get(body.symbol, 100.0))
+            
+        sl_pct = 0.01
+        sl = round(entry_price * (1.0 - sl_pct) if side == "BUY" else entry_price * (1.0 + sl_pct), 2)
+        target = round(entry_price * (1.0 + 2.0 * sl_pct) if side == "BUY" else entry_price * (1.0 - 2.0 * sl_pct), 2)
+        
+        bot.tm.add_trade(
+            symbol=body.symbol,
+            side=side,
+            entry_price=entry_price,
+            qty=qty,
+            sl=sl,
+            target=target,
+            probability=0.75,
+            score=80,
+            metadata={
+                "manual_execution": True,
+                "paper_trade": bot.engine.is_paper,
+                "instrument_token": symbol_key
+            }
+        )
+        if bot.tm.active_trades:
+            bot.tm.active_trades[-1]['instrument_token'] = symbol_key
+            
+        send_alert(uid, f"⚡ Manual {side} Order Executed for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
+        return {"status": "success", "order_id": order_id, "symbol": body.symbol, "side": side, "qty": qty, "price": entry_price}
+    else:
+        reason = res.get("reason", "Order rejected by broker.")
+        raise HTTPException(status_code=400, detail=f"Order rejected: {reason}")
 
 class ManualSLUpdate(BaseModel):
     trade_id:  str

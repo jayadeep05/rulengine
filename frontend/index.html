@@ -5097,12 +5097,46 @@
             executeActionSignal(sym, bias === 'SHORT' ? 'SELL' : 'BUY', ltp);
         }
 
-        function executeActionSignal(sym, side, price) {
-            const qty = Math.max(1, Math.floor(5000 / (price || 100)));
-            toast(`⚡ Order submitted: ${side} ${qty} qty of ${sym} at ₹${(price || 100).toFixed(2)}`, 'success');
-            addTimeline(`ORDER FIRED: ${side} ${sym}`, `Qty: ${qty} | Entry ₹${(price || 100).toFixed(2)} | Bracket Order with trailing SL`, 'exec');
-            pushAlert(`Simulated ${side} order placed for ${sym} (${qty} shares)`, 'trade');
-            appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${side} @ ₹${(price || 100).toFixed(2)})`);
+        async function executeActionSignal(sym, side, price) {
+            let tradeSide = (side || '').toUpperCase();
+            if (tradeSide !== 'BUY' && tradeSide !== 'SELL') {
+                const meta = candidateMeta[sym];
+                tradeSide = (meta && meta.bias === 'SHORT') ? 'SELL' : 'BUY';
+            }
+            const cleanPrice = parseFloat(price) || (candidateMeta[sym] ? candidateMeta[sym].ltp : 100);
+            const qty = Math.max(1, Math.floor(5000 / cleanPrice));
+            
+            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym}...`, 'info');
+            try {
+                const res = await fetch(`${API}/trade/manual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: sym,
+                        side: tradeSide,
+                        qty: qty,
+                        price: cleanPrice
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && (data.status === 'success' || data.status === 'COMPLETE' || data.order_id)) {
+                    toast(`✅ Order executed: ${tradeSide} ${qty} qty of ${sym} (ID: ${data.order_id || 'OK'})`, 'success');
+                    addTimeline(`ORDER EXECUTED: ${tradeSide} ${sym}`, `Qty: ${qty} | Entry ₹${cleanPrice.toFixed(2)} | Order ID: ${data.order_id}`, 'exec');
+                    pushAlert(`Simulated ${tradeSide} order executed for ${sym} (${qty} shares)`, 'trade');
+                    appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${tradeSide} @ ₹${cleanPrice.toFixed(2)})`);
+                    
+                    // Immediately refresh active trades
+                    if (typeof fetchActiveTrades === 'function') fetchActiveTrades();
+                    if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
+                } else {
+                    const err = data.detail || data.message || 'Execution failed';
+                    toast(`⚠️ Execution failed: ${err}`, 'warning');
+                    appendEngineLog('RISK', `Order rejected for ${sym}: ${err}`);
+                }
+            } catch (err) {
+                console.error("Manual trade error:", err);
+                toast(`❌ Execution error: ${err.message}`, 'danger');
+            }
         }
 
         async function fetchSignals() {
@@ -5278,7 +5312,11 @@
                         const decColor = c.decision === 'BUY' ? 'var(--green)' : c.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
                         const decLabel = c.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${c.decision}`;
                         const vwapDist = m.vwap && c.ltp ? ((c.ltp - m.vwap) / m.vwap * 100).toFixed(2) : '--';
-                        const btnColor = c.decision === 'BUY' ? 'var(--green)' : c.decision === 'SELL' ? 'var(--red)' : '#ea580c';
+                        
+                        const isHold = (c.decision === 'AVOID');
+                        const execSide = (c.decision === 'BUY' || c.decision === 'SELL') ? c.decision : (isShort ? 'SELL' : 'BUY');
+                        const btnColor = execSide === 'BUY' ? 'var(--green)' : 'var(--red)';
+                        const btnLabel = isHold ? `⚡ Execute ${execSide} (Override)` : `⚡ Execute ${execSide} (Simulated)`;
 
                         return `
                         <div class="scan-card" id="action-card-${c.symbol}">
@@ -5315,8 +5353,8 @@
                                 <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 4px;">
-                                <button class="btn-primary" onclick="executeActionSignal('${c.symbol}', '${c.decision}', ${c.ltp || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${btnColor}; color: #fff; cursor: pointer;">
-                                    ⚡ Execute ${c.decision} (Simulated)
+                                <button class="btn-primary" onclick="executeActionSignal('${c.symbol}', '${execSide}', ${c.ltp || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${btnColor}; color: #fff; cursor: pointer;">
+                                    ${btnLabel}
                                 </button>
                                 <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 9px; cursor: pointer;">
                                     🔍 Details
