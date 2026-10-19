@@ -2543,7 +2543,7 @@ async def api_emergency(user: dict = Depends(require_auth), db=Depends(get_db)):
         
     result = bot.engine.exit_all_positions()
     for trade in list(bot.tm.active_trades):
-        bot.tm.close_trade(trade, "EMERGENCY", execution_engine=bot.engine)
+        bot.tm.close_trade(trade, "EMERGENCY", execution_engine=None)
     return {"status": "emergency_executed", "engine_result": result}
 
 @app.get("/api/symbols")
@@ -2817,10 +2817,7 @@ async def api_close_trade(
     trade = next((t for t in bot.tm.active_trades if t['id'] == trade_id), None)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found.")
-    symbol_key = trade.get('instrument_token') or Config.SYMBOLS_MAPPING.get(trade['symbol'])
-    if symbol_key:
-        side = "SELL" if trade['side'].upper() == "BUY" else "BUY"
-        bot.engine.place_order_with_retry(symbol_key, side, trade['qty'])
+    # Delegate square-off to TradeManager which cancels pending SL and places exactly ONE market exit order
     bot.tm.close_trade(trade, "MANUAL", execution_engine=bot.engine)
     return {"status": "success", "trade_id": trade_id}
 
