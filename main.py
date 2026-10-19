@@ -202,6 +202,8 @@ async def startup_event():
     finally:
         db_resume.close()
 
+    asyncio.create_task(bot_supervisor_watchdog())
+
     # ── Startup Health-Check Telegram Alert ───────────────────────────────────
     try:
         now_ist = datetime.now(IST)
@@ -648,6 +650,7 @@ async def user_trading_cycle(user_id: int):
     Runs as its own asyncio Task. Implements the full daily schedule (Section 7).
     """
     global _signal_log, _pipeline_stats, latest_signals, _signal_log_cleared_date
+    from database import SessionLocal, UserConfig, UserCredential, SystemLog, log_system_event
 
     from user_bot_registry import get_bot
     bot = get_bot(user_id)
@@ -829,7 +832,6 @@ async def user_trading_cycle(user_id: int):
                 res = auto_refresh_and_apply(silent=token_refreshed_today)
                 if res.get("status") == "success":
                     token_refreshed_today = True
-                    from database import SessionLocal
                     with SessionLocal() as s_db:
                         reload_bot_credentials(user_id, s_db)
                     bot = get_bot(user_id)
@@ -911,7 +913,6 @@ async def user_trading_cycle(user_id: int):
                 )
             except Exception:
                 pass
-            from database import SessionLocal, UserConfig
             with SessionLocal() as db_start:
                 u_cfg = db_start.query(UserConfig).filter(UserConfig.user_id == user_id).first()
                 if u_cfg:
@@ -1010,7 +1011,6 @@ async def user_trading_cycle(user_id: int):
                     user_id=user_id,
                 )
                 daily_summary_sent = True
-                from database import log_system_event
                 db_log = SessionLocal()
                 try:
                     log_system_event(db_log, user_id, "INFO", "DAILY_SUMMARY", "Daily summary sent successfully")
@@ -1024,7 +1024,6 @@ async def user_trading_cycle(user_id: int):
                 bot.state.is_running = False
                 bot.state.status = "STANDBY"
                 logger.info(f"[AUTONOMOUS] 15:30 PM IST — Market session closed. System transitioned to STANDBY for the night.")
-                from database import SessionLocal, UserConfig
                 with SessionLocal() as db_night:
                     u_cfg = db_night.query(UserConfig).filter(UserConfig.user_id == user_id).first()
                     if u_cfg:
@@ -1784,6 +1783,30 @@ async def ensure_user_bot_task(user_id: int, db):
         get_or_create_bot(user_id, db)
         _user_tasks[user_id] = asyncio.create_task(user_trading_cycle(user_id))
         logger.info(f"[USER {user_id}] Trading task started.")
+
+
+async def bot_supervisor_watchdog():
+    """Watchdog loop that verifies all configured users' bot tasks stay alive, restarting if crashed."""
+    while True:
+        try:
+            await asyncio.sleep(30)
+            from database import SessionLocal, UserCredential
+            with SessionLocal() as db_watch:
+                all_creds = db_watch.query(UserCredential).all()
+                for c in all_creds:
+                    uid = c.user_id
+                    if uid not in _user_tasks or _user_tasks[uid].done():
+                        if uid in _user_tasks and _user_tasks[uid].done():
+                            try:
+                                exc = _user_tasks[uid].exception()
+                                if exc:
+                                    logger.error(f"[Watchdog] Bot task for user_id={uid} stopped with: {exc}")
+                            except Exception:
+                                pass
+                        logger.warning(f"[Watchdog] Resurrecting bot task for user_id={uid}...")
+                        await ensure_user_bot_task(uid, db_watch)
+        except Exception as e:
+            logger.error(f"[Watchdog] Supervisor error: {e}")
 
 
 # ────────────────────────────────────────────────────────────────────────────

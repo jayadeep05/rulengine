@@ -83,8 +83,17 @@ def _get_authorized_url(api_type: str = "market"):
 
 # ─── SDK Monkey Patches ───────────────────────────────────────────────────────
 
+class _DummyPool:
+    def close(self): pass
+    def join(self): pass
+    def terminate(self): pass
+    def apply_async(self, fn, args=(), kwds=(), callback=None, error_callback=None): pass
+
 def _patch_sdk():
-    """Patches both Market and Portfolio feeders and streamers to use manual auth and prevent recursion."""
+    """Patches both Market and Portfolio feeders and streamers to use manual auth, prevent recursion and thread leaks."""
+    import upstox_client.api_client
+    upstox_client.api_client.ThreadPool = _DummyPool
+
     from upstox_client.feeder.market_data_feeder_v3 import MarketDataFeederV3
     from upstox_client.feeder.portfolio_data_feeder import PortfolioDataFeeder
     from upstox_client.feeder.market_data_streamer_v3 import MarketDataStreamerV3
@@ -228,6 +237,9 @@ def _market_loop():
                 token = _shared_creds.get("analytics_token") or _shared_creds.get("upstox_access_token")
             if not token:
                 token = Config.ANALYTICS_TOKEN if Config.ANALYTICS_TOKEN else Config.UPSTOX_ACCESS_TOKEN
+            if not token:
+                _time.sleep(30)
+                continue
             config.access_token = token
             api_client.configuration = config
             
@@ -251,10 +263,10 @@ def _market_loop():
             
             if not _stop_event.is_set():
                 _time.sleep(backoff)
-                backoff = min(backoff + 5, 60)
+                backoff = min(backoff + 15, 60)
         except Exception as exc:
             logger.error(f"[WS-Market] Loop Error: {exc}")
-            _time.sleep(10)
+            _time.sleep(15)
 
 def _portfolio_loop():
     backoff = 30
