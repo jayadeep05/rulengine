@@ -3973,7 +3973,7 @@
                         <div class="intel-pills" style="display: flex; align-items: center; gap: 8px; font-size: 11px; margin-top: 4px;">
                             <span style="color: var(--muted);">Universe: <strong style="color: var(--text);">92 Filtered</strong></span>
                             <span style="color: var(--border-light);">•</span>
-                            <span style="color: var(--muted);">Watchlist: <strong style="color: #ff6b00;">9 Momentum</strong></span>
+                            <span style="color: var(--muted);">Watchlist: <strong id="radar-watchlist-count" style="color: #ff6b00;">9 Momentum</strong></span>
                             <span style="color: var(--border-light);">•</span>
                             <span style="color: var(--muted);">Scanner: <strong style="color: #0284c7;">ORB & Breakout</strong></span>
                             <span style="color: var(--border-light);">•</span>
@@ -4955,15 +4955,20 @@
         let radarBiasFilter = 'ALL';
 
         const candidateMeta = {
+            'CANBK': { trigger: '> ₹122.50', score: 80, vol: '2.26x', bias: 'LONG', ltp: 122.10, sl: 120.00, target: 126.00, sector: 'Public Sector Banking' },
+            'ICICIBANK': { trigger: '< ₹1,390.83', score: 78, vol: '2.1x', bias: 'SHORT', ltp: 1385.20, sl: 1398.00, target: 1360.00, sector: 'Private Banking' },
+            'HDFCBANK': { trigger: '< ₹714.02', score: 76, vol: '1.9x', bias: 'SHORT', ltp: 713.60, sl: 722.00, target: 698.00, sector: 'Private Banking' },
             'INDUSINDBK': { trigger: '< ₹1,388.00', score: 88, vol: '2.1x', bias: 'SHORT', ltp: 1385.20, sl: 1396.00, target: 1362.00, sector: 'Banking & Financials' },
             'NTPC': { trigger: '< ₹414.00', score: 86, vol: '1.9x', bias: 'SHORT', ltp: 412.50, sl: 417.00, target: 403.00, sector: 'Power & Utilities' },
             'COALINDIA': { trigger: '< ₹487.50', score: 84, vol: '1.7x', bias: 'SHORT', ltp: 485.60, sl: 491.00, target: 474.00, sector: 'Metals & Mining' },
             'TECHM': { trigger: '< ₹1,628.00', score: 82, vol: '1.6x', bias: 'SHORT', ltp: 1622.00, sl: 1638.00, target: 1590.00, sector: 'IT Services' },
             'DMART': { trigger: '< ₹4,720.00', score: 80, vol: '1.5x', bias: 'SHORT', ltp: 4710.00, sl: 4755.00, target: 4620.00, sector: 'Retail & Consumer' },
-            'APOLLOHOSP': { trigger: '< ₹6,850.00', score: 79, vol: '1.4x', bias: 'SHORT', ltp: 6835.00, sl: 6905.00, target: 6690.00, sector: 'Healthcare' },
             'YESBANK': { trigger: '> ₹23.60', score: 85, vol: '2.4x', bias: 'LONG', ltp: 23.40, sl: 22.80, target: 24.80, sector: 'Banking' },
+            'APOLLOHOSP': { trigger: '< ₹6,850.00', score: 79, vol: '1.4x', bias: 'SHORT', ltp: 6835.00, sl: 6905.00, target: 6690.00, sector: 'Healthcare' },
             'OLAELEC': { trigger: '< ₹74.50', score: 78, vol: '1.8x', bias: 'SHORT', ltp: 73.80, sl: 76.00, target: 69.50, sector: 'EV & Auto' },
-            'PFC': { trigger: '> ₹495.00', score: 83, vol: '1.9x', bias: 'LONG', ltp: 492.30, sl: 486.00, target: 508.00, sector: 'Financial Services' }
+            'PFC': { trigger: '> ₹495.00', score: 83, vol: '1.9x', bias: 'LONG', ltp: 492.30, sl: 486.00, target: 508.00, sector: 'Financial Services' },
+            'PNB': { trigger: '> ₹108.00', score: 84, vol: '2.0x', bias: 'LONG', ltp: 106.50, sl: 104.00, target: 112.00, sector: 'Banking & Financials' },
+            'PERSISTENT': { trigger: '> ₹5,450.00', score: 86, vol: '1.9x', bias: 'LONG', ltp: 5410.00, sl: 5350.00, target: 5600.00, sector: 'IT Services' }
         };
 
         function setRadarFilter(filter) {
@@ -5045,7 +5050,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; background: ${biasBg}; border: 1.5px solid ${biasBorder}; padding: 14px 18px; border-radius: 14px; margin-bottom: 14px;">
                     <div>
                         <div style="font-weight: 800; font-size: 17px; color: var(--text);">${sym} <span style="font-size: 11px; color: var(--muted); font-weight: 600;">• ${meta.sector}</span></div>
-                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Reference LTP: <strong style="color: var(--text);">₹${meta.ltp.toFixed(2)}</strong></div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Reference LTP: <strong style="color: var(--text);">₹${(meta.ltp || 100).toFixed(2)}</strong></div>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); color: ${biasColor}; border: 1px solid ${biasBorder};">
@@ -5062,11 +5067,11 @@
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
                         <div style="font-size: 10px; color: var(--muted); font-weight: 700;">STOP LOSS</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${meta.sl.toFixed(2)}</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${(meta.sl || meta.ltp * 0.99).toFixed(2)}</div>
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
                         <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TARGET (1:2)</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${meta.target.toFixed(2)}</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${(meta.target || meta.ltp * 1.02).toFixed(2)}</div>
                     </div>
                 </div>
 
@@ -5075,7 +5080,7 @@
                     <div style="padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700;">✔ Layer 1: Market Pulse Correlated</div>
                     <div style="padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700;">✔ Layer 2: Liquidity Tier 1 (Spread &lt; 0.05%)</div>
                     <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 3: 15-Min ORB Zone Armed</div>
-                    <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 4: Vol Surge (${meta.vol}) Pending</div>
+                    <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 4: Vol Surge (${meta.vol || '1.8x'}) Pending</div>
                 </div>
                 <div style="margin-top: 8px; padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700; font-size: 11px;">
                     ✔ Layer 5: Claude 3.5 News Sentiment Safety Pass (No Black Swan Risk)
@@ -5102,11 +5107,11 @@
 
         async function fetchSignals() {
             try {
-                let signals = [];
+                let rawSignals = [];
                 try {
                     const res = await fetch(`${API}/signals`);
                     if (res && res.ok) {
-                        signals = await res.json();
+                        rawSignals = await res.json();
                     }
                 } catch (fetchErr) {
                     console.warn("fetchSignals network error:", fetchErr);
@@ -5115,7 +5120,7 @@
                 if (!box) return;
 
                 if (isDemoSignalActive) {
-                    signals = [
+                    rawSignals = [
                         {
                             symbol: 'RELIANCE', score: 88, decision: 'BUY', entry_price: 2942.50,
                             metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.8, rr_ratio: 2.2, breakout_level: 2940.00, atr_pct: 1.45, vwap: 2932.10 }
@@ -5133,113 +5138,124 @@
 
                 document.getElementById('scan-cycle-time').textContent = `Last cycle: ${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}`;
 
-                if (!signals || signals.length === 0) {
-                    const fallbackList = Object.keys(candidateMeta).map(sym => ({
-                        symbol: sym,
-                        direction_bias: candidateMeta[sym].bias,
-                        priority_score: candidateMeta[sym].score,
-                        ltp: candidateMeta[sym].ltp,
-                        trigger: candidateMeta[sym].trigger,
-                        vol: candidateMeta[sym].vol
-                    }));
+                // 1. Build unified candidate universe
+                // Priority order: Live Active Watchlist -> Default 9 Momentum Setups -> Any detected signals
+                const defaultSetups = ['CANBK', 'ICICIBANK', 'HDFCBANK', 'INDUSINDBK', 'NTPC', 'COALINDIA', 'TECHM', 'DMART', 'YESBANK'];
+                
+                const candidateOrder = [];
+                if (activeWatchlist && activeWatchlist.length > 0) {
+                    activeWatchlist.forEach(c => {
+                        if (c.symbol && !candidateOrder.includes(c.symbol)) candidateOrder.push(c.symbol);
+                    });
+                }
+                defaultSetups.forEach(sym => {
+                    if (!candidateOrder.includes(sym)) candidateOrder.push(sym);
+                });
+                if (rawSignals && rawSignals.length > 0) {
+                    rawSignals.forEach(s => {
+                        if (s.symbol && !candidateOrder.includes(s.symbol)) candidateOrder.push(s.symbol);
+                    });
+                }
 
-                    let sourceList = activeWatchlist.length > 0 ? activeWatchlist.map((c, i) => {
-                        const m = candidateMeta[c.symbol] || { trigger: '< Day Low', score: 80 - i, vol: '1.6x', bias: 'SHORT', ltp: 500 };
-                        return { symbol: c.symbol, direction_bias: c.direction_bias, ...m };
-                    }) : fallbackList;
+                // 2. Build full candidate objects
+                const masterCandidates = candidateOrder.map((sym, idx) => {
+                    const sig = rawSignals ? rawSignals.find(s => s.symbol === sym) : null;
+                    const meta = candidateMeta[sym] || {
+                        trigger: '< Day Low',
+                        score: Math.max(70, 88 - idx * 2),
+                        vol: '1.8x',
+                        bias: 'SHORT',
+                        ltp: 500,
+                        sl: 0,
+                        target: 0,
+                        sector: 'Equities'
+                    };
 
-                    // Apply filter
-                    if (radarBiasFilter === 'SHORT') {
-                        sourceList = sourceList.filter(s => s.direction_bias && s.direction_bias.includes('SHORT'));
-                    } else if (radarBiasFilter === 'LONG') {
-                        sourceList = sourceList.filter(s => s.direction_bias && s.direction_bias.includes('LONG'));
-                    } else if (radarBiasFilter === 'HIGH') {
-                        sourceList = sourceList.filter(s => (s.score || s.priority_score || 0) >= 82);
+                    const wlItem = activeWatchlist ? activeWatchlist.find(w => w.symbol === sym) : null;
+                    const rawBias = (wlItem && wlItem.direction_bias) ? (wlItem.direction_bias.includes('SHORT') ? 'SHORT' : 'LONG') : (meta.bias || 'SHORT');
+
+                    if (sig) {
+                        const m = sig.metadata || {};
+                        const dec = sig.decision || 'AVOID';
+                        const bias = dec === 'BUY' ? 'LONG' : (dec === 'SELL' ? 'SHORT' : rawBias);
+                        return {
+                            symbol: sym,
+                            hasLiveSignal: true,
+                            decision: dec,
+                            score: sig.score || meta.score || 75,
+                            ltp: sig.entry_price || meta.ltp || 0,
+                            bias: bias,
+                            trigger: dec !== 'AVOID'
+                                ? (dec === 'BUY' ? `Breakout: ₹${m.breakout_level || meta.trigger || '--'}` : `Breakdown: ₹${m.breakdown_level || meta.trigger || '--'}`)
+                                : `Watch: ₹${m.breakout_level || meta.trigger || '--'}`,
+                            metadata: m,
+                            meta: meta
+                        };
+                    } else {
+                        return {
+                            symbol: sym,
+                            hasLiveSignal: false,
+                            decision: rawBias === 'SHORT' ? 'SELL' : 'BUY',
+                            score: meta.score || Math.max(70, 88 - idx * 2),
+                            ltp: meta.ltp || 0,
+                            bias: rawBias,
+                            trigger: meta.trigger || (rawBias === 'SHORT' ? 'Breakdown < Day Low' : 'Breakout > Day High'),
+                            metadata: {
+                                breakout: true,
+                                volume_spike: false,
+                                volume_ratio: meta.vol ? parseFloat(meta.vol) : 1.8,
+                                strong_candle: true,
+                                vwap_aligned: true,
+                                rr_ratio: 2.0,
+                                atr_pct: 1.0,
+                                vwap: (meta.ltp * (rawBias === 'SHORT' ? 1.008 : 0.992)).toFixed(1)
+                            },
+                            meta: meta
+                        };
                     }
+                });
 
-                    if (sourceList.length === 0) {
-                        box.innerHTML = `<div style="grid-column: 1 / -1; padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidates matching '${radarBiasFilter}' filter.</div>`;
-                        return;
-                    }
+                // 3. Dynamic Filter Counts calculation
+                const totalCount = masterCandidates.length;
+                const shortCount = masterCandidates.filter(c => (c.bias && c.bias.includes('SHORT')) || c.decision === 'SELL').length;
+                const longCount = masterCandidates.filter(c => (c.bias && c.bias.includes('LONG')) || c.decision === 'BUY').length;
+                const highCount = masterCandidates.filter(c => (c.score || 0) >= 82).length;
 
-                    box.innerHTML = `
-                        <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; background: var(--radar-banner-bg); border: 1.5px solid var(--radar-banner-border); border-radius: 14px; padding: 12px 20px; box-shadow: var(--shadow-sm);">
-                            <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--radar-banner-text);">
-                                <span class="live-blink" style="color: #ff6b00; font-size: 16px;">●</span>
-                                <span><strong>Candidate Radar Armed:</strong> Monitoring <strong>${sourceList.length} priority setups</strong> across 92 Nifty stocks for Volume Spike & Breakout trigger lines.</span>
-                            </div>
-                            <span style="font-size: 11px; color: var(--tag-orange-color); font-weight: 800; background: var(--tag-orange-bg); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--tag-orange-border);">STANDBY FOR ENTRY</span>
-                        </div>
-                        ` + sourceList.map((c, idx) => {
-                            const isShort = c.direction_bias && c.direction_bias.includes('SHORT');
-                            const biasColor = isShort ? 'var(--red)' : 'var(--green)';
-                            const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
-                            const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
-                            const biasIcon = isShort ? '📉 SHORT' : '📈 LONG';
-                            const score = c.score || c.priority_score || (88 - idx * 2);
-                            return `
-                            <div class="scan-card" id="radar-card-${c.symbol}">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${idx + 1} RADAR</span>
-                                        <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
-                                    </div>
-                                    <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: ${biasBg}; color: ${biasColor}; border: 1px solid ${biasBorder};">
-                                        ${biasIcon}
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: baseline; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                                    <span>Trigger Line:</span>
-                                    <strong style="color: var(--text); font-size: 13px;">${c.trigger || (isShort ? 'Breakdown < Day Low' : 'Breakout > Day High')}</strong>
-                                </div>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                                        <span style="color: var(--muted); font-weight: 600;">Setup Score:</span>
-                                        <strong style="color: #ff6b00; font-size: 12px;">${score}/100</strong>
-                                    </div>
-                                    <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
-                                        <div style="height: 100%; width: ${score}%; background: linear-gradient(90deg, #ff6b00, #ea580c); border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
-                                    <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>✔</span> Liquidity Pass
-                                    </div>
-                                    <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>✔</span> Volatility Tier 1
-                                    </div>
-                                    <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>⏳</span> Vol Surge (${c.vol || '1.8x'})
-                                    </div>
-                                    <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>⏳</span> Trigger Tick
-                                    </div>
-                                </div>
-                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                    <span style="font-size: 10px; font-weight: 700; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); border: 1px solid var(--tag-neutral-border); padding: 3px 8px; border-radius: 6px;">RR 1:2</span>
-                                    <span style="font-size: 10px; font-weight: 700; color: var(--tag-orange-color); background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">ORB 15-Min</span>
-                                    <span style="font-size: 10px; font-weight: 700; color: #0284c7; background: var(--tag-blue-bg); border: 1px solid var(--tag-blue-border); padding: 3px 8px; border-radius: 6px;">VWAP Guard</span>
-                                </div>
-                                <div style="display: flex; gap: 8px; margin-top: 2px;">
-                                    <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; color: #ff6b00; border-color: rgba(255,107,0,0.35);">
-                                        🔍 Setup Details
-                                    </button>
-                                    <button class="btn-outline" onclick="focusRadarStock('${c.symbol}', '${c.direction_bias}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
-                                        🎯 Focus Radar
-                                    </button>
-                                </div>
-                            </div>`;
-                        }).join('');
+                const btnAll = document.getElementById('rf-ALL');
+                if (btnAll) btnAll.textContent = `All Candidates (${totalCount})`;
+                const btnShort = document.getElementById('rf-SHORT');
+                if (btnShort) btnShort.textContent = `📉 Short Candidates (${shortCount})`;
+                const btnLong = document.getElementById('rf-LONG');
+                if (btnLong) btnLong.textContent = `📈 Long Candidates (${longCount})`;
+                const btnHigh = document.getElementById('rf-HIGH');
+                if (btnHigh) btnHigh.textContent = `🔥 Priority Score ≥82 (${highCount})`;
+
+                const wlCountEl = document.getElementById('radar-watchlist-count');
+                if (wlCountEl) wlCountEl.textContent = `${totalCount} Momentum`;
+
+                // 4. Apply filter
+                let filteredList = masterCandidates;
+                if (radarBiasFilter === 'SHORT') {
+                    filteredList = masterCandidates.filter(c => (c.bias && c.bias.includes('SHORT')) || c.decision === 'SELL');
+                } else if (radarBiasFilter === 'LONG') {
+                    filteredList = masterCandidates.filter(c => (c.bias && c.bias.includes('LONG')) || c.decision === 'BUY');
+                } else if (radarBiasFilter === 'HIGH') {
+                    filteredList = masterCandidates.filter(c => (c.score || 0) >= 82);
+                }
+
+                if (filteredList.length === 0) {
+                    box.innerHTML = `<div style="grid-column: 1 / -1; padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidates matching '${radarBiasFilter}' filter.</div>`;
                     return;
                 }
 
-                const sorted = [...signals].sort((a, b) => b.score - a.score).slice(0, 12);
+                // Sort: signals first, then highest score
+                filteredList.sort((a, b) => (b.hasLiveSignal ? 1 : 0) - (a.hasLiveSignal ? 1 : 0) || b.score - a.score);
 
-                // Detect new actionable signals
-                const tradeableSyms = sorted.filter(s => s.decision !== 'AVOID').map(s => s.symbol);
+                // Detect new actionable signals to notify
+                const tradeableSyms = filteredList.filter(s => s.hasLiveSignal && s.decision !== 'AVOID').map(s => s.symbol);
                 tradeableSyms.forEach(sym => {
                     if (!lastSignalSymbols.includes(sym)) {
-                        const sig = sorted.find(s => s.symbol === sym);
+                        const sig = filteredList.find(s => s.symbol === sym);
                         const m = sig.metadata || {};
                         addTimeline(`SIGNAL ACQUIRED: ${sym}`, `Score ${sig.score}/100 | Vol ${m.volume_ratio}x | RR 1:${m.rr_ratio}`, 'detect');
                         toast(`🎯 Strong setup detected: ${sym} → ${sig.decision} | Score: ${sig.score}/100`, 'info');
@@ -5247,68 +5263,126 @@
                 });
                 lastSignalSymbols = tradeableSyms;
 
-                box.innerHTML = sorted.map((s, i) => {
-                    const m = s.metadata || {};
-                    const confScore = s.score || 0;
-                    const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 40 ? 'var(--yellow)' : 'var(--muted)';
-                    const decColor = s.decision === 'BUY' ? 'var(--green)' : s.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
-                    const decLabel = s.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${s.decision}`;
+                // 5. Render cards
+                box.innerHTML = filteredList.map((c, i) => {
+                    const m = c.metadata || {};
+                    const confScore = c.score || 0;
+                    const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 50 ? 'var(--yellow)' : 'var(--muted)';
+                    const isShort = c.bias && c.bias.includes('SHORT');
+                    const biasColor = isShort ? 'var(--red)' : 'var(--green)';
+                    const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
+                    const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
+                    const biasIcon = isShort ? '📉 SHORT' : '📈 LONG';
 
-                    const brkLabel = s.decision !== 'AVOID'
-                        ? (s.decision === 'BUY' ? `Breakout: ₹${m.breakout_level || '--'}` : `Breakdown: ₹${m.breakdown_level || '--'}`)
-                        : `Watch: ₹${m.breakout_level || '--'}`;
+                    if (c.hasLiveSignal) {
+                        const decColor = c.decision === 'BUY' ? 'var(--green)' : c.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
+                        const decLabel = c.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${c.decision}`;
+                        const vwapDist = m.vwap && c.ltp ? ((c.ltp - m.vwap) / m.vwap * 100).toFixed(2) : '--';
+                        const btnColor = c.decision === 'BUY' ? 'var(--green)' : c.decision === 'SELL' ? 'var(--red)' : '#ea580c';
 
-                    const vwapDist = m.vwap && s.entry_price ? ((s.entry_price - m.vwap) / m.vwap * 100).toFixed(2) : '--';
-
-                    return `
-            <div class="scan-card" id="action-card-${s.symbol}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} ACTION</span>
-                        <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${s.symbol}</span>
-                    </div>
-                    <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                    <span id="scan-ltp-${s.symbol}">₹${(s.entry_price || 0).toFixed(2)}</span>
-                    <span style="color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-size:10px; font-weight: 700;">${brkLabel}</span>
-                </div>
-                <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                        <span style="color: var(--muted); font-weight: 600;">Confidence Score:</span>
-                        <strong style="color: ${confColor}; font-size: 12px;">${confScore}/100</strong>
-                    </div>
-                    <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width:${confScore}%; background:${confColor}; border-radius: 4px;"></div>
-                    </div>
-                </div>
-
-                <div class="scan-checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
-                    <div class="chk ${m.breakout ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line' : '✖ Below line'}</div>
-                    <div class="chk ${m.volume_spike ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.volume_spike ? `✔ Vol ${m.volume_ratio}x` : `✖ Low vol`}</div>
-                    <div class="chk ${m.strong_candle ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum' : '✖ Weak'}</div>
-                    <div class="chk ${m.vwap_aligned ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP (${vwapDist}%)` : `✖ VWAP bias`}</div>
-                </div>
-
-                <div class="scan-insights" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '--'}</span>
-                    <span class="insight-chip ${s.score >= 70 ? 'active' : ''}">Score ${s.score}/100</span>
-                    <span class="insight-chip">ATR ${m.atr_pct || '--'}%</span>
-                    <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <button class="btn-primary" onclick="executeActionSignal('${s.symbol}', '${s.decision}', ${s.entry_price || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${s.decision === 'BUY' ? 'var(--green)' : 'var(--red)'}; color: #fff; cursor: pointer;">
-                        ⚡ Execute ${s.decision} (Simulated)
-                    </button>
-                    <button class="btn-outline" onclick="openCandidateModal('${s.symbol}')" style="padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 9px; cursor: pointer;">
-                        🔍 Details
-                    </button>
-                </div>
-            </div>`;
+                        return `
+                        <div class="scan-card" id="action-card-${c.symbol}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} ACTION</span>
+                                    <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
+                                </div>
+                                <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <span id="scan-ltp-${c.symbol}">₹${(c.ltp || 0).toFixed(2)}</span>
+                                <span style="color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-size:10px; font-weight: 700;">${c.trigger}</span>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                                    <span style="color: var(--muted); font-weight: 600;">Confidence Score:</span>
+                                    <strong style="color: ${confColor}; font-size: 12px;">${confScore}/100</strong>
+                                </div>
+                                <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width:${confScore}%; background:${confColor}; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div class="scan-checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
+                                <div class="chk ${m.breakout ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line' : '✖ Below line'}</div>
+                                <div class="chk ${m.volume_spike ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.volume_spike ? `✔ Vol ${m.volume_ratio}x` : (m.volume_ratio ? `✔ Vol ${m.volume_ratio}x` : '✖ Low vol')}</div>
+                                <div class="chk ${m.strong_candle ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum' : '✖ Weak'}</div>
+                                <div class="chk ${m.vwap_aligned ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP (${vwapDist}%)` : '✖ VWAP bias'}</div>
+                            </div>
+                            <div class="scan-insights" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '2'}</span>
+                                <span class="insight-chip ${c.score >= 70 ? 'active' : ''}">Score ${c.score}/100</span>
+                                <span class="insight-chip">ATR ${m.atr_pct || '1.0'}%</span>
+                                <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                <button class="btn-primary" onclick="executeActionSignal('${c.symbol}', '${c.decision}', ${c.ltp || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${btnColor}; color: #fff; cursor: pointer;">
+                                    ⚡ Execute ${c.decision} (Simulated)
+                                </button>
+                                <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 9px; cursor: pointer;">
+                                    🔍 Details
+                                </button>
+                            </div>
+                        </div>`;
+                    } else {
+                        // Radar candidate standby card
+                        return `
+                        <div class="scan-card" id="radar-card-${c.symbol}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} RADAR</span>
+                                    <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
+                                </div>
+                                <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: ${biasBg}; color: ${biasColor}; border: 1px solid ${biasBorder};">
+                                    ${biasIcon}
+                                </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <span id="scan-ltp-${c.symbol}">₹${(c.ltp || 0).toFixed(2)}</span>
+                                <strong style="color: var(--text); font-size: 12px;">${c.trigger}</strong>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                                    <span style="color: var(--muted); font-weight: 600;">Setup Score:</span>
+                                    <strong style="color: #ff6b00; font-size: 12px;">${confScore}/100</strong>
+                                </div>
+                                <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: ${confScore}%; background: linear-gradient(90deg, #ff6b00, #ea580c); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
+                                <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>✔</span> Liquidity Pass
+                                </div>
+                                <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>✔</span> Volatility Tier 1
+                                </div>
+                                <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>⏳</span> Vol Surge (${c.meta.vol || '1.8x'})
+                                </div>
+                                <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>⏳</span> Trigger Tick
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-size: 10px; font-weight: 700; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); border: 1px solid var(--tag-neutral-border); padding: 3px 8px; border-radius: 6px;">RR 1:2</span>
+                                <span style="font-size: 10px; font-weight: 700; color: var(--tag-orange-color); background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">ORB 15-Min</span>
+                                <span style="font-size: 10px; font-weight: 700; color: #0284c7; background: var(--tag-blue-bg); border: 1px solid var(--tag-blue-border); padding: 3px 8px; border-radius: 6px;">VWAP Guard</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 2px;">
+                                <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; color: #ff6b00; border-color: rgba(255,107,0,0.35);">
+                                    🔍 Setup Details
+                                </button>
+                                <button class="btn-outline" onclick="focusRadarStock('${c.symbol}', '${c.bias}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                                    🎯 Focus Radar
+                                </button>
+                            </div>
+                        </div>`;
+                    }
                 }).join('');
 
-            } catch (e) { }
+            } catch (e) {
+                console.error("fetchSignals render error:", e);
+            }
         }
 
         // ─── HISTORY (main dashboard table + win rate) ───────────────────────────
