@@ -2706,24 +2706,30 @@ async def api_manual_trade(
         raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
         
     qty = max(1, int(body.qty))
-    order_type = "LIMIT" if (body.price and body.price > 0) else "MARKET"
     
+    # Always fetch the verified real-time live market LTP
+    live_ltp = bot.engine.get_ltp(symbol_key)
+    if live_ltp <= 0:
+        live_ltp = float(_shared_prices.get(body.symbol, 0.0))
+    if live_ltp <= 0 and body.price and body.price > 0:
+        live_ltp = float(body.price)
+    if live_ltp <= 0:
+        raise HTTPException(status_code=400, detail=f"Unable to fetch real-time market price for {body.symbol}.")
+        
+    order_type = "MARKET"
     res = bot.engine.place_order_with_retry(
         symbol_key, side, qty,
-        order_type=order_type, price=body.price
+        order_type=order_type, price=0.0
     )
     
     order_status = res.get("status", "success")
     order_id = res.get("order_id") or f"MAN_{int(_time.time()*1000)}"
     
     if order_status in ("success", "COMPLETE"):
-        entry_price = float(body.price) if (body.price and body.price > 0) else bot.engine.get_ltp(symbol_key)
-        if entry_price <= 0:
-            entry_price = float(_shared_prices.get(body.symbol, 100.0))
-            
+        entry_price = round(live_ltp, 2)
         sl_pct = 0.01
-        sl = round(entry_price * (1.0 - sl_pct) if side == "BUY" else entry_price * (1.0 + sl_pct), 2)
-        target = round(entry_price * (1.0 + 2.0 * sl_pct) if side == "BUY" else entry_price * (1.0 - 2.0 * sl_pct), 2)
+        sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+        target = round(entry_price * (1.0 - 2.0 * sl_pct) if side == "SELL" else entry_price * (1.0 + 2.0 * sl_pct), 2)
         
         bot.tm.add_trade(
             symbol=body.symbol,

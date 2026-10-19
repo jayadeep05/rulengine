@@ -4926,8 +4926,11 @@
                 const prices = await res.json();
                 window._latestPrices = prices;
 
-                // Update scanner price tickers
+                // Update scanner price tickers & candidateMeta cache
                 for (const sym in prices) {
+                    if (candidateMeta[sym]) {
+                        candidateMeta[sym].ltp = prices[sym];
+                    }
                     const el = document.getElementById(`scan-ltp-${sym}`);
                     if (el) {
                         const prev = parseFloat(el.getAttribute('data-prev') || prices[sym]);
@@ -4955,20 +4958,21 @@
         let radarBiasFilter = 'ALL';
 
         const candidateMeta = {
-            'CANBK': { trigger: '> ₹122.50', score: 80, vol: '2.26x', bias: 'LONG', ltp: 122.10, sl: 120.00, target: 126.00, sector: 'Public Sector Banking' },
-            'ICICIBANK': { trigger: '< ₹1,390.83', score: 78, vol: '2.1x', bias: 'SHORT', ltp: 1385.20, sl: 1398.00, target: 1360.00, sector: 'Private Banking' },
-            'HDFCBANK': { trigger: '< ₹714.02', score: 76, vol: '1.9x', bias: 'SHORT', ltp: 713.60, sl: 722.00, target: 698.00, sector: 'Private Banking' },
-            'INDUSINDBK': { trigger: '< ₹1,388.00', score: 88, vol: '2.1x', bias: 'SHORT', ltp: 1385.20, sl: 1396.00, target: 1362.00, sector: 'Banking & Financials' },
-            'NTPC': { trigger: '< ₹414.00', score: 86, vol: '1.9x', bias: 'SHORT', ltp: 412.50, sl: 417.00, target: 403.00, sector: 'Power & Utilities' },
-            'COALINDIA': { trigger: '< ₹487.50', score: 84, vol: '1.7x', bias: 'SHORT', ltp: 485.60, sl: 491.00, target: 474.00, sector: 'Metals & Mining' },
-            'TECHM': { trigger: '< ₹1,628.00', score: 82, vol: '1.6x', bias: 'SHORT', ltp: 1622.00, sl: 1638.00, target: 1590.00, sector: 'IT Services' },
-            'DMART': { trigger: '< ₹4,720.00', score: 80, vol: '1.5x', bias: 'SHORT', ltp: 4710.00, sl: 4755.00, target: 4620.00, sector: 'Retail & Consumer' },
-            'YESBANK': { trigger: '> ₹23.60', score: 85, vol: '2.4x', bias: 'LONG', ltp: 23.40, sl: 22.80, target: 24.80, sector: 'Banking' },
+            'CANBK': { trigger: '> ₹122.50', score: 80, vol: '2.26x', bias: 'LONG', ltp: 121.83, sl: 120.60, target: 124.20, sector: 'Public Sector Banking' },
+            'ICICIBANK': { trigger: '< ₹1,380.00', score: 78, vol: '2.1x', bias: 'SHORT', ltp: 1383.70, sl: 1397.00, target: 1356.00, sector: 'Private Banking' },
+            'HDFCBANK': { trigger: '< ₹710.00', score: 76, vol: '1.9x', bias: 'SHORT', ltp: 712.65, sl: 719.50, target: 698.00, sector: 'Private Banking' },
+            'INDUSINDBK': { trigger: '< ₹866.00', score: 88, vol: '2.1x', bias: 'SHORT', ltp: 868.90, sl: 877.00, target: 851.00, sector: 'Banking & Financials' },
+            'NTPC': { trigger: '< ₹311.50', score: 86, vol: '1.9x', bias: 'SHORT', ltp: 312.90, sl: 316.00, target: 306.00, sector: 'Power & Utilities' },
+            'COALINDIA': { trigger: '< ₹414.00', score: 84, vol: '1.7x', bias: 'SHORT', ltp: 415.55, sl: 419.50, target: 407.00, sector: 'Metals & Mining' },
+            'TECHM': { trigger: '< ₹1,768.00', score: 82, vol: '1.6x', bias: 'SHORT', ltp: 1775.30, sl: 1792.00, target: 1738.00, sector: 'IT Services' },
+            'DMART': { trigger: '< ₹3,310.00', score: 80, vol: '1.5x', bias: 'SHORT', ltp: 3324.30, sl: 3357.00, target: 3257.00, sector: 'Retail & Consumer' },
+            'YESBANK': { trigger: '< ₹17.15', score: 85, vol: '2.4x', bias: 'SHORT', ltp: 17.28, sl: 17.45, target: 16.90, sector: 'Banking' },
             'APOLLOHOSP': { trigger: '< ₹6,850.00', score: 79, vol: '1.4x', bias: 'SHORT', ltp: 6835.00, sl: 6905.00, target: 6690.00, sector: 'Healthcare' },
             'OLAELEC': { trigger: '< ₹74.50', score: 78, vol: '1.8x', bias: 'SHORT', ltp: 73.80, sl: 76.00, target: 69.50, sector: 'EV & Auto' },
             'PFC': { trigger: '> ₹495.00', score: 83, vol: '1.9x', bias: 'LONG', ltp: 492.30, sl: 486.00, target: 508.00, sector: 'Financial Services' },
-            'PNB': { trigger: '> ₹108.00', score: 84, vol: '2.0x', bias: 'LONG', ltp: 106.50, sl: 104.00, target: 112.00, sector: 'Banking & Financials' },
-            'PERSISTENT': { trigger: '> ₹5,450.00', score: 86, vol: '1.9x', bias: 'LONG', ltp: 5410.00, sl: 5350.00, target: 5600.00, sector: 'IT Services' }
+            'PNB': { trigger: '> ₹123.00', score: 84, vol: '2.0x', bias: 'LONG', ltp: 122.08, sl: 120.80, target: 124.50, sector: 'Banking & Financials' },
+            'PERSISTENT': { trigger: '> ₹5,800.00', score: 86, vol: '1.9x', bias: 'LONG', ltp: 5773.50, sl: 5715.00, target: 5890.00, sector: 'IT Services' },
+            'RELIANCE': { trigger: '> ₹1,225.00', score: 85, vol: '2.0x', bias: 'LONG', ltp: 1219.00, sl: 1206.00, target: 1245.00, sector: 'Energy & Conglomerate' }
         };
 
         function setRadarFilter(filter) {
@@ -5103,10 +5107,12 @@
                 const meta = candidateMeta[sym];
                 tradeSide = (meta && meta.bias === 'SHORT') ? 'SELL' : 'BUY';
             }
-            const cleanPrice = parseFloat(price) || (candidateMeta[sym] ? candidateMeta[sym].ltp : 100);
-            const qty = Math.max(1, Math.floor(5000 / cleanPrice));
+            const liveP = (window._latestPrices && window._latestPrices[sym])
+                ? window._latestPrices[sym]
+                : (candidateMeta[sym] ? candidateMeta[sym].ltp : (parseFloat(price) || 100));
+            const qty = Math.max(1, Math.floor(5000 / liveP));
             
-            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym}...`, 'info');
+            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym} @ ₹${liveP.toFixed(2)}...`, 'info');
             try {
                 const res = await fetch(`${API}/trade/manual`, {
                     method: 'POST',
@@ -5115,18 +5121,20 @@
                         symbol: sym,
                         side: tradeSide,
                         qty: qty,
-                        price: cleanPrice
+                        price: 0.0 // 0.0 instructs backend to execute at true verified live market price
                     })
                 });
                 const data = await res.json();
                 if (res.ok && (data.status === 'success' || data.status === 'COMPLETE' || data.order_id)) {
-                    toast(`✅ Order executed: ${tradeSide} ${qty} qty of ${sym} (ID: ${data.order_id || 'OK'})`, 'success');
-                    addTimeline(`ORDER EXECUTED: ${tradeSide} ${sym}`, `Qty: ${qty} | Entry ₹${cleanPrice.toFixed(2)} | Order ID: ${data.order_id}`, 'exec');
-                    pushAlert(`Simulated ${tradeSide} order executed for ${sym} (${qty} shares)`, 'trade');
-                    appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${tradeSide} @ ₹${cleanPrice.toFixed(2)})`);
+                    const execPrice = data.price || liveP;
+                    toast(`✅ Order executed: ${tradeSide} ${qty} qty of ${sym} at ₹${execPrice.toFixed(2)} (ID: ${data.order_id || 'OK'})`, 'success');
+                    addTimeline(`ORDER EXECUTED: ${tradeSide} ${sym}`, `Qty: ${qty} | Entry ₹${execPrice.toFixed(2)} | Order ID: ${data.order_id}`, 'exec');
+                    pushAlert(`Simulated ${tradeSide} order executed for ${sym} (${qty} shares @ ₹${execPrice.toFixed(2)})`, 'trade');
+                    appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${tradeSide} @ ₹${execPrice.toFixed(2)})`);
                     
                     // Immediately refresh active trades
                     if (typeof fetchActiveTrades === 'function') fetchActiveTrades();
+                    if (typeof fetchStatus === 'function') fetchStatus();
                     if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
                 } else {
                     const err = data.detail || data.message || 'Execution failed';
@@ -5156,16 +5164,16 @@
                 if (isDemoSignalActive) {
                     rawSignals = [
                         {
-                            symbol: 'RELIANCE', score: 88, decision: 'BUY', entry_price: 2942.50,
-                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.8, rr_ratio: 2.2, breakout_level: 2940.00, atr_pct: 1.45, vwap: 2932.10 }
+                            symbol: 'RELIANCE', score: 88, decision: 'BUY', entry_price: 1219.00,
+                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.8, rr_ratio: 2.2, breakout_level: 1222.00, atr_pct: 1.45, vwap: 1215.10 }
                         },
                         {
-                            symbol: 'INDUSINDBK', score: 82, decision: 'SELL', entry_price: 1385.20,
-                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.1, rr_ratio: 1.9, breakdown_level: 1388.00, atr_pct: 1.80, vwap: 1391.40 }
+                            symbol: 'INDUSINDBK', score: 82, decision: 'SELL', entry_price: 868.90,
+                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.1, rr_ratio: 1.9, breakdown_level: 866.00, atr_pct: 1.80, vwap: 871.40 }
                         },
                         {
-                            symbol: 'COALINDIA', score: 76, decision: 'SELL', entry_price: 485.60,
-                            metadata: { breakout: true, volume_spike: false, strong_candle: true, vwap_aligned: true, volume_ratio: 1.4, rr_ratio: 1.7, breakdown_level: 487.50, atr_pct: 1.20, vwap: 489.10 }
+                            symbol: 'COALINDIA', score: 76, decision: 'SELL', entry_price: 415.55,
+                            metadata: { breakout: true, volume_spike: false, strong_candle: true, vwap_aligned: true, volume_ratio: 1.4, rr_ratio: 1.7, breakdown_level: 414.00, atr_pct: 1.20, vwap: 417.10 }
                         }
                     ];
                 }
@@ -5208,6 +5216,11 @@
                     const wlItem = activeWatchlist ? activeWatchlist.find(w => w.symbol === sym) : null;
                     const rawBias = (wlItem && wlItem.direction_bias) ? (wlItem.direction_bias.includes('SHORT') ? 'SHORT' : 'LONG') : (meta.bias || 'SHORT');
 
+                    // Resolve verified live price
+                    const livePrice = (window._latestPrices && window._latestPrices[sym])
+                        ? window._latestPrices[sym]
+                        : ((sig && sig.entry_price) ? sig.entry_price : (meta.ltp || 100));
+
                     if (sig) {
                         const m = sig.metadata || {};
                         const dec = sig.decision || 'AVOID';
@@ -5217,7 +5230,7 @@
                             hasLiveSignal: true,
                             decision: dec,
                             score: sig.score || meta.score || 75,
-                            ltp: sig.entry_price || meta.ltp || 0,
+                            ltp: livePrice,
                             bias: bias,
                             trigger: dec !== 'AVOID'
                                 ? (dec === 'BUY' ? `Breakout: ₹${m.breakout_level || meta.trigger || '--'}` : `Breakdown: ₹${m.breakdown_level || meta.trigger || '--'}`)
@@ -5231,7 +5244,7 @@
                             hasLiveSignal: false,
                             decision: rawBias === 'SHORT' ? 'SELL' : 'BUY',
                             score: meta.score || Math.max(70, 88 - idx * 2),
-                            ltp: meta.ltp || 0,
+                            ltp: livePrice,
                             bias: rawBias,
                             trigger: meta.trigger || (rawBias === 'SHORT' ? 'Breakdown < Day Low' : 'Breakout > Day High'),
                             metadata: {
@@ -5242,7 +5255,7 @@
                                 vwap_aligned: true,
                                 rr_ratio: 2.0,
                                 atr_pct: 1.0,
-                                vwap: (meta.ltp * (rawBias === 'SHORT' ? 1.008 : 0.992)).toFixed(1)
+                                vwap: (livePrice * (rawBias === 'SHORT' ? 1.008 : 0.992)).toFixed(1)
                             },
                             meta: meta
                         };
