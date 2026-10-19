@@ -2479,12 +2479,14 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
         
     history_pnl = sum([t['pnl'] for t in bot.tm.trade_history if t['timestamp'][:10] == get_ist_now().isoformat()[:10]])
     live_daily_pnl = round(history_pnl + active_pnl, 2)
+    trades_taken_today = bot.tm.get_trades_taken_today()
+    bot.state.trades_taken = trades_taken_today
 
     return {
         "is_running":         bot.state.is_running,
         "kill_switch_active": bot.state.kill_switch_active,
         "daily_pnl":          live_daily_pnl,
-        "trades_taken":       bot.state.trades_taken,
+        "trades_taken":       trades_taken_today,
         "max_trades":         int(bot.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5),
         "market_condition":   bot.state.market_condition,
         "active_capital":     bot.state.active_capital,
