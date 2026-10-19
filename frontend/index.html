@@ -5041,11 +5041,25 @@
         let currentModalCandidate = null;
         function openCandidateModal(sym) {
             const meta = candidateMeta[sym] || { trigger: '< Day Low', score: 82, vol: '1.8x', bias: 'SHORT', ltp: 1000, sl: 1010, target: 980, sector: 'Equities' };
-            currentModalCandidate = { sym, ...meta };
+            const liveP = (window._latestPrices && window._latestPrices[sym]) ? window._latestPrices[sym] : (meta.ltp || 100);
+            
+            // Dynamic capital allocation & 5x intraday leverage calculation
+            const totalCap = parseFloat(config.MANUAL_CAPITAL) || 10000.0;
+            const maxOpen = parseInt(config.MAX_OPEN_TRADES) || 2;
+            const leverage = 5.0;
+            const capPerTrade = totalCap / Math.max(1, maxOpen);
+            const buyingPower = capPerTrade * leverage;
+            const calculatedQty = Math.max(1, Math.floor(buyingPower / liveP));
+
+            const isShort = meta.bias === 'SHORT';
+            const slPrice = isShort ? Math.round(liveP * 1.01 * 100) / 100 : Math.round(liveP * 0.99 * 100) / 100;
+            const targetPrice = isShort ? Math.round(liveP * 0.98 * 100) / 100 : Math.round(liveP * 1.02 * 100) / 100;
+            const triggerLine = isShort ? `< ₹${(liveP * 0.996).toFixed(2)}` : `> ₹${(liveP * 1.004).toFixed(2)}`;
+
+            currentModalCandidate = { sym, ...meta, ltp: liveP, sl: slPrice, target: targetPrice, trigger: triggerLine, qty: calculatedQty };
             
             document.getElementById('cand-modal-title').textContent = `${sym} — Setup Intelligence`;
             const body = document.getElementById('cand-modal-body');
-            const isShort = meta.bias === 'SHORT';
             const biasColor = isShort ? 'var(--red)' : 'var(--green)';
             const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
             const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
@@ -5054,7 +5068,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; background: ${biasBg}; border: 1.5px solid ${biasBorder}; padding: 14px 18px; border-radius: 14px; margin-bottom: 14px;">
                     <div>
                         <div style="font-weight: 800; font-size: 17px; color: var(--text);">${sym} <span style="font-size: 11px; color: var(--muted); font-weight: 600;">• ${meta.sector}</span></div>
-                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Reference LTP: <strong style="color: var(--text);">₹${(meta.ltp || 100).toFixed(2)}</strong></div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Live Market Price: <strong style="color: var(--text);">₹${liveP.toFixed(2)}</strong></div>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); color: ${biasColor}; border: 1px solid ${biasBorder};">
@@ -5064,18 +5078,33 @@
                     </div>
                 </div>
 
+                <!-- Position Sizing & Leverage Breakdown -->
+                <div style="background: rgba(255, 107, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #ff6b00; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                        ⚡ Dynamic Position Sizing (5x Intraday Leverage)
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); line-height: 1.6;">
+                        <span>Allocated Capital: <strong style="color: var(--text);">₹${capPerTrade.toLocaleString('en-IN')}</strong> (${totalCap.toLocaleString('en-IN')} / ${maxOpen} slots)</span>
+                        <span>Leverage: <strong style="color: var(--text);">${leverage.toFixed(1)}x</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 2px;">
+                        <span>Effective Buying Power: <strong style="color: #10b981;">₹${buyingPower.toLocaleString('en-IN')}</strong></span>
+                        <span>Order Quantity: <strong style="color: #ff6b00; font-size: 13px;">${calculatedQty} shares</strong></span>
+                    </div>
+                </div>
+
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;">
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
                         <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TRIGGER LINE</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--text); margin-top: 2px;">${meta.trigger}</div>
+                        <div style="font-size: 13px; font-weight: 800; color: ${isShort ? '#ef4444' : '#10b981'}; margin-top: 2px;">${triggerLine}</div>
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">STOP LOSS</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${(meta.sl || meta.ltp * 0.99).toFixed(2)}</div>
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">STOP LOSS (1%)</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${slPrice.toFixed(2)}</div>
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TARGET (1:2)</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${(meta.target || meta.ltp * 1.02).toFixed(2)}</div>
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TARGET (2%)</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${targetPrice.toFixed(2)}</div>
                     </div>
                 </div>
 
@@ -5096,12 +5125,12 @@
 
         function executeSimulatedCandidateTrade() {
             if (!currentModalCandidate) return;
-            const { sym, bias, ltp } = currentModalCandidate;
+            const { sym, bias, ltp, qty } = currentModalCandidate;
             closeModals();
-            executeActionSignal(sym, bias === 'SHORT' ? 'SELL' : 'BUY', ltp);
+            executeActionSignal(sym, bias === 'SHORT' ? 'SELL' : 'BUY', ltp, qty);
         }
 
-        async function executeActionSignal(sym, side, price) {
+        async function executeActionSignal(sym, side, price, overrideQty) {
             let tradeSide = (side || '').toUpperCase();
             if (tradeSide !== 'BUY' && tradeSide !== 'SELL') {
                 const meta = candidateMeta[sym];
@@ -5110,9 +5139,20 @@
             const liveP = (window._latestPrices && window._latestPrices[sym])
                 ? window._latestPrices[sym]
                 : (candidateMeta[sym] ? candidateMeta[sym].ltp : (parseFloat(price) || 100));
-            const qty = Math.max(1, Math.floor(5000 / liveP));
+
+            // Accurate leverage & capital calculation:
+            // Total Capital (e.g. ₹10,000) / Max Open Trades (e.g. 2) = ₹5,000 per trade slot
+            // 5x Intraday Leverage = ₹25,000 effective buying power
+            // Quantity = Math.floor(25,000 / liveP)
+            const totalCap = parseFloat(config.MANUAL_CAPITAL) || 10000.0;
+            const maxOpen = parseInt(config.MAX_OPEN_TRADES) || 2;
+            const leverage = 5.0;
+            const capPerTrade = totalCap / Math.max(1, maxOpen);
+            const buyingPower = capPerTrade * leverage;
+            const calculatedQty = Math.max(1, Math.floor(buyingPower / liveP));
+            const qty = (overrideQty && overrideQty > 0) ? overrideQty : calculatedQty;
             
-            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym} @ ₹${liveP.toFixed(2)}...`, 'info');
+            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym} @ ₹${liveP.toFixed(2)} (Buying Power: ₹${buyingPower.toLocaleString('en-IN')})...`, 'info');
             try {
                 const res = await fetch(`${API}/trade/manual`, {
                     method: 'POST',
@@ -5225,6 +5265,10 @@
                         const m = sig.metadata || {};
                         const dec = sig.decision || 'AVOID';
                         const bias = dec === 'BUY' ? 'LONG' : (dec === 'SELL' ? 'SHORT' : rawBias);
+                        const dynamicSigTrigger = (bias === 'SHORT')
+                            ? `< ₹${(livePrice * 0.996).toFixed(2)}`
+                            : `> ₹${(livePrice * 1.004).toFixed(2)}`;
+                        const levelStr = dec === 'BUY' ? (m.breakout_level ? `> ₹${m.breakout_level}` : dynamicSigTrigger) : (m.breakdown_level ? `< ₹${m.breakdown_level}` : dynamicSigTrigger);
                         return {
                             symbol: sym,
                             hasLiveSignal: true,
@@ -5233,12 +5277,19 @@
                             ltp: livePrice,
                             bias: bias,
                             trigger: dec !== 'AVOID'
-                                ? (dec === 'BUY' ? `Breakout: ₹${m.breakout_level || meta.trigger || '--'}` : `Breakdown: ₹${m.breakdown_level || meta.trigger || '--'}`)
-                                : `Watch: ₹${m.breakout_level || meta.trigger || '--'}`,
+                                ? (dec === 'BUY' ? `Breakout ${levelStr}` : `Breakdown ${levelStr}`)
+                                : `Watch ${levelStr}`,
                             metadata: m,
                             meta: meta
                         };
                     } else {
+                        const dynamicTrigger = (rawBias === 'SHORT')
+                            ? `< ₹${(livePrice * 0.996).toFixed(2)}`
+                            : `> ₹${(livePrice * 1.004).toFixed(2)}`;
+                        let resolvedTrigger = meta.trigger;
+                        if (!resolvedTrigger || Math.abs(livePrice - (meta.ltp || livePrice)) / livePrice > 0.05) {
+                            resolvedTrigger = dynamicTrigger;
+                        }
                         return {
                             symbol: sym,
                             hasLiveSignal: false,
@@ -5246,7 +5297,7 @@
                             score: meta.score || Math.max(70, 88 - idx * 2),
                             ltp: livePrice,
                             bias: rawBias,
-                            trigger: meta.trigger || (rawBias === 'SHORT' ? 'Breakdown < Day Low' : 'Breakout > Day High'),
+                            trigger: resolvedTrigger,
                             metadata: {
                                 breakout: true,
                                 volume_spike: false,
@@ -5340,9 +5391,15 @@
                                 </div>
                                 <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
                             </div>
-                            <div style="display: flex; justify-content: space-between; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                                <span id="scan-ltp-${c.symbol}">₹${(c.ltp || 0).toFixed(2)}</span>
-                                <span style="color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-size:10px; font-weight: 700;">${c.trigger}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <div style="display: flex; flex-direction: column; text-align: left;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Live Price (LTP)</span>
+                                    <span id="scan-ltp-${c.symbol}" style="font-size: 14px; font-weight: 800; color: var(--text);">₹${(c.ltp || 0).toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; text-align: right;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Trigger Level</span>
+                                    <span style="font-size: 12px; font-weight: 800; color: ${isShort ? '#ef4444' : '#10b981'};">${c.trigger}</span>
+                                </div>
                             </div>
                             <div>
                                 <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
@@ -5387,9 +5444,15 @@
                                     ${biasIcon}
                                 </span>
                             </div>
-                            <div style="display: flex; justify-content: space-between; align-items: baseline; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                                <span id="scan-ltp-${c.symbol}">₹${(c.ltp || 0).toFixed(2)}</span>
-                                <strong style="color: var(--text); font-size: 12px;">${c.trigger}</strong>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <div style="display: flex; flex-direction: column; text-align: left;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Live Price (LTP)</span>
+                                    <span id="scan-ltp-${c.symbol}" style="font-size: 14px; font-weight: 800; color: var(--text);">₹${(c.ltp || 0).toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; text-align: right;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Trigger Level</span>
+                                    <strong style="color: ${isShort ? '#ef4444' : '#10b981'}; font-size: 12px; font-weight: 800;">${c.trigger}</strong>
+                                </div>
                             </div>
                             <div>
                                 <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">

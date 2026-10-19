@@ -2687,7 +2687,7 @@ async def api_manual_trade(
     uid = user["uid"]
     bot = get_or_create_bot(uid, db)
     
-    max_open = getattr(bot.config, 'max_open_trades', 3) if hasattr(bot, 'config') else 3
+    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
     if len(bot.tm.active_trades) >= max_open:
         raise HTTPException(status_code=400, detail=f"Cannot place manual trade. Max open trades limit ({max_open}) reached.")
         
@@ -2705,8 +2705,6 @@ async def api_manual_trade(
     if side not in ("BUY", "SELL"):
         raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
         
-    qty = max(1, int(body.qty))
-    
     # Always fetch the verified real-time live market LTP
     live_ltp = bot.engine.get_ltp(symbol_key)
     if live_ltp <= 0:
@@ -2715,6 +2713,26 @@ async def api_manual_trade(
         live_ltp = float(body.price)
     if live_ltp <= 0:
         raise HTTPException(status_code=400, detail=f"Unable to fetch real-time market price for {body.symbol}.")
+
+    # Dynamic Capital Allocation & 5x Intraday Leverage
+    # Total Capital (e.g. ₹10,000) / Max Open Trades (e.g. 2) = ₹5,000 per trade
+    # 5x Intraday Leverage = ₹25,000 effective buying power
+    # Quantity = Math.floor(25,000 / live_ltp)
+    manual_capital = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
+    capital_per_trade = manual_capital / max(max_open, 1)
+    leverage_multiplier = 5.0
+    effective_buying_power = capital_per_trade * leverage_multiplier
+    leveraged_qty = max(1, math.floor(effective_buying_power / live_ltp))
+
+    if body.qty and int(body.qty) > 0:
+        qty = int(body.qty)
+    else:
+        qty = leveraged_qty
+
+    logger.info(
+        f"[USER {uid}] Manual trade: {side} {qty} shares of {body.symbol} @ Rs{live_ltp:.2f} "
+        f"(Slot Capital: Rs{capital_per_trade:.0f}, 5x Buying Power: Rs{effective_buying_power:.0f})"
+    )
         
     order_type = "MARKET"
     res = bot.engine.place_order_with_retry(
