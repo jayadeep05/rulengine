@@ -4705,9 +4705,9 @@
                 }
 
                 const trades = state.trades_taken || 0;
-                const maxT = state.max_trades || 5;
+                const maxT = state.max_trades || (config && config.MAX_TRADES_PER_DAY) || 5;
                 document.getElementById('v-trades').textContent = `${trades} / ${maxT}`;
-                document.getElementById('v-trades-sub').textContent = `${maxT - trades} Trades remaining`;
+                document.getElementById('v-trades-sub').textContent = `${Math.max(0, maxT - trades)} Trades remaining`;
 
                 const mc = state.market_condition || 'WAITING';
                 const nifty = state.indices ? state.indices["NSE_INDEX|Nifty 50"] : 0;

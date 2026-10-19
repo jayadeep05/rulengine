@@ -2485,7 +2485,7 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
         "kill_switch_active": bot.state.kill_switch_active,
         "daily_pnl":          live_daily_pnl,
         "trades_taken":       bot.state.trades_taken,
-        "max_trades":         Config.MAX_TRADES_PER_DAY,
+        "max_trades":         int(bot.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5),
         "market_condition":   bot.state.market_condition,
         "active_capital":     bot.state.active_capital,
         "account_balance":    bot.state.account_balance,
