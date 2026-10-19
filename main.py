@@ -1289,9 +1289,9 @@ async def user_trading_cycle(user_id: int):
                                 "volume_ratio": s.get("vol_ratio_6bar"),
                                 "rr_ratio": 2.0,
                                 "atr_pct": 1.0,
-                                "breakout": s.get("price_vs_vwap", 0) > 0.15 or s.get("price_vs_vwap", 0) < -0.15,
-                                "volume_spike": s.get("vol_ratio_6bar", 0) >= 2.0,
-                                "strong_candle": s.get("candle_strength", 0) >= 0.50,
+                                "breakout": bool(s.get("price_vs_vwap", 0) > 0.15 or s.get("price_vs_vwap", 0) < -0.15),
+                                "volume_spike": bool(s.get("vol_ratio_6bar", 0) >= 2.0),
+                                "strong_candle": bool(s.get("candle_strength", 0) >= 0.50),
                                 "vwap_aligned": True
                             }
                         })
@@ -1374,11 +1374,11 @@ async def user_trading_cycle(user_id: int):
                                         "vwap": pc.get("vwap_5min"),
                                         "volume_ratio": payload.get("volume", {}).get("vol_ratio_6bar"),
                                         "rr_ratio": 2.0,
-                                        "atr_pct": round(pc.get("atr_pct_5min", 0), 2),
-                                        "breakout": ind.get("breakout_detected", False),
-                                        "volume_spike": ind.get("volume_spike", False),
-                                        "strong_candle": ind.get("momentum_candle", False),
-                                        "vwap_aligned": ind.get("vwap_aligned", False)
+                                        "atr_pct": round(float(pc.get("atr_pct_5min", 0)), 2),
+                                        "breakout": bool(ind.get("breakout_detected", False)),
+                                        "volume_spike": bool(ind.get("volume_spike", False)),
+                                        "strong_candle": bool(ind.get("momentum_candle", False)),
+                                        "vwap_aligned": bool(ind.get("vwap_aligned", False))
                                     }
                                 ui_decisions.append({
                                     "symbol": d["symbol"],
@@ -2086,9 +2086,23 @@ def get_dual_demo(request: Request, token: Optional[str] = Depends(get_token_fro
 # API ROUTES (per-user isolated)
 # ────────────────────────────────────────────────────────────────────────────
 
+def sanitize_json(obj):
+    if isinstance(obj, dict):
+        return {str(k): sanitize_json(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple, set)):
+        return [sanitize_json(v) for v in obj]
+    elif hasattr(obj, 'item'):
+        return obj.item()
+    elif isinstance(obj, (bool, int, float, str)) or obj is None:
+        return obj
+    elif hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    return str(obj)
+
 @app.get("/api/signals")
 def api_get_signals(user: dict = Depends(require_auth)):
-    return latest_signals
+    from fastapi.responses import JSONResponse
+    return JSONResponse(content=sanitize_json(latest_signals))
 
 @app.get("/api/live-prices")
 def api_get_live_prices(user: dict = Depends(require_auth)):

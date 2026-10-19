@@ -5102,8 +5102,15 @@
 
         async function fetchSignals() {
             try {
-                const res = await fetch(`${API}/signals`);
-                let signals = await res.json();
+                let signals = [];
+                try {
+                    const res = await fetch(`${API}/signals`);
+                    if (res && res.ok) {
+                        signals = await res.json();
+                    }
+                } catch (fetchErr) {
+                    console.warn("fetchSignals network error:", fetchErr);
+                }
                 const box = document.getElementById('scanner-grid');
                 if (!box) return;
 
