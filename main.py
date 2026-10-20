@@ -777,6 +777,7 @@ async def user_trading_cycle(user_id: int):
             _signal_log_cleared_date = now.date()
 
         # Reset daily state on a new calendar day
+        # Reset daily state on a new calendar day
         if now.date() != current_date:
             logger.info(f"[USER {user_id}] New day detected ({now.date()}). Resetting daily pipeline flags.")
             layer1_done = False
@@ -787,8 +788,17 @@ async def user_trading_cycle(user_id: int):
             orb_obs_complete = False
             token_refreshed_today = False
             last_token_refresh_attempt = 0.0
-            orb.reset()
-            layer5.reset()
+            try:
+                orb.reset()
+            except Exception as orb_err:
+                logger.error(f"[USER {user_id}] Error in orb.reset(): {orb_err}")
+            try:
+                if hasattr(layer5, "reset"):
+                    layer5.reset()
+                elif hasattr(layer5, "reset_daily_stats"):
+                    layer5.reset_daily_stats()
+            except Exception as l5_err:
+                logger.error(f"[USER {user_id}] Error in layer5.reset(): {l5_err}")
             
             # Reset VIX alert flags for the new day
             try:
@@ -857,6 +867,25 @@ async def user_trading_cycle(user_id: int):
                     retry_count += 1
                     await asyncio.sleep(2)
                 
+                # If still invalid, perform an automatic emergency TOTP refresh!
+                if not is_valid:
+                    try:
+                        from upstox_auth_manager import auto_refresh_and_apply
+                        logger.warning(f"[USER {user_id}] Attempting emergency TOTP token auto-refresh at 8:55 AM...")
+                        ref_res = auto_refresh_and_apply(silent=False)
+                        if ref_res.get("status") == "success":
+                            with SessionLocal() as s_db:
+                                reload_bot_credentials(user_id, s_db)
+                            bot = get_bot(user_id)
+                            new_tok = ref_res.get("access_token")
+                            if new_tok and bot:
+                                bot.creds["upstox_access_token"] = new_tok
+                                bot.engine._creds["upstox_access_token"] = new_tok
+                                _shared_engine._creds["upstox_access_token"] = new_tok
+                            is_valid = bot.engine.connect()
+                    except Exception as ref_err:
+                        logger.error(f"[USER {user_id}] Emergency TOTP refresh failed at 8:55 AM: {ref_err}")
+
                 if not is_valid:
                     from telegram_alert import alert_token_refresh_failed
                     alert_token_refresh_failed()
@@ -879,6 +908,24 @@ async def user_trading_cycle(user_id: int):
 
         # ── 09:00 AM — Layer 1: Morning Pre-Filter ───────────────────────
         if not layer1_done and now.hour >= 9:
+            # Self-heal token if expired before Layer 1 scan
+            if not bot.engine.connect():
+                try:
+                    from upstox_auth_manager import auto_refresh_and_apply
+                    logger.warning(f"[USER {user_id}] Token connection invalid at 09:00 AM. Refreshing via TOTP before Layer 1...")
+                    ref_res = auto_refresh_and_apply(silent=True)
+                    if ref_res.get("status") == "success":
+                        with SessionLocal() as s_db:
+                            reload_bot_credentials(user_id, s_db)
+                        bot = get_bot(user_id)
+                        new_tok = ref_res.get("access_token")
+                        if new_tok and bot:
+                            bot.creds["upstox_access_token"] = new_tok
+                            bot.engine._creds["upstox_access_token"] = new_tok
+                            _shared_engine._creds["upstox_access_token"] = new_tok
+                except Exception as pre_l1_err:
+                    logger.error(f"[USER {user_id}] Pre-Layer 1 token refresh error: {pre_l1_err}")
+
             try:
                 logger.info(f"[USER {user_id}] Running Layer 1 morning pre-filter...")
                 watchlist = layer1.run()

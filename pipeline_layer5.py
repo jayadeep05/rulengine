@@ -368,6 +368,10 @@ class ClaudeAnalyzer:
             if d.get("decision") == "ENTER" and d.get("confidence", 0) >= 3
         ]
 
+    def reset(self):
+        """Reset daily counters and decisions for a new trading day (called by pipeline daily reset)."""
+        self.reset_daily_stats()
+
     def reset_daily_stats(self):
         """Reset daily counters (called at start of each trading day)."""
         self.api_calls_today = 0

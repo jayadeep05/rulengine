@@ -132,7 +132,7 @@ def update_system_token(access_token: str) -> bool:
         except Exception as e:
             logger.error(f"Failed to update .env: {e}")
 
-    # 3. Update database credentials for all users
+    # 3. Update database credentials for all users in primary DB
     try:
         from database import SessionLocal, UserCredential
         from credential_service import _safe_encrypt
@@ -142,11 +142,35 @@ def update_system_token(access_token: str) -> bool:
             for c in creds:
                 c.upstox_access_token = _safe_encrypt(access_token)
             db.commit()
-            logger.info(f"Updated access token in database for {len(creds)} user credential row(s).")
+            logger.info(f"Updated access token in primary database for {len(creds)} user credential row(s).")
         finally:
             db.close()
     except Exception as e:
-        logger.debug(f"Database credential update skipped or failed: {e}")
+        logger.warning(f"Primary database credential update skipped or failed: {e}")
+
+    # 4. If Supabase is also configured, sync Supabase as well
+    supabase_url = os.getenv("SUPABASE_DB_URL") or getattr(Config, "SUPABASE_DB_URL", "")
+    if supabase_url:
+        try:
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+            from database import UserCredential
+            from credential_service import _safe_encrypt
+            pg_url = supabase_url
+            if pg_url.startswith("postgres://"):
+                pg_url = pg_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif pg_url.startswith("postgresql://") and not pg_url.startswith("postgresql+psycopg2://"):
+                pg_url = pg_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            supa_engine = create_engine(pg_url, pool_pre_ping=True)
+            SupaSession = sessionmaker(bind=supa_engine)
+            with SupaSession() as supa_db:
+                s_creds = supa_db.query(UserCredential).all()
+                for sc in s_creds:
+                    sc.upstox_access_token = _safe_encrypt(access_token)
+                supa_db.commit()
+                logger.info(f"Synchronized access token to Supabase for {len(s_creds)} credential row(s).")
+        except Exception as supa_err:
+            logger.debug(f"Dual-sync to Supabase skipped: {supa_err}")
 
     return True
 
