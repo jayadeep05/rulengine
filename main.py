@@ -827,31 +827,50 @@ async def user_trading_cycle(user_id: int):
                     name_to_ltp[sym_name] = _shared_prices[sym_key]
             bot.tm.update_prices(name_to_ltp, bot.engine)
 
-        # ── 08:00 AM — Automated TOTP Token Generation (Runs ONCE per day) ──
+        # ── Token Health & Auto-Sync Check ─────────────────────────────────
         import time as _t
         now_ts = _t.time()
+        
+        # Check token health periodically (every 5 min) or at 8:00 AM / 8:55 AM
+        is_token_check_due = (now_ts - getattr(bot.state, '_last_token_check_ts', 0)) > 300
         should_refresh_morning = (now.hour == 8 and not token_refreshed_today)
-        is_token_failing = not bot.engine.connect()
-        can_retry_failed_token = (now_ts - last_token_refresh_attempt) > 3600  # at most once per hour
-
-        if should_refresh_morning or (is_token_failing and can_retry_failed_token):
-            last_token_refresh_attempt = now_ts
-            try:
-                from upstox_auth_manager import auto_refresh_and_apply
-                logger.info(f"[USER {user_id}] Checking / Refreshing Upstox Token via TOTP...")
-                res = auto_refresh_and_apply(silent=token_refreshed_today)
-                if res.get("status") == "success":
+        
+        if is_token_check_due or should_refresh_morning:
+            bot.state._last_token_check_ts = now_ts
+            is_valid = bot.engine.connect()
+            
+            # If token is invalid in memory, try reloading from database first!
+            if not is_valid:
+                with SessionLocal() as s_db:
+                    reload_bot_credentials(user_id, s_db)
+                bot = get_bot(user_id)
+                if bot and bot.creds:
+                    _shared_engine._creds = bot.creds
+                is_valid = bot.engine.connect()
+                if is_valid:
+                    logger.info(f"[USER {user_id}] Successfully synchronized fresh Upstox token from database.")
                     token_refreshed_today = True
-                    with SessionLocal() as s_db:
-                        reload_bot_credentials(user_id, s_db)
-                    bot = get_bot(user_id)
-                    if bot and "access_token" in res:
-                        new_tok = res["access_token"]
-                        bot.creds["upstox_access_token"] = new_tok
-                        bot.engine._creds["upstox_access_token"] = new_tok
-                        _shared_engine._creds["upstox_access_token"] = new_tok
-            except Exception as e:
-                logger.error(f"[USER {user_id}] Failed auto-refreshing Upstox token: {e}")
+
+            # If still invalid, or if scheduled 8:00 AM morning refresh has not run today
+            if (not is_valid and (now_ts - last_token_refresh_attempt) > 300) or (should_refresh_morning and not token_refreshed_today):
+                last_token_refresh_attempt = now_ts
+                try:
+                    from upstox_auth_manager import auto_refresh_and_apply
+                    logger.info(f"[USER {user_id}] Checking / Refreshing Upstox Token via TOTP...")
+                    res = auto_refresh_and_apply(silent=token_refreshed_today)
+                    if res.get("status") == "success":
+                        token_refreshed_today = True
+                        with SessionLocal() as s_db:
+                            reload_bot_credentials(user_id, s_db)
+                        bot = get_bot(user_id)
+                        new_tok = res.get("access_token")
+                        if bot and new_tok:
+                            bot.creds["upstox_access_token"] = new_tok
+                            bot.engine._creds["upstox_access_token"] = new_tok
+                            _shared_engine._creds["upstox_access_token"] = new_tok
+                        logger.info(f"[USER {user_id}] Upstox token successfully refreshed via TOTP.")
+                except Exception as e:
+                    logger.error(f"[USER {user_id}] Failed auto-refreshing Upstox token: {e}")
 
         # ── 08:55 AM — Token verification ─────────────────────────────────
         if now.hour == 8 and now.minute == 55:
