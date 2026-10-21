@@ -800,6 +800,8 @@ async def user_trading_cycle(user_id: int):
             except Exception as l5_err:
                 logger.error(f"[USER {user_id}] Error in layer5.reset(): {l5_err}")
             
+            setattr(bot.state, '_token_verified_0850', False)
+
             # Reset VIX alert flags for the new day
             try:
                 from telegram_alert import reset_vix_alerts
@@ -872,9 +874,10 @@ async def user_trading_cycle(user_id: int):
                 except Exception as e:
                     logger.error(f"[USER {user_id}] Failed auto-refreshing Upstox token: {e}")
 
-        # ── 08:55 AM — Token verification ─────────────────────────────────
-        if now.hour == 8 and now.minute == 55:
-            logger.info(f"[USER {user_id}] 8:55 AM — Verifying Upstox API token validity...")
+        # ── 08:50 AM — Token verification & WebSocket Startup ─────────────
+        if now.hour == 8 and now.minute >= 50 and not getattr(bot.state, '_token_verified_0850', False):
+            setattr(bot.state, '_token_verified_0850', True)
+            logger.info(f"[USER {user_id}] 8:50 AM — Verifying Upstox API token validity...")
             is_valid = bot.engine.connect()
             if not is_valid:
                 retry_count = 0
@@ -890,7 +893,7 @@ async def user_trading_cycle(user_id: int):
                 if not is_valid:
                     try:
                         from upstox_auth_manager import auto_refresh_and_apply
-                        logger.warning(f"[USER {user_id}] Attempting emergency TOTP token auto-refresh at 8:55 AM...")
+                        logger.warning(f"[USER {user_id}] Attempting emergency TOTP token auto-refresh at 8:50 AM...")
                         ref_res = auto_refresh_and_apply(silent=False)
                         if ref_res.get("status") == "success":
                             with SessionLocal() as s_db:
@@ -903,12 +906,12 @@ async def user_trading_cycle(user_id: int):
                                 _shared_engine._creds["upstox_access_token"] = new_tok
                             is_valid = bot.engine.connect()
                     except Exception as ref_err:
-                        logger.error(f"[USER {user_id}] Emergency TOTP refresh failed at 8:55 AM: {ref_err}")
+                        logger.error(f"[USER {user_id}] Emergency TOTP refresh failed at 8:50 AM: {ref_err}")
 
                 if not is_valid:
                     from telegram_alert import alert_token_refresh_failed
                     alert_token_refresh_failed()
-                    logger.critical(f"[USER {user_id}] Upstox token verification failed at 8:55 AM. Aborting startup.")
+                    logger.critical(f"[USER {user_id}] Upstox token verification failed at 8:50 AM. Aborting startup.")
                     bot.state.is_running = False
                     continue
             logger.info(f"[USER {user_id}] Upstox token verified successfully.")
@@ -924,6 +927,29 @@ async def user_trading_cycle(user_id: int):
                     _shared_timestamps,
                     credentials=bot.creds
                 )
+
+        # ── Autonomous Daily Startup: Automatically activate trading system at 08:50 AM ──
+        is_weekday = now.weekday() < 5
+        is_active_window = (now.hour == 8 and now.minute >= 50) or (9 <= now.hour < 15) or (now.hour == 15 and now.minute < 15)
+        if is_weekday and is_active_window and not bot.state.is_running and not bot.state.kill_switch_active:
+            bot.state.is_running = True
+            bot.state.status = "RUNNING"
+            logger.info(f"[AUTONOMOUS] 08:50 AM IST — Automatically started trading system for user_id={user_id} (Mode: {bot.config.get('MODE', 'LIVE')})")
+            try:
+                from telegram_alert import send_telegram
+                send_telegram(
+                    f"🚀 <b>IntradayBot Auto-Started!</b>\n"
+                    f"System is <b>RUNNING</b> (08:50 AM IST).\n"
+                    f"Mode: <b>{bot.config.get('MODE', 'LIVE')}</b>\n"
+                    f"Pre-market preparation active. Layer 1 scan scheduled for 09:00 AM."
+                )
+            except Exception:
+                pass
+            with SessionLocal() as db_start:
+                u_cfg = db_start.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+                if u_cfg:
+                    u_cfg.is_running = 1
+                    db_start.commit()
 
         # ── 09:00 AM — Layer 1: Morning Pre-Filter ───────────────────────
         if not layer1_done and now.hour >= 9:
@@ -957,33 +983,10 @@ async def user_trading_cycle(user_id: int):
                 logger.error(f"[USER {user_id}] Layer 1 failed: {e}")
                 layer1_done = True  # Don't retry infinitely
 
-        # ── 09:15 AM+ — Market hours logic & Autonomous Daily Startup ──────
+        # ── Wait for Market Open (09:15 AM) before evaluating trade signals ──
         if now.time() < time(9, 15):
             await asyncio.sleep(15)
             continue
-
-        # Autonomous Daily Startup: Automatically activate trading at 09:15 AM on trading days
-        is_weekday = now.weekday() < 5
-        is_market_active = time(9, 15) <= now.time() < time(15, 15)
-        if is_weekday and is_market_active and not bot.state.is_running and not bot.state.kill_switch_active:
-            bot.state.is_running = True
-            bot.state.status = "RUNNING"
-            logger.info(f"[AUTONOMOUS] 09:15 AM IST — Automatically started trading system for user_id={user_id} (Mode: {bot.config.get('MODE', 'LIVE')})")
-            try:
-                from telegram_alert import send_telegram
-                send_telegram(
-                    f"🚀 <b>IntradayBot Auto-Started!</b>\n"
-                    f"Market session is OPEN (09:15 AM IST).\n"
-                    f"Mode: <b>{bot.config.get('MODE', 'LIVE')}</b>\n"
-                    f"Autonomous trading is now active."
-                )
-            except Exception:
-                pass
-            with SessionLocal() as db_start:
-                u_cfg = db_start.query(UserConfig).filter(UserConfig.user_id == user_id).first()
-                if u_cfg:
-                    u_cfg.is_running = 1
-                    db_start.commit()
 
         # If user explicitly paused system or kill-switch tripped, pause new trading
         if not bot.state.is_running or bot.state.kill_switch_active:
