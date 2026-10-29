@@ -5351,6 +5351,9 @@
                         activeP.setAttribute('data-prev', prices[sym]);
                         if (prices[sym] > prev) { activeP.style.color = 'var(--green)'; }
                         else if (prices[sym] < prev) { activeP.style.color = 'var(--red)'; }
+                    }
+                }
+
                 // Also update PrimeRadar active prices if available in feed
                 if (typeof primeIntraState !== 'undefined' && primeIntraState.symbol) {
                     const sym = primeIntraState.symbol;
