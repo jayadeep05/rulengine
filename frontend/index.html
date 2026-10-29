@@ -332,6 +332,133 @@
             transform: translateY(-2px);
         }
 
+        /* ── PRIMERADAR STYLES ── */
+        .prime-radar-card {
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.25s ease;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+        .prime-radar-card.intraday-theme {
+            background: linear-gradient(180deg, rgba(8, 22, 44, 0.95) 0%, rgba(5, 12, 28, 0.95) 100%);
+            border: 1.5px solid rgba(2, 132, 199, 0.45);
+        }
+        .prime-radar-card.options-theme {
+            background: linear-gradient(180deg, rgba(22, 14, 44, 0.95) 0%, rgba(12, 7, 28, 0.95) 100%);
+            border: 1.5px solid rgba(139, 92, 246, 0.45);
+        }
+        .prime-radar-card:hover {
+            transform: translateY(-2px);
+        }
+        .prime-radar-card.intraday-theme:hover {
+            box-shadow: 0 10px 28px rgba(2, 132, 199, 0.25);
+            border-color: rgba(2, 132, 199, 0.7);
+        }
+        .prime-radar-card.options-theme:hover {
+            box-shadow: 0 10px 28px rgba(139, 92, 246, 0.25);
+            border-color: rgba(139, 92, 246, 0.7);
+        }
+        .prime-field-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .prime-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--input-text);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        .prime-input:focus {
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        }
+        .prime-toggle-group {
+            display: flex;
+            background: var(--sub-box-bg);
+            border: 1px solid var(--sub-box-border);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .prime-toggle-btn {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .prime-toggle-btn.active.buy {
+            background: #16a34a !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.sell {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.type {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: var(--text) !important;
+        }
+        .prime-toggle-btn.active.ce {
+            background: #16a34a !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.pe {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+        }
+        .prime-suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(10, 16, 32, 0.98);
+            border: 1px solid rgba(2, 132, 199, 0.4);
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.85);
+            margin-top: 4px;
+            display: none;
+        }
+        .prime-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            transition: background 0.15s ease;
+        }
+        .prime-suggestion-item:hover {
+            background: rgba(2, 132, 199, 0.25);
+        }
+
         [data-theme="light"] .scan-card {
             background: #ffffff !important;
             border: 1px solid rgba(249, 115, 22, 0.18) !important;
@@ -4000,9 +4127,214 @@
                 </div>
             </div>
             <div class="scanner-grid" id="scanner-grid" style="padding: 16px 20px; gap: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
-                <div class="scan-card" style="grid-column: 1 / -1; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 16px;">
-                    <div style="font-size: 15px; font-weight: 800; color: var(--text);">Scanning 92 Nifty Stocks</div>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Loading candidate setups...</div>
+                <!-- GRID 1: PRIMERADAR – INTRADAY -->
+                <div class="prime-radar-card intraday-theme" id="card-prime-intraday">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; font-weight: 800; color: #38bdf8; background: rgba(2, 132, 199, 0.2); border: 1px solid rgba(2, 132, 199, 0.45); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.3px;">
+                                ⚡ #1 PRIME RADAR • INTRADAY
+                            </span>
+                        </div>
+                        <span class="badge" style="font-size: 9px; font-weight: 800; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px;">
+                            ● ACTIVE RADAR
+                        </span>
+                    </div>
+
+                    <!-- Stock Autocomplete Search -->
+                    <div style="position: relative;">
+                        <div class="prime-field-label">
+                            <span>Search NSE Stock</span>
+                            <span style="font-size: 9px; color: #38bdf8; font-weight: 600;">2,381 Equities</span>
+                        </div>
+                        <div style="position: relative;">
+                            <input type="text" id="prime-intra-search" class="prime-input" placeholder="🔎 Type symbol or company (e.g. RELIANCE, TCS)..." autocomplete="off" oninput="onPrimeIntraSearchInput(this.value)">
+                            <div id="prime-intra-suggestions" class="prime-suggestions-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Stock Details & Live Price -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(2, 132, 199, 0.25);">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; padding-right: 8px;">
+                            <span id="prime-intra-sym-display" style="font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px;">RELIANCE</span>
+                            <span id="prime-intra-name-display" style="font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">RELIANCE INDUSTRIES LTD</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; text-align: right; flex-shrink: 0;">
+                            <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Live Price (LTP)</span>
+                            <span id="prime-intra-ltp-val" style="font-size: 14px; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Side & Type Toggles -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Action Side</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-intra-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeIntraSide('BUY')">BUY</button>
+                                <button type="button" id="prime-intra-side-sell" class="prime-toggle-btn" onclick="setPrimeIntraSide('SELL')">SELL</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Order Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-intra-type-limit" class="prime-toggle-btn active type" onclick="setPrimeIntraType('LIMIT')">LIMIT</button>
+                                <button type="button" id="prime-intra-type-slm" class="prime-toggle-btn" onclick="setPrimeIntraType('SL-M')">SL-M</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Configuration Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Quantity</div>
+                            <input type="number" id="prime-intra-qty" class="prime-input" min="1" value="1" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div id="prime-intra-limit-box">
+                            <div class="prime-field-label">Limit Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-price" class="prime-input" placeholder="0.00" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div id="prime-intra-trigger-box" style="display: none;">
+                            <div class="prime-field-label">Trigger Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-trigger" class="prime-input" placeholder="0.00" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Stop-Loss (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-sl" class="prime-input" placeholder="SL Price" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Target (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-target" class="prime-input" placeholder="Target Price" oninput="validatePrimeIntraForm()">
+                        </div>
+                    </div>
+
+                    <!-- Error Notice (Hidden by default) -->
+                    <div id="prime-intra-err" style="display: none; font-size: 10px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 6px;"></div>
+
+                    <!-- Review & Execution Action -->
+                    <button class="btn-primary" onclick="reviewPrimeIntraOrder()" style="padding: 8px 12px; font-size: 11px; font-weight: 800; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; cursor: pointer; border: none; margin-top: 2px;">
+                        ⚡ Review & Execute Intraday Order
+                    </button>
+                </div>
+
+                <!-- GRID 2: PRIMERADAR – OPTIONS -->
+                <div class="prime-radar-card options-theme" id="card-prime-options">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; font-weight: 800; color: #c084fc; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.45); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.3px;">
+                                🎯 #2 PRIME RADAR • OPTIONS
+                            </span>
+                        </div>
+                        <span class="badge" style="font-size: 9px; font-weight: 800; background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); padding: 2px 7px; border-radius: 6px;">
+                            ● F&O CONTRACTS
+                        </span>
+                    </div>
+
+                    <!-- Options Selector Controls -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Underlying</div>
+                            <select id="prime-opt-underlying" class="prime-input" onchange="onPrimeOptUnderlyingChange(this.value)">
+                                <option value="NIFTY">NIFTY</option>
+                                <option value="BANKNIFTY">BANKNIFTY</option>
+                                <option value="FINNIFTY">FINNIFTY</option>
+                                <option value="MIDCPNIFTY">MIDCPNIFTY</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Expiry Date</div>
+                            <select id="prime-opt-expiry" class="prime-input" onchange="onPrimeOptExpiryChange(this.value)">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Option Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-ce" class="prime-toggle-btn active ce" onclick="setPrimeOptCePe('CE')">📈 CE (Call)</button>
+                                <button type="button" id="prime-opt-pe" class="prime-toggle-btn" onclick="setPrimeOptCePe('PE')">📉 PE (Put)</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Strike Price</div>
+                            <select id="prime-opt-strike" class="prime-input" onchange="onPrimeOptStrikeChange(this.value)">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Selected Contract Banner & Live LTP -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.25);">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; padding-right: 8px;">
+                            <span id="prime-opt-sym-display" style="font-size: 13px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;">Select Contract</span>
+                            <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                                <span id="prime-opt-lotsize-display" style="font-size: 9px; font-weight: 700; color: #c084fc; background: rgba(139, 92, 246, 0.15); padding: 1px 5px; border-radius: 4px;">Lot: 1</span>
+                                <span id="prime-opt-total-qty" style="font-size: 9px; color: var(--muted); font-weight: 600;">Qty: 1</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; text-align: right; flex-shrink: 0;">
+                            <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Option LTP</span>
+                            <span id="prime-opt-ltp-val" style="font-size: 14px; font-weight: 800; color: #c084fc; font-family: 'JetBrains Mono', monospace;">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Side & Type Toggles -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Action Side</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeOptSide('BUY')">BUY</button>
+                                <button type="button" id="prime-opt-side-sell" class="prime-toggle-btn" onclick="setPrimeOptSide('SELL')">SELL</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Order Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-type-limit" class="prime-toggle-btn active type" onclick="setPrimeOptType('LIMIT')">LIMIT</button>
+                                <button type="button" id="prime-opt-type-slm" class="prime-toggle-btn" onclick="setPrimeOptType('SL-M')">SL-M</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options Order Configuration Inputs -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Lots</div>
+                            <input type="number" id="prime-opt-lots" class="prime-input" min="1" value="1" oninput="updatePrimeOptTotalQty()">
+                        </div>
+                        <div id="prime-opt-limit-box">
+                            <div class="prime-field-label">Limit Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-price" class="prime-input" placeholder="0.00" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div id="prime-opt-trigger-box" style="display: none;">
+                            <div class="prime-field-label">Trigger Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-trigger" class="prime-input" placeholder="0.00" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Stop-Loss (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-sl" class="prime-input" placeholder="SL Price" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Target (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-target" class="prime-input" placeholder="Target Price" oninput="validatePrimeOptForm()">
+                        </div>
+                    </div>
+
+                    <!-- Error Notice (Hidden by default) -->
+                    <div id="prime-opt-err" style="display: none; font-size: 10px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 6px;"></div>
+
+                    <!-- Review & Execution Action -->
+                    <button class="btn-primary" onclick="reviewPrimeOptOrder()" style="padding: 8px 12px; font-size: 11px; font-weight: 800; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; cursor: pointer; border: none; margin-top: 2px;">
+                        🎯 Review & Execute Options Order
+                    </button>
+                </div>
+
+                <!-- GRID 3 ONWARDS: AUTOMATICALLY CALCULATED RADAR CANDIDATES -->
+                <div id="auto-radars-container" style="display: contents;">
+                    <div class="scan-card" style="padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 16px;">
+                        <div style="font-size: 15px; font-weight: 800; color: var(--text);">Scanning 92 Nifty Stocks</div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Loading candidate setups...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4253,6 +4585,78 @@
     </div>
 
     <!-- ══════════════ MODALS ══════════════ -->
+
+    <!-- PRIMERADAR EXPLICIT ORDER CONFIRMATION MODAL -->
+    <div class="modal" id="m-prime-confirm">
+        <div class="modal-box" style="width: 500px; border-radius: 20px; box-shadow: var(--shadow-md);">
+            <div class="modal-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;" id="prime-confirm-icon">🛡️</span>
+                    <div>
+                        <div id="prime-confirm-title" style="font-weight: 800; font-size: 15px; color: var(--text);">Confirm PrimeRadar Order</div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 1px;">Review parameters before sending to broker</div>
+                    </div>
+                </div>
+                <button class="btn-close-modal" onclick="closePrimeConfirmModal()" style="background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px; font-size: 12px; display: flex; flex-direction: column; gap: 14px;">
+                <!-- Instrument Summary Header -->
+                <div style="background: var(--sub-box-bg); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--sub-box-border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div id="conf-sym" style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">--</div>
+                        <div id="conf-desc" style="font-size: 11px; color: var(--muted); margin-top: 2px;">--</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span id="conf-side-badge" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">BUY</span>
+                        <div id="conf-type-badge" style="font-size: 10px; font-weight: 700; color: var(--muted); margin-top: 3px;">LIMIT</div>
+                    </div>
+                </div>
+
+                <!-- Parameters Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Order Quantity</div>
+                        <div id="conf-qty" style="font-size: 15px; font-weight: 800; color: var(--text); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">--</div>
+                        <div id="conf-lots-info" style="font-size: 10px; color: var(--muted); margin-top: 2px;">--</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Execution / Limit Price</div>
+                        <div id="conf-price" style="font-size: 15px; font-weight: 800; color: #ff6b00; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-trigger-info" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Trigger: ₹--</div>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: #ef4444; font-weight: 700; text-transform: uppercase;">Stop-Loss (SL)</div>
+                        <div id="conf-sl" style="font-size: 15px; font-weight: 800; color: #ef4444; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-sl-risk" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Risk: --</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.2); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: #10b981; font-weight: 700; text-transform: uppercase;">Target Price</div>
+                        <div id="conf-target" style="font-size: 15px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-target-reward" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Reward: --</div>
+                    </div>
+                </div>
+
+                <!-- Total Value & Notice -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 107, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.25); border-radius: 10px;">
+                    <div>
+                        <div style="font-size: 10px; font-weight: 700; color: #ff8533; text-transform: uppercase;">Estimated Outlay / Value</div>
+                        <div style="font-size: 11px; color: var(--muted);">Subject to broker margin requirements</div>
+                    </div>
+                    <div id="conf-total-val" style="font-size: 16px; font-weight: 800; color: #ff8533; font-family: 'JetBrains Mono', monospace;">₹0.00</div>
+                </div>
+
+                <div id="prime-confirm-err" style="display: none; font-size: 11px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 8px 12px; border-radius: 8px;"></div>
+            </div>
+            <div class="modal-foot" style="border-top: 1px solid var(--border); padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-outline" onclick="closePrimeConfirmModal()" style="padding: 8px 16px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                    Modify Order
+                </button>
+                <button id="btn-prime-confirm-submit" class="btn-primary" onclick="submitPrimeOrderConfirmed()" style="padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; background: #16a34a; color: #fff; cursor: pointer; border: none;">
+                    🚀 Confirm & Submit Order
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- CANDIDATE SETUP DETAIL MODAL -->
     <div class="modal" id="m-candidate-detail">
@@ -4947,6 +5351,24 @@
                         activeP.setAttribute('data-prev', prices[sym]);
                         if (prices[sym] > prev) { activeP.style.color = 'var(--green)'; }
                         else if (prices[sym] < prev) { activeP.style.color = 'var(--red)'; }
+                // Also update PrimeRadar active prices if available in feed
+                if (typeof primeIntraState !== 'undefined' && primeIntraState.symbol) {
+                    const sym = primeIntraState.symbol;
+                    const ltp = prices[sym] || (primeIntraState.instrument_key && prices[primeIntraState.instrument_key]);
+                    if (ltp && parseFloat(ltp) > 0) {
+                        primeIntraState.ltp = parseFloat(ltp);
+                        const el = document.getElementById('prime-intra-ltp-val');
+                        if (el) el.textContent = `₹${parseFloat(ltp).toFixed(2)}`;
+                    }
+                }
+                if (typeof primeOptState !== 'undefined' && primeOptState.selectedContract) {
+                    const cKey = primeOptState.selectedContract.instrument_key;
+                    const cSym = primeOptState.selectedContract.trading_symbol;
+                    const optLtp = prices[cKey] || prices[cSym];
+                    if (optLtp && parseFloat(optLtp) > 0) {
+                        primeOptState.ltp = parseFloat(optLtp);
+                        const el = document.getElementById('prime-opt-ltp-val');
+                        if (el) el.textContent = `₹${parseFloat(optLtp).toFixed(2)}`;
                     }
                 }
             } catch (e) { }
@@ -5341,8 +5763,9 @@
                     filteredList = masterCandidates.filter(c => (c.score || 0) >= 82);
                 }
 
+                const autoBox = document.getElementById('auto-radars-container') || box;
                 if (filteredList.length === 0) {
-                    box.innerHTML = `<div style="grid-column: 1 / -1; padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidates matching '${radarBiasFilter}' filter.</div>`;
+                    autoBox.innerHTML = `<div class="scan-card" style="padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidate setups matching '${radarBiasFilter}' filter.</div>`;
                     return;
                 }
 
@@ -5361,8 +5784,8 @@
                 });
                 lastSignalSymbols = tradeableSyms;
 
-                // 5. Render cards
-                box.innerHTML = filteredList.map((c, i) => {
+                // 5. Render cards (starting at Grid 3)
+                autoBox.innerHTML = filteredList.map((c, i) => {
                     const m = c.metadata || {};
                     const confScore = c.score || 0;
                     const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 50 ? 'var(--yellow)' : 'var(--muted)';
@@ -5386,7 +5809,7 @@
                         <div class="scan-card" id="action-card-${c.symbol}">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} ACTION</span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 3} ACTION</span>
                                     <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
                                 </div>
                                 <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
@@ -5437,7 +5860,7 @@
                         <div class="scan-card" id="radar-card-${c.symbol}">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} RADAR</span>
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 3} RADAR</span>
                                     <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
                                 </div>
                                 <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: ${biasBg}; color: ${biasColor}; border: 1px solid ${biasBorder};">
@@ -6557,6 +6980,799 @@
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ─── PRIMERADAR CLIENT-SIDE CONTROLLERS (INTRADAY & OPTIONS) ──────────────
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // State Store for PrimeRadar – Intraday
+        const primeIntraState = {
+            symbol: 'RELIANCE',
+            name: 'RELIANCE INDUSTRIES LTD',
+            instrument_key: 'NSE_EQ|INE002A01018',
+            lot_size: 1,
+            tick_size: 0.05,
+            ltp: 0.0,
+            side: 'BUY',
+            order_type: 'LIMIT',
+            qty: 1,
+            price: 0.0,
+            trigger_price: 0.0,
+            sl: 0.0,
+            target: 0.0
+        };
+
+        // State Store for PrimeRadar – Options
+        const primeOptState = {
+            underlying: 'NIFTY',
+            expiries: [],
+            selectedExpiry: null,
+            option_type: 'CE',
+            contracts: [],
+            selectedContract: null,
+            ltp: 0.0,
+            side: 'BUY',
+            order_type: 'LIMIT',
+            lots: 1,
+            qty: 1,
+            price: 0.0,
+            trigger_price: 0.0,
+            sl: 0.0,
+            target: 0.0
+        };
+
+        // Order awaiting explicit confirmation
+        let pendingPrimeOrder = null;
+        let primeIntraSearchDebounce = null;
+
+        // ─── PRIMERADAR – INTRADAY CONTROLLER ────────────────────────────────────
+
+        async function onPrimeIntraSearchInput(query) {
+            clearTimeout(primeIntraSearchDebounce);
+            const drop = document.getElementById('prime-intra-suggestions');
+            if (!query || query.trim().length < 1) {
+                if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+                return;
+            }
+
+            primeIntraSearchDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(query.trim())}&limit=12`);
+                    if (!res.ok) return;
+                    const stocks = await res.json();
+                    if (!drop) return;
+
+                    if (stocks.length === 0) {
+                        drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching stocks found</div>';
+                        drop.style.display = 'block';
+                        return;
+                    }
+
+                    drop.innerHTML = stocks.map(s => `
+                        <div class="prime-suggestion-item" onclick="selectPrimeIntraStock('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}', '${s.instrument_key}', ${s.lot_size || 1}, ${s.tick_size || 0.05})">
+                            <div>
+                                <span style="font-weight: 800; color: #38bdf8;">${s.symbol}</span>
+                                <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${s.name || ''}</div>
+                            </div>
+                            <span style="font-size: 9px; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); padding: 1px 5px; border-radius: 4px;">EQ</span>
+                        </div>
+                    `).join('');
+                    drop.style.display = 'block';
+                } catch (e) {
+                    console.warn("Stock autocomplete error:", e);
+                }
+            }, 250);
+        }
+
+        async function selectPrimeIntraStock(sym, name, key, lotSize, tickSize) {
+            primeIntraState.symbol = sym;
+            primeIntraState.name = name;
+            primeIntraState.instrument_key = key;
+            primeIntraState.lot_size = lotSize || 1;
+            primeIntraState.tick_size = tickSize || 0.05;
+
+            // Update UI elements
+            const symEl = document.getElementById('prime-intra-sym-display');
+            if (symEl) symEl.textContent = sym;
+            const nameEl = document.getElementById('prime-intra-name-display');
+            if (nameEl) nameEl.textContent = name;
+            const searchInput = document.getElementById('prime-intra-search');
+            if (searchInput) searchInput.value = '';
+
+            const drop = document.getElementById('prime-intra-suggestions');
+            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+
+            // Fetch live market quote for selected stock
+            await refreshPrimeIntraLTP();
+        }
+
+        async function refreshPrimeIntraLTP() {
+            try {
+                const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeIntraState.instrument_key)}&symbol=${encodeURIComponent(primeIntraState.symbol)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const ltp = parseFloat(data.ltp || 0);
+                    if (ltp > 0) {
+                        primeIntraState.ltp = ltp;
+                        const ltpEl = document.getElementById('prime-intra-ltp-val');
+                        if (ltpEl) {
+                            ltpEl.textContent = `₹${ltp.toFixed(2)}`;
+                            ltpEl.style.color = '#10b981';
+                            setTimeout(() => { if (ltpEl) ltpEl.style.color = '#38bdf8'; }, 300);
+                        }
+
+                        // Auto-populate price suggestions if empty
+                        const priceInput = document.getElementById('prime-intra-price');
+                        if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                            priceInput.value = ltp.toFixed(2);
+                        }
+                        const triggerInput = document.getElementById('prime-intra-trigger');
+                        if (triggerInput && (!triggerInput.value || parseFloat(triggerInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            triggerInput.value = (ltp * (isBuy ? 1.002 : 0.998)).toFixed(2);
+                        }
+                        const slInput = document.getElementById('prime-intra-sl');
+                        if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
+                        }
+                        const targetInput = document.getElementById('prime-intra-target');
+                        if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Error refreshing Intraday LTP:", e);
+            }
+        }
+
+        function setPrimeIntraSide(side) {
+            primeIntraState.side = side;
+            const btnBuy = document.getElementById('prime-intra-side-buy');
+            const btnSell = document.getElementById('prime-intra-side-sell');
+            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
+            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+
+            // Recalculate default SL/Target recommendations for chosen side
+            if (primeIntraState.ltp > 0) {
+                const ltp = primeIntraState.ltp;
+                const isBuy = (side === 'BUY');
+                const slInput = document.getElementById('prime-intra-sl');
+                if (slInput) slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
+                const targetInput = document.getElementById('prime-intra-target');
+                if (targetInput) targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
+            }
+            validatePrimeIntraForm();
+        }
+
+        function setPrimeIntraType(type) {
+            primeIntraState.order_type = type;
+            const btnLimit = document.getElementById('prime-intra-type-limit');
+            const btnSlm = document.getElementById('prime-intra-type-slm');
+            if (btnLimit) btnLimit.classList.toggle('active', type === 'LIMIT');
+            if (btnSlm) btnSlm.classList.toggle('active', type === 'SL-M');
+
+            const limitBox = document.getElementById('prime-intra-limit-box');
+            const triggerBox = document.getElementById('prime-intra-trigger-box');
+
+            if (type === 'LIMIT') {
+                if (limitBox) limitBox.style.display = 'block';
+                if (triggerBox) triggerBox.style.display = 'none';
+            } else if (type === 'SL-M') {
+                if (limitBox) limitBox.style.display = 'none';
+                if (triggerBox) triggerBox.style.display = 'block';
+            }
+            validatePrimeIntraForm();
+        }
+
+        function validatePrimeIntraForm() {
+            const errEl = document.getElementById('prime-intra-err');
+            if (!errEl) return true;
+            errEl.style.display = 'none';
+            errEl.textContent = '';
+
+            const qty = parseInt(document.getElementById('prime-intra-qty').value || 0);
+            if (qty <= 0) {
+                errEl.textContent = 'Quantity must be at least 1 share.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const type = primeIntraState.order_type;
+            const side = primeIntraState.side;
+            const price = parseFloat(document.getElementById('prime-intra-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-intra-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-intra-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-intra-target').value || 0);
+
+            if (type === 'LIMIT') {
+                if (price <= 0) {
+                    errEl.textContent = 'Please enter a valid Limit Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= price) {
+                        errEl.textContent = 'Stop-Loss must be lower than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= price) {
+                        errEl.textContent = 'Target Price must be higher than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= price) {
+                        errEl.textContent = 'Stop-Loss must be higher than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= price) {
+                        errEl.textContent = 'Target Price must be lower than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            } else if (type === 'SL-M') {
+                if (trigger <= 0) {
+                    errEl.textContent = 'Please enter an SL Trigger Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= trigger) {
+                        errEl.textContent = 'Stop-Loss must be lower than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= trigger) {
+                        errEl.textContent = 'Target Price must be higher than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= trigger) {
+                        errEl.textContent = 'Stop-Loss must be higher than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= trigger) {
+                        errEl.textContent = 'Target Price must be lower than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function reviewPrimeIntraOrder() {
+            if (!validatePrimeIntraForm()) return;
+
+            const qty = parseInt(document.getElementById('prime-intra-qty').value || 1);
+            const price = parseFloat(document.getElementById('prime-intra-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-intra-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-intra-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-intra-target').value || 0);
+
+            const execPrice = primeIntraState.order_type === 'LIMIT' ? price : (trigger || primeIntraState.ltp);
+            const estVal = execPrice * qty;
+
+            const order = {
+                symbol: primeIntraState.symbol,
+                instrument_key: primeIntraState.instrument_key,
+                desc: primeIntraState.name,
+                side: primeIntraState.side,
+                order_type: primeIntraState.order_type,
+                qty: qty,
+                lots: null,
+                lot_size: 1,
+                price: price,
+                trigger_price: trigger,
+                sl: sl,
+                target: target,
+                radar_type: 'INTRADAY',
+                product: 'I',
+                est_val: estVal,
+                contract_info: {
+                    segment: 'NSE_EQ',
+                    lot_size: 1,
+                    tick_size: primeIntraState.tick_size
+                }
+            };
+
+            openPrimeConfirmModal(order);
+        }
+
+        // ─── PRIMERADAR – OPTIONS CONTROLLER ─────────────────────────────────────
+
+        async function initPrimeOptions() {
+            try {
+                const res = await fetch('/api/instruments/options/underlyings');
+                if (!res.ok) return;
+                const underlyings = await res.json();
+                const sel = document.getElementById('prime-opt-underlying');
+                if (sel && underlyings && underlyings.length > 0) {
+                    sel.innerHTML = underlyings.map(u => `<option value="${u}">${u}</option>`).join('');
+                    sel.value = primeOptState.underlying;
+                }
+                await onPrimeOptUnderlyingChange(primeOptState.underlying);
+            } catch (e) {
+                console.warn("initPrimeOptions error:", e);
+            }
+        }
+
+        async function onPrimeOptUnderlyingChange(underlying) {
+            primeOptState.underlying = underlying;
+            try {
+                const res = await fetch(`/api/instruments/options/expiries?underlying=${encodeURIComponent(underlying)}`);
+                if (!res.ok) return;
+                const expiries = await res.json();
+                primeOptState.expiries = expiries;
+
+                const expirySel = document.getElementById('prime-opt-expiry');
+                if (expirySel) {
+                    if (expiries.length === 0) {
+                        expirySel.innerHTML = '<option value="">No active expiries</option>';
+                        return;
+                    }
+                    expirySel.innerHTML = expiries.map(e => `<option value="${e.expiry}">${e.formatted}</option>`).join('');
+                    primeOptState.selectedExpiry = expiries[0].expiry;
+                    expirySel.value = primeOptState.selectedExpiry;
+                }
+                await loadPrimeOptContracts();
+            } catch (e) {
+                console.warn("onPrimeOptUnderlyingChange error:", e);
+            }
+        }
+
+        async function onPrimeOptExpiryChange(expiryVal) {
+            primeOptState.selectedExpiry = parseInt(expiryVal);
+            await loadPrimeOptContracts();
+        }
+
+        function setPrimeOptCePe(type) {
+            primeOptState.option_type = type;
+            const btnCe = document.getElementById('prime-opt-ce');
+            const btnPe = document.getElementById('prime-opt-pe');
+            if (btnCe) btnCe.classList.toggle('active', type === 'CE');
+            if (btnPe) btnPe.classList.toggle('active', type === 'PE');
+            loadPrimeOptContracts();
+        }
+
+        async function loadPrimeOptContracts() {
+            if (!primeOptState.underlying || !primeOptState.selectedExpiry) return;
+            try {
+                const url = `/api/instruments/options/contracts?underlying=${encodeURIComponent(primeOptState.underlying)}&expiry=${primeOptState.selectedExpiry}&type=${primeOptState.option_type}`;
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const contracts = await res.json();
+                primeOptState.contracts = contracts;
+
+                const strikeSel = document.getElementById('prime-opt-strike');
+                if (!strikeSel) return;
+
+                if (contracts.length === 0) {
+                    strikeSel.innerHTML = '<option value="">No strikes found</option>';
+                    return;
+                }
+
+                // Middle strike (ATM proxy) as default selection
+                const midIndex = Math.floor(contracts.length / 2);
+                strikeSel.innerHTML = contracts.map((c, idx) => `
+                    <option value="${c.instrument_key}" ${idx === midIndex ? 'selected' : ''}>
+                        ₹${c.strike_price} ${c.instrument_type}
+                    </option>
+                `).join('');
+
+                onPrimeOptStrikeChange(strikeSel.value);
+            } catch (e) {
+                console.warn("loadPrimeOptContracts error:", e);
+            }
+        }
+
+        async function onPrimeOptStrikeChange(token) {
+            const contract = primeOptState.contracts.find(c => c.instrument_key === token) || primeOptState.contracts[0];
+            if (!contract) return;
+            primeOptState.selectedContract = contract;
+
+            const symEl = document.getElementById('prime-opt-sym-display');
+            if (symEl) symEl.textContent = contract.trading_symbol;
+
+            const lotEl = document.getElementById('prime-opt-lotsize-display');
+            if (lotEl) lotEl.textContent = `Lot: ${contract.lot_size}`;
+
+            updatePrimeOptTotalQty();
+
+            // Fetch live contract LTP
+            await refreshPrimeOptLTP();
+        }
+
+        async function refreshPrimeOptLTP() {
+            if (!primeOptState.selectedContract) return;
+            try {
+                const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeOptState.selectedContract.instrument_key)}&symbol=${encodeURIComponent(primeOptState.selectedContract.trading_symbol)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const ltp = parseFloat(data.ltp || 0);
+                    primeOptState.ltp = ltp;
+
+                    const ltpEl = document.getElementById('prime-opt-ltp-val');
+                    if (ltpEl) {
+                        ltpEl.textContent = `₹${ltp.toFixed(2)}`;
+                        ltpEl.style.color = '#10b981';
+                        setTimeout(() => { if (ltpEl) ltpEl.style.color = '#c084fc'; }, 300);
+                    }
+
+                    // Auto-suggest price inputs
+                    const priceInput = document.getElementById('prime-opt-price');
+                    if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                        priceInput.value = ltp > 0 ? ltp.toFixed(2) : '50.00';
+                    }
+                    const slInput = document.getElementById('prime-opt-sl');
+                    if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
+                        const base = ltp > 0 ? ltp : 50.0;
+                        const isBuy = (primeOptState.side === 'BUY');
+                        slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
+                    }
+                    const targetInput = document.getElementById('prime-opt-target');
+                    if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
+                        const base = ltp > 0 ? ltp : 50.0;
+                        const isBuy = (primeOptState.side === 'BUY');
+                        targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
+                    }
+                }
+            } catch (e) {
+                console.warn("Error refreshing Options LTP:", e);
+            }
+        }
+
+        function setPrimeOptSide(side) {
+            primeOptState.side = side;
+            const btnBuy = document.getElementById('prime-opt-side-buy');
+            const btnSell = document.getElementById('prime-opt-side-sell');
+            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
+            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+
+            if (primeOptState.ltp > 0) {
+                const base = primeOptState.ltp;
+                const isBuy = (side === 'BUY');
+                const slInput = document.getElementById('prime-opt-sl');
+                if (slInput) slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
+                const targetInput = document.getElementById('prime-opt-target');
+                if (targetInput) targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
+            }
+            validatePrimeOptForm();
+        }
+
+        function setPrimeOptType(type) {
+            primeOptState.order_type = type;
+            const btnLimit = document.getElementById('prime-opt-type-limit');
+            const btnSlm = document.getElementById('prime-opt-type-slm');
+            if (btnLimit) btnLimit.classList.toggle('active', type === 'LIMIT');
+            if (btnSlm) btnSlm.classList.toggle('active', type === 'SL-M');
+
+            const limitBox = document.getElementById('prime-opt-limit-box');
+            const triggerBox = document.getElementById('prime-opt-trigger-box');
+
+            if (type === 'LIMIT') {
+                if (limitBox) limitBox.style.display = 'block';
+                if (triggerBox) triggerBox.style.display = 'none';
+            } else if (type === 'SL-M') {
+                if (limitBox) limitBox.style.display = 'none';
+                if (triggerBox) triggerBox.style.display = 'block';
+            }
+            validatePrimeOptForm();
+        }
+
+        function updatePrimeOptTotalQty() {
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 1);
+            const lotSize = (primeOptState.selectedContract && primeOptState.selectedContract.lot_size) ? primeOptState.selectedContract.lot_size : 1;
+            const totalQty = Math.max(1, lots) * lotSize;
+            primeOptState.lots = Math.max(1, lots);
+            primeOptState.qty = totalQty;
+
+            const totalQtyEl = document.getElementById('prime-opt-total-qty');
+            if (totalQtyEl) totalQtyEl.textContent = `Qty: ${totalQty}`;
+            validatePrimeOptForm();
+        }
+
+        function validatePrimeOptForm() {
+            const errEl = document.getElementById('prime-opt-err');
+            if (!errEl) return true;
+            errEl.style.display = 'none';
+            errEl.textContent = '';
+
+            if (!primeOptState.selectedContract) {
+                errEl.textContent = 'Please select a valid options contract.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 0);
+            if (lots <= 0) {
+                errEl.textContent = 'Number of lots must be at least 1.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const type = primeOptState.order_type;
+            const side = primeOptState.side;
+            const price = parseFloat(document.getElementById('prime-opt-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-opt-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-opt-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-opt-target').value || 0);
+
+            if (type === 'LIMIT') {
+                if (price <= 0) {
+                    errEl.textContent = 'Please enter a valid Limit Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= price) {
+                        errEl.textContent = 'Stop-Loss must be lower than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= price) {
+                        errEl.textContent = 'Target Price must be higher than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= price) {
+                        errEl.textContent = 'Stop-Loss must be higher than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= price) {
+                        errEl.textContent = 'Target Price must be lower than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            } else if (type === 'SL-M') {
+                if (trigger <= 0) {
+                    errEl.textContent = 'Please enter an SL Trigger Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= trigger) {
+                        errEl.textContent = 'Stop-Loss must be lower than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= trigger) {
+                        errEl.textContent = 'Target Price must be higher than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= trigger) {
+                        errEl.textContent = 'Stop-Loss must be higher than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= trigger) {
+                        errEl.textContent = 'Target Price must be lower than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function reviewPrimeOptOrder() {
+            if (!validatePrimeOptForm()) return;
+
+            const contract = primeOptState.selectedContract;
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 1);
+            const totalQty = lots * (contract.lot_size || 1);
+            const price = parseFloat(document.getElementById('prime-opt-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-opt-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-opt-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-opt-target').value || 0);
+
+            const execPrice = primeOptState.order_type === 'LIMIT' ? price : (trigger || primeOptState.ltp || 50.0);
+            const estVal = execPrice * totalQty;
+
+            const order = {
+                symbol: contract.trading_symbol,
+                instrument_key: contract.instrument_key,
+                desc: `${contract.underlying} ${contract.strike_price} ${contract.instrument_type} (${lots} lot${lots > 1 ? 's' : ''})`,
+                side: primeOptState.side,
+                order_type: primeOptState.order_type,
+                qty: totalQty,
+                lots: lots,
+                lot_size: contract.lot_size,
+                price: price,
+                trigger_price: trigger,
+                sl: sl,
+                target: target,
+                radar_type: 'OPTIONS',
+                product: 'I',
+                est_val: estVal,
+                contract_info: {
+                    segment: 'NSE_FO',
+                    underlying: contract.underlying,
+                    expiry: contract.expiry,
+                    strike_price: contract.strike_price,
+                    instrument_type: contract.instrument_type,
+                    lot_size: contract.lot_size,
+                    tick_size: contract.tick_size
+                }
+            };
+
+            openPrimeConfirmModal(order);
+        }
+
+        // ─── EXPLICIT ORDER CONFIRMATION MODAL LOGIC ─────────────────────────────
+
+        function openPrimeConfirmModal(order) {
+            pendingPrimeOrder = order;
+
+            const isOpt = (order.radar_type === 'OPTIONS');
+            const isBuy = (order.side === 'BUY');
+
+            document.getElementById('prime-confirm-icon').textContent = isOpt ? '🎯' : '⚡';
+            document.getElementById('prime-confirm-title').textContent = `Review PrimeRadar Order: ${order.radar_type}`;
+
+            document.getElementById('conf-sym').textContent = order.symbol;
+            document.getElementById('conf-desc').textContent = order.desc || '';
+
+            const sideBadge = document.getElementById('conf-side-badge');
+            sideBadge.textContent = order.side;
+            sideBadge.style.background = isBuy ? '#16a34a' : '#dc2626';
+            sideBadge.style.color = '#ffffff';
+
+            document.getElementById('conf-type-badge').textContent = order.order_type;
+
+            const qtyEl = document.getElementById('conf-qty');
+            qtyEl.textContent = `${order.qty} ${isOpt ? 'Contracts' : 'Shares'}`;
+
+            const lotsInfo = document.getElementById('conf-lots-info');
+            lotsInfo.textContent = isOpt ? `(${order.lots} Lot${order.lots > 1 ? 's' : ''} × ${order.lot_size})` : `Lot Size: 1`;
+
+            const priceEl = document.getElementById('conf-price');
+            priceEl.textContent = order.order_type === 'LIMIT' ? `₹${order.price.toFixed(2)}` : 'MARKET (SL-M)';
+
+            const trigEl = document.getElementById('conf-trigger-info');
+            trigEl.textContent = order.order_type === 'SL-M' ? `Trigger: ₹${order.trigger_price.toFixed(2)}` : (order.trigger_price > 0 ? `Trigger: ₹${order.trigger_price.toFixed(2)}` : 'Immediate Execution');
+
+            const slEl = document.getElementById('conf-sl');
+            slEl.textContent = order.sl > 0 ? `₹${order.sl.toFixed(2)}` : 'None Configured';
+
+            const slRiskEl = document.getElementById('conf-sl-risk');
+            const entryRef = (order.order_type === 'LIMIT' && order.price > 0) ? order.price : (order.trigger_price > 0 ? order.trigger_price : 100);
+            if (order.sl > 0) {
+                const perUnitRisk = Math.abs(entryRef - order.sl);
+                const totalRisk = perUnitRisk * order.qty;
+                slRiskEl.textContent = `Risk: ₹${perUnitRisk.toFixed(2)}/unit (₹${totalRisk.toFixed(2)} total)`;
+            } else {
+                slRiskEl.textContent = 'Default 1% SL will apply';
+            }
+
+            const targetEl = document.getElementById('conf-target');
+            targetEl.textContent = order.target > 0 ? `₹${order.target.toFixed(2)}` : 'None Configured';
+
+            const targetRewEl = document.getElementById('conf-target-reward');
+            if (order.target > 0) {
+                const perUnitRew = Math.abs(order.target - entryRef);
+                const totalRew = perUnitRew * order.qty;
+                targetRewEl.textContent = `Reward: ₹${perUnitRew.toFixed(2)}/unit (₹${totalRew.toFixed(2)} total)`;
+            } else {
+                targetRewEl.textContent = 'Default 2% Target will apply';
+            }
+
+            document.getElementById('conf-total-val').textContent = `₹${order.est_val.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+            const errBox = document.getElementById('prime-confirm-err');
+            if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+            const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+            }
+
+            document.getElementById('m-prime-confirm').classList.add('open');
+        }
+
+        function closePrimeConfirmModal() {
+            const modal = document.getElementById('m-prime-confirm');
+            if (modal) modal.classList.remove('open');
+            pendingPrimeOrder = null;
+        }
+
+        async function submitPrimeOrderConfirmed() {
+            if (!pendingPrimeOrder) return;
+
+            const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            const errBox = document.getElementById('prime-confirm-err');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '⏳ Transmitting to Broker...';
+            }
+            if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+            try {
+                const res = await fetch('/api/prime-radar/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: pendingPrimeOrder.symbol,
+                        instrument_key: pendingPrimeOrder.instrument_key,
+                        side: pendingPrimeOrder.side,
+                        order_type: pendingPrimeOrder.order_type,
+                        qty: pendingPrimeOrder.qty,
+                        price: pendingPrimeOrder.price || 0.0,
+                        trigger_price: pendingPrimeOrder.trigger_price || 0.0,
+                        sl: pendingPrimeOrder.sl || 0.0,
+                        target: pendingPrimeOrder.target || 0.0,
+                        radar_type: pendingPrimeOrder.radar_type,
+                        product: pendingPrimeOrder.product || 'I',
+                        contract_info: pendingPrimeOrder.contract_info || null
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    closePrimeConfirmModal();
+                    toast(`✅ Order Executed: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (ID: ${data.order_id})`, 'success');
+                    addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)}`, 'exec');
+                    pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed for ${data.symbol} (${data.qty} qty)`, 'trade');
+                    appendEngineLog('TRIGGER', `PrimeRadar [${data.radar_type}] execution confirmed for ${data.symbol} (${data.side} @ ₹${data.price.toFixed(2)})`);
+
+                    if (typeof fetchTrades === 'function') fetchTrades();
+                    if (typeof fetchStatus === 'function') fetchStatus();
+                    if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
+                } else {
+                    const errMsg = data.detail || data.message || 'Order submission was rejected by the broker.';
+                    if (errBox) {
+                        errBox.textContent = `⚠️ Execution Failed: ${errMsg}`;
+                        errBox.style.display = 'block';
+                    }
+                    toast(`Order rejected: ${errMsg}`, 'error');
+                }
+            } catch (err) {
+                console.error("submitPrimeOrderConfirmed network error:", err);
+                if (errBox) {
+                    errBox.textContent = `❌ Network Error: ${err.message}`;
+                    errBox.style.display = 'block';
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+                }
+            }
+        }
+
+        // Global initialization entry point for PrimeRadars
+        async function initPrimeRadars() {
+            // Close autocomplete if clicked outside
+            document.addEventListener('click', (e) => {
+                const searchContainer = document.getElementById('prime-intra-search');
+                const drop = document.getElementById('prime-intra-suggestions');
+                if (drop && searchContainer && !searchContainer.contains(e.target) && !drop.contains(e.target)) {
+                    drop.style.display = 'none';
+                }
+            });
+
+            // Initialize default Intraday stock LTP
+            refreshPrimeIntraLTP();
+
+            // Initialize Options dropdowns and contracts
+            initPrimeOptions();
+        }
+
         // ─── POLLING ENGINE ───────────────────────────────────────────────────────────
         (async function boot() {
             initTheme();
@@ -6571,6 +7787,9 @@
             addTimeline('System Initialized', 'Neural engine successfully connected to API', 'scan');
 
             renderSignalLogBox();
+
+            // Initialize PrimeRadars
+            await initPrimeRadars();
 
             await fetchStatus();
             await fetchTrades();

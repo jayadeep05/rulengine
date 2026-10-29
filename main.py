@@ -12,7 +12,7 @@ from datetime import datetime, time
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 # ── Auth imports ──────────────────────────────────────────────────────────────
 from auth import (
@@ -40,6 +40,7 @@ from sqlalchemy import desc
 from dual_strategy_engine import DualStrategyEngine
 from user_bot_registry import get_or_create_bot, get_bot, reload_bot_credentials, all_bots
 from credential_service import upsert_credentials, credential_field_status, has_credentials
+from instrument_service import instrument_service
 
 # ── v2 Pipeline imports ──────────────────────────────────────────────────────
 from pipeline_layer1 import MorningPreFilter
@@ -2621,6 +2622,72 @@ async def api_emergency(user: dict = Depends(require_auth), db=Depends(get_db)):
 def api_get_symbols(user: dict = Depends(require_auth)):
     return Config.SYMBOLS_MAPPING
 
+@app.get("/api/instruments/stocks/search")
+def api_search_stocks(q: str = "", limit: int = 15, user: dict = Depends(require_auth)):
+    """Autocomplete search for NSE listed equities."""
+    from instrument_service import instrument_service
+    return instrument_service.search_stocks(q, limit=limit)
+
+@app.get("/api/instruments/options/underlyings")
+def api_get_options_underlyings(user: dict = Depends(require_auth)):
+    """Returns available underlying symbols for options trading."""
+    from instrument_service import instrument_service
+    return instrument_service.get_options_underlyings()
+
+@app.get("/api/instruments/options/expiries")
+def api_get_options_expiries(underlying: str, user: dict = Depends(require_auth)):
+    """Returns sorted expiration dates for the selected underlying."""
+    from instrument_service import instrument_service
+    return instrument_service.get_options_expiries(underlying)
+
+@app.get("/api/instruments/options/contracts")
+def api_get_options_contracts(
+    underlying: str,
+    expiry: Optional[int] = None,
+    type: Optional[str] = None,
+    user: dict = Depends(require_auth)
+):
+    """Returns sorted options contracts for underlying, expiry, and CE/PE."""
+    from instrument_service import instrument_service
+    return instrument_service.get_options_contracts(underlying, expiry=expiry, option_type=type)
+
+@app.get("/api/market/ltp")
+def api_get_market_ltp(
+    instrument_key: str,
+    symbol: Optional[str] = None,
+    user: dict = Depends(require_auth)
+):
+    """Fetches real-time market price (LTP) from shared streaming prices or broker quote API."""
+    # 1. Check live feed cache
+    if symbol and symbol in _shared_prices and float(_shared_prices[symbol]) > 0:
+        return {"ltp": float(_shared_prices[symbol]), "source": "feed"}
+    if instrument_key in _shared_prices and float(_shared_prices[instrument_key]) > 0:
+        return {"ltp": float(_shared_prices[instrument_key]), "source": "feed"}
+    
+    # 2. Check colon vs pipe format in live feed
+    alt_key = instrument_key.replace('|', ':') if '|' in instrument_key else instrument_key.replace(':', '|')
+    if alt_key in _shared_prices and float(_shared_prices[alt_key]) > 0:
+        return {"ltp": float(_shared_prices[alt_key]), "source": "feed"}
+
+    # 3. Query Upstox quotes API via user's execution engine
+    uid = user["uid"]
+    bot = get_bot(uid)
+    if bot:
+        try:
+            live_ltp = bot.engine.get_ltp(instrument_key)
+            if live_ltp > 0:
+                return {"ltp": float(live_ltp), "source": "broker_quote"}
+        except Exception as e:
+            logger.warning(f"Error fetching quote for {instrument_key}: {e}")
+
+    # 4. Fallback from Config.SYMBOLS_MAPPING
+    if symbol and symbol in Config.SYMBOLS_MAPPING:
+        token = Config.SYMBOLS_MAPPING[symbol]
+        if token in _shared_prices and float(_shared_prices[token]) > 0:
+            return {"ltp": float(_shared_prices[token]), "source": "feed"}
+
+    return {"ltp": 0.0, "source": "unavailable"}
+
 @app.post("/api/auth/refresh-upstox")
 def api_refresh_upstox_token(user: dict = Depends(require_auth), db=Depends(get_db)):
     """Generates a fresh Upstox access token using TOTP and applies it immediately."""
@@ -2842,6 +2909,193 @@ async def api_manual_trade(
         return {"status": "success", "order_id": order_id, "symbol": body.symbol, "side": side, "qty": qty, "price": entry_price}
     else:
         reason = res.get("reason", "Order rejected by broker.")
+        raise HTTPException(status_code=400, detail=f"Order rejected: {reason}")
+
+class PrimeRadarTradeRequest(BaseModel):
+    symbol: str
+    instrument_key: str
+    side: str  # BUY or SELL
+    order_type: str  # LIMIT or SL-M
+    qty: int
+    price: float = 0.0  # Limit Price (for LIMIT)
+    trigger_price: float = 0.0  # SL Trigger Price (for SL-M)
+    sl: float = 0.0  # Stop-Loss Price
+    target: float = 0.0  # Target Price
+    radar_type: str = "INTRADAY"  # "INTRADAY" or "OPTIONS"
+    product: str = "I"  # "I" for Intraday (MIS)
+    contract_info: Optional[Dict[str, Any]] = None
+
+@app.post("/api/prime-radar/execute")
+async def api_prime_radar_execute(
+    body: PrimeRadarTradeRequest,
+    user: dict = Depends(require_auth),
+    db=Depends(get_db)
+):
+    """Executes validated orders from PrimeRadar – Intraday or PrimeRadar – Options."""
+    uid = user["uid"]
+    bot = get_or_create_bot(uid, db)
+
+    # 1. Side & Order Type validation
+    side = body.side.upper()
+    if side not in ("BUY", "SELL"):
+        raise HTTPException(status_code=400, detail=f"Invalid side '{body.side}'. Must be BUY or SELL.")
+
+    order_type = body.order_type.upper()
+    if order_type not in ("LIMIT", "SL-M"):
+        raise HTTPException(status_code=400, detail=f"Invalid order type '{body.order_type}'. Must be LIMIT or SL-M.")
+
+    # 2. Quantity & Lot size validation
+    if body.qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be greater than 0.")
+
+    lot_size = 1
+    if body.contract_info and "lot_size" in body.contract_info:
+        try:
+            lot_size = int(body.contract_info["lot_size"])
+        except (ValueError, TypeError):
+            lot_size = 1
+    elif body.radar_type == "OPTIONS":
+        inst = instrument_service.get_instrument_by_key(body.instrument_key)
+        if inst and "lot_size" in inst:
+            lot_size = int(inst["lot_size"])
+
+    if lot_size > 1 and body.qty % lot_size != 0:
+        raise HTTPException(status_code=400, detail=f"Options quantity ({body.qty}) must be a multiple of lot size ({lot_size}).")
+
+    # 3. Price & Trigger validation
+    if order_type == "LIMIT":
+        if body.price <= 0:
+            raise HTTPException(status_code=400, detail="Limit Price must be greater than 0 for LIMIT orders.")
+        if side == "BUY":
+            if body.sl > 0 and body.sl >= body.price:
+                raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Limit Price.")
+            if body.target > 0 and body.target <= body.price:
+                raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Limit Price.")
+        elif side == "SELL":
+            if body.sl > 0 and body.sl <= body.price:
+                raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Limit Price.")
+            if body.target > 0 and body.target >= body.price:
+                raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Limit Price.")
+
+    elif order_type == "SL-M":
+        if body.trigger_price <= 0:
+            raise HTTPException(status_code=400, detail="SL Trigger Price must be greater than 0 for SL-M orders.")
+        if side == "BUY":
+            if body.sl > 0 and body.sl >= body.trigger_price:
+                raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Trigger Price.")
+            if body.target > 0 and body.target <= body.trigger_price:
+                raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Trigger Price.")
+        elif side == "SELL":
+            if body.sl > 0 and body.sl <= body.trigger_price:
+                raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Trigger Price.")
+            if body.target > 0 and body.target >= body.trigger_price:
+                raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Trigger Price.")
+
+    # 4. Check max open trades limit
+    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 5)
+    if len(bot.tm.active_trades) >= max_open:
+        raise HTTPException(status_code=400, detail=f"Order rejected: Max open trades limit ({max_open}) reached.")
+
+    # 5. Resolve Live LTP
+    live_ltp = 0.0
+    if body.symbol in _shared_prices:
+        live_ltp = float(_shared_prices[body.symbol])
+    elif body.instrument_key in _shared_prices:
+        live_ltp = float(_shared_prices[body.instrument_key])
+
+    if live_ltp <= 0:
+        try:
+            live_ltp = float(bot.engine.get_ltp(body.instrument_key))
+        except Exception:
+            pass
+
+    if live_ltp <= 0:
+        live_ltp = body.price if (order_type == "LIMIT" and body.price > 0) else (body.trigger_price if body.trigger_price > 0 else 0.0)
+
+    if live_ltp <= 0 and not bot.engine.is_paper:
+        raise HTTPException(status_code=400, detail=f"Unable to retrieve verified market quote for {body.symbol}.")
+
+    if live_ltp <= 0:
+        live_ltp = 100.0  # Fallback for paper testing when market is offline
+
+    # 6. Execute Order via Broker Engine
+    logger.info(
+        f"[USER {uid}] PrimeRadar ({body.radar_type}): Submitting {side} {order_type} for "
+        f"{body.symbol} ({body.qty} qty) Price: {body.price}, Trigger: {body.trigger_price}"
+    )
+
+    res = bot.engine.place_order_with_retry(
+        symbol=body.instrument_key,
+        side=side,
+        qty=body.qty,
+        order_type=order_type,
+        price=body.price,
+        trigger_price=body.trigger_price,
+        product=body.product
+    )
+
+    order_status = res.get("status", "success")
+    order_id = res.get("order_id") or f"PRIME_{int(_time.time()*1000)}"
+
+    if order_status in ("success", "COMPLETE", "pending"):
+        entry_price = float(res.get("average_price") or (body.price if order_type == "LIMIT" else (body.trigger_price or live_ltp)))
+        if entry_price <= 0:
+            entry_price = round(live_ltp, 2)
+
+        # Fallback SL & Target if omitted
+        sl = body.sl
+        target = body.target
+        if sl <= 0:
+            sl_pct = 0.01
+            sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+        if target <= 0:
+            target_pct = 0.02
+            target = round(entry_price * (1.0 - target_pct) if side == "SELL" else entry_price * (1.0 + target_pct), 2)
+
+        bot.tm.add_trade(
+            symbol=body.symbol,
+            side=side,
+            entry_price=entry_price,
+            qty=body.qty,
+            sl=sl,
+            target=target,
+            probability=0.85,
+            score=88,
+            metadata={
+                "prime_radar": True,
+                "radar_type": body.radar_type,
+                "order_type": order_type,
+                "limit_price": body.price,
+                "trigger_price": body.trigger_price,
+                "paper_trade": bot.engine.is_paper,
+                "instrument_token": body.instrument_key,
+                "contract_info": body.contract_info or {}
+            }
+        )
+        if bot.tm.active_trades:
+            bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
+
+        trade_msg = (
+            f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "
+            f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f})"
+        )
+        send_alert(uid, trade_msg)
+
+        return {
+            "status": "success",
+            "order_id": order_id,
+            "symbol": body.symbol,
+            "side": side,
+            "qty": body.qty,
+            "price": entry_price,
+            "sl": sl,
+            "target": target,
+            "order_type": order_type,
+            "radar_type": body.radar_type
+        }
+    else:
+        reason = res.get("reason", "Order rejected by broker.")
+        logger.error(f"[USER {uid}] PrimeRadar order rejected: {reason}")
         raise HTTPException(status_code=400, detail=f"Order rejected: {reason}")
 
 class ManualSLUpdate(BaseModel):

@@ -338,13 +338,23 @@ class UpstoxExecutionEngine:
             logger.error(f"Error fetching order book for verification: {e}")
         return {"status": "error", "reason": "Matching order not found in book"}
 
-    def place_order_with_retry(self, symbol: str, side: str, qty: int, order_type: str = 'MARKET', price: float = 0.0, max_retries: int = 1) -> dict:
+    def place_order_with_retry(
+        self,
+        symbol: str,
+        side: str,
+        qty: int,
+        order_type: str = 'MARKET',
+        price: float = 0.0,
+        trigger_price: float = 0.0,
+        product: str = 'I',
+        max_retries: int = 1
+    ) -> dict:
         """Place order with retry logic and ghost position protection (Bug Fix 1 & 2)."""
         transaction_type = "BUY" if side.upper() == "BUY" else "SELL"
         
         payload = {
             "quantity":          qty,
-            "product":           "I",          # I = Intraday (MIS)
+            "product":           product,      # I = Intraday (MIS), D = Delivery
             "validity":          "DAY",
             "price":             price,
             "tag":               "intBot",
@@ -352,7 +362,7 @@ class UpstoxExecutionEngine:
             "order_type":        order_type,   # MARKET / LIMIT / SL / SL-M
             "transaction_type":  transaction_type,
             "disclosed_quantity": 0,
-            "trigger_price":     0,
+            "trigger_price":     trigger_price,
             "is_amo":            False,
             "slice":             False,
             # market_protection: -1 = auto (per Upstox V3 docs)
@@ -364,15 +374,16 @@ class UpstoxExecutionEngine:
         last_order_id = None  # Track any order_id we get back for verification
         
         while retries <= max_retries:
-            logger.info(f"[{'PAPER' if self.is_paper else self.mode}] API Call: Place {side} {order_type} for {symbol}, Qty: {qty}. Attempt {retries + 1}")
+            logger.info(f"[{'PAPER' if self.is_paper else self.mode}] API Call: Place {side} {order_type} for {symbol}, Qty: {qty}, Price: {price}, Trigger: {trigger_price}. Attempt {retries + 1}")
             
             if self.is_paper:
-                logger.info(f"PAPER MODE ACTIVE: Simulated successful {side} execution for {symbol}. Zero broker network calls made.")
+                sim_price = price if (order_type == 'LIMIT' and price > 0) else (trigger_price if (order_type == 'SL-M' and trigger_price > 0) else (price or 0.0))
+                logger.info(f"PAPER MODE ACTIVE: Simulated successful {side} execution for {symbol} @ {sim_price}. Zero broker network calls made.")
                 return {
                     "status": "success",
                     "order_id": f"paper_ord_{symbol}_{side}_{retries}_{int(_time.time()*1000)}",
                     "filled_quantity": qty,
-                    "average_price": price or 0.0,
+                    "average_price": sim_price,
                     "paper_trade": True
                 }
             
@@ -815,10 +826,26 @@ class PaperExecutionEngine(UpstoxExecutionEngine):
     def get_funds(self, force_live: bool = False) -> float:
         return float(self._virtual_balance)
 
-    def place_order_with_retry(self, symbol: str, side: str, qty: int, order_type: str = 'MARKET', price: float = 0.0, max_retries: int = 1) -> dict:
+    def place_order_with_retry(
+        self,
+        symbol: str,
+        side: str,
+        qty: int,
+        order_type: str = 'MARKET',
+        price: float = 0.0,
+        trigger_price: float = 0.0,
+        product: str = 'I',
+        max_retries: int = 1
+    ) -> dict:
         import time as _t
         order_id = f"paper_ord_{symbol}_{side}_{int(_t.time()*1000)}"
-        avg_price = float(price or self.get_ltp(symbol) or 100.0)
+        if order_type == 'LIMIT' and price > 0:
+            avg_price = float(price)
+        elif order_type == 'SL-M' and trigger_price > 0:
+            avg_price = float(trigger_price)
+        else:
+            avg_price = float(price or self.get_ltp(symbol) or 100.0)
+            
         record = {
             "order_id": order_id,
             "symbol": symbol,
@@ -826,6 +853,8 @@ class PaperExecutionEngine(UpstoxExecutionEngine):
             "quantity": int(qty),
             "price": avg_price,
             "order_type": order_type,
+            "trigger_price": trigger_price,
+            "product": product,
             "status": "complete",
             "filled_quantity": int(qty),
             "average_price": avg_price,
@@ -833,7 +862,7 @@ class PaperExecutionEngine(UpstoxExecutionEngine):
             "paper_trade": True
         }
         self._virtual_orders.append(record)
-        logger.info(f"[PaperExecutionEngine] Placed virtual order {order_id}: {side} {qty} {symbol} @ {avg_price:.2f}")
+        logger.info(f"[PaperExecutionEngine] Placed virtual order {order_id}: {side} {qty} {symbol} ({order_type}) @ {avg_price:.2f}")
         return {
             "status": "success",
             "order_id": order_id,

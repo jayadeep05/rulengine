@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Intraday Trading Terminal</title>
     <!-- Auth: must be first, intercepts all fetch() -->
-    <script src="auth-client.js"></script>
-    <script src="android-adapter.js"></script>
+    <script src="/static/auth-client.js"></script>
     <script>
         (function() {
             const saved = localStorage.getItem('theme') || 'light';
@@ -18,7 +17,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="mobile-glass.css">
+    <link rel="stylesheet" href="/static/mobile-glass.css">
     <style>
         :root, [data-theme="dark"] {
             --bg-base: #060913;
@@ -331,6 +330,133 @@
             border-color: var(--card-hover-border);
             box-shadow: 0 10px 28px rgba(255, 107, 0, 0.16);
             transform: translateY(-2px);
+        }
+
+        /* ── PRIMERADAR STYLES ── */
+        .prime-radar-card {
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.25s ease;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+        .prime-radar-card.intraday-theme {
+            background: linear-gradient(180deg, rgba(8, 22, 44, 0.95) 0%, rgba(5, 12, 28, 0.95) 100%);
+            border: 1.5px solid rgba(2, 132, 199, 0.45);
+        }
+        .prime-radar-card.options-theme {
+            background: linear-gradient(180deg, rgba(22, 14, 44, 0.95) 0%, rgba(12, 7, 28, 0.95) 100%);
+            border: 1.5px solid rgba(139, 92, 246, 0.45);
+        }
+        .prime-radar-card:hover {
+            transform: translateY(-2px);
+        }
+        .prime-radar-card.intraday-theme:hover {
+            box-shadow: 0 10px 28px rgba(2, 132, 199, 0.25);
+            border-color: rgba(2, 132, 199, 0.7);
+        }
+        .prime-radar-card.options-theme:hover {
+            box-shadow: 0 10px 28px rgba(139, 92, 246, 0.25);
+            border-color: rgba(139, 92, 246, 0.7);
+        }
+        .prime-field-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .prime-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--input-text);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        .prime-input:focus {
+            border-color: #ff6b00;
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        }
+        .prime-toggle-group {
+            display: flex;
+            background: var(--sub-box-bg);
+            border: 1px solid var(--sub-box-border);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .prime-toggle-btn {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .prime-toggle-btn.active.buy {
+            background: #16a34a !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.sell {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.type {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: var(--text) !important;
+        }
+        .prime-toggle-btn.active.ce {
+            background: #16a34a !important;
+            color: #ffffff !important;
+        }
+        .prime-toggle-btn.active.pe {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+        }
+        .prime-suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(10, 16, 32, 0.98);
+            border: 1px solid rgba(2, 132, 199, 0.4);
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.85);
+            margin-top: 4px;
+            display: none;
+        }
+        .prime-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            transition: background 0.15s ease;
+        }
+        .prime-suggestion-item:hover {
+            background: rgba(2, 132, 199, 0.25);
         }
 
         [data-theme="light"] .scan-card {
@@ -3716,7 +3842,7 @@
         <div class="header-left">
             <div class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="QuantEdge Autonomous Algo Terminal">
                 <div class="brand-icon-wrapper">
-                    <img src="logo.svg" alt="QuantEdge Logo" class="brand-logo-img" />
+                    <img src="/static/logo.svg" alt="QuantEdge Logo" class="brand-logo-img" />
                 </div>
                 <div class="brand-text-group">
                     <div class="brand-name">Quant<span class="brand-accent">Edge</span></div>
@@ -3974,7 +4100,7 @@
                         <div class="intel-pills" style="display: flex; align-items: center; gap: 8px; font-size: 11px; margin-top: 4px;">
                             <span style="color: var(--muted);">Universe: <strong style="color: var(--text);">92 Filtered</strong></span>
                             <span style="color: var(--border-light);">•</span>
-                            <span style="color: var(--muted);">Watchlist: <strong style="color: #ff6b00;">9 Momentum</strong></span>
+                            <span style="color: var(--muted);">Watchlist: <strong id="radar-watchlist-count" style="color: #ff6b00;">9 Momentum</strong></span>
                             <span style="color: var(--border-light);">•</span>
                             <span style="color: var(--muted);">Scanner: <strong style="color: #0284c7;">ORB & Breakout</strong></span>
                             <span style="color: var(--border-light);">•</span>
@@ -4001,9 +4127,214 @@
                 </div>
             </div>
             <div class="scanner-grid" id="scanner-grid" style="padding: 16px 20px; gap: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
-                <div class="scan-card" style="grid-column: 1 / -1; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 16px;">
-                    <div style="font-size: 15px; font-weight: 800; color: var(--text);">Scanning 92 Nifty Stocks</div>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Loading candidate setups...</div>
+                <!-- GRID 1: PRIMERADAR – INTRADAY -->
+                <div class="prime-radar-card intraday-theme" id="card-prime-intraday">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; font-weight: 800; color: #38bdf8; background: rgba(2, 132, 199, 0.2); border: 1px solid rgba(2, 132, 199, 0.45); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.3px;">
+                                ⚡ #1 PRIME RADAR • INTRADAY
+                            </span>
+                        </div>
+                        <span class="badge" style="font-size: 9px; font-weight: 800; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 6px;">
+                            ● ACTIVE RADAR
+                        </span>
+                    </div>
+
+                    <!-- Stock Autocomplete Search -->
+                    <div style="position: relative;">
+                        <div class="prime-field-label">
+                            <span>Search NSE Stock</span>
+                            <span style="font-size: 9px; color: #38bdf8; font-weight: 600;">2,381 Equities</span>
+                        </div>
+                        <div style="position: relative;">
+                            <input type="text" id="prime-intra-search" class="prime-input" placeholder="🔎 Type symbol or company (e.g. RELIANCE, TCS)..." autocomplete="off" oninput="onPrimeIntraSearchInput(this.value)">
+                            <div id="prime-intra-suggestions" class="prime-suggestions-dropdown"></div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Stock Details & Live Price -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(2, 132, 199, 0.25);">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; padding-right: 8px;">
+                            <span id="prime-intra-sym-display" style="font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px;">RELIANCE</span>
+                            <span id="prime-intra-name-display" style="font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">RELIANCE INDUSTRIES LTD</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; text-align: right; flex-shrink: 0;">
+                            <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Live Price (LTP)</span>
+                            <span id="prime-intra-ltp-val" style="font-size: 14px; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Side & Type Toggles -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Action Side</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-intra-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeIntraSide('BUY')">BUY</button>
+                                <button type="button" id="prime-intra-side-sell" class="prime-toggle-btn" onclick="setPrimeIntraSide('SELL')">SELL</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Order Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-intra-type-limit" class="prime-toggle-btn active type" onclick="setPrimeIntraType('LIMIT')">LIMIT</button>
+                                <button type="button" id="prime-intra-type-slm" class="prime-toggle-btn" onclick="setPrimeIntraType('SL-M')">SL-M</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Configuration Grid -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Quantity</div>
+                            <input type="number" id="prime-intra-qty" class="prime-input" min="1" value="1" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div id="prime-intra-limit-box">
+                            <div class="prime-field-label">Limit Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-price" class="prime-input" placeholder="0.00" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div id="prime-intra-trigger-box" style="display: none;">
+                            <div class="prime-field-label">Trigger Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-trigger" class="prime-input" placeholder="0.00" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Stop-Loss (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-sl" class="prime-input" placeholder="SL Price" oninput="validatePrimeIntraForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Target (₹)</div>
+                            <input type="number" step="0.05" id="prime-intra-target" class="prime-input" placeholder="Target Price" oninput="validatePrimeIntraForm()">
+                        </div>
+                    </div>
+
+                    <!-- Error Notice (Hidden by default) -->
+                    <div id="prime-intra-err" style="display: none; font-size: 10px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 6px;"></div>
+
+                    <!-- Review & Execution Action -->
+                    <button class="btn-primary" onclick="reviewPrimeIntraOrder()" style="padding: 8px 12px; font-size: 11px; font-weight: 800; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; cursor: pointer; border: none; margin-top: 2px;">
+                        ⚡ Review & Execute Intraday Order
+                    </button>
+                </div>
+
+                <!-- GRID 2: PRIMERADAR – OPTIONS -->
+                <div class="prime-radar-card options-theme" id="card-prime-options">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; font-weight: 800; color: #c084fc; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.45); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.3px;">
+                                🎯 #2 PRIME RADAR • OPTIONS
+                            </span>
+                        </div>
+                        <span class="badge" style="font-size: 9px; font-weight: 800; background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); padding: 2px 7px; border-radius: 6px;">
+                            ● F&O CONTRACTS
+                        </span>
+                    </div>
+
+                    <!-- Options Selector Controls -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Underlying</div>
+                            <select id="prime-opt-underlying" class="prime-input" onchange="onPrimeOptUnderlyingChange(this.value)">
+                                <option value="NIFTY">NIFTY</option>
+                                <option value="BANKNIFTY">BANKNIFTY</option>
+                                <option value="FINNIFTY">FINNIFTY</option>
+                                <option value="MIDCPNIFTY">MIDCPNIFTY</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Expiry Date</div>
+                            <select id="prime-opt-expiry" class="prime-input" onchange="onPrimeOptExpiryChange(this.value)">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Option Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-ce" class="prime-toggle-btn active ce" onclick="setPrimeOptCePe('CE')">📈 CE (Call)</button>
+                                <button type="button" id="prime-opt-pe" class="prime-toggle-btn" onclick="setPrimeOptCePe('PE')">📉 PE (Put)</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Strike Price</div>
+                            <select id="prime-opt-strike" class="prime-input" onchange="onPrimeOptStrikeChange(this.value)">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Selected Contract Banner & Live LTP -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.25);">
+                        <div style="display: flex; flex-direction: column; overflow: hidden; padding-right: 8px;">
+                            <span id="prime-opt-sym-display" style="font-size: 13px; font-weight: 800; color: var(--text); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 175px;">Select Contract</span>
+                            <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                                <span id="prime-opt-lotsize-display" style="font-size: 9px; font-weight: 700; color: #c084fc; background: rgba(139, 92, 246, 0.15); padding: 1px 5px; border-radius: 4px;">Lot: 1</span>
+                                <span id="prime-opt-total-qty" style="font-size: 9px; color: var(--muted); font-weight: 600;">Qty: 1</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; text-align: right; flex-shrink: 0;">
+                            <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;">Option LTP</span>
+                            <span id="prime-opt-ltp-val" style="font-size: 14px; font-weight: 800; color: #c084fc; font-family: 'JetBrains Mono', monospace;">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Order Side & Type Toggles -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Action Side</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeOptSide('BUY')">BUY</button>
+                                <button type="button" id="prime-opt-side-sell" class="prime-toggle-btn" onclick="setPrimeOptSide('SELL')">SELL</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Order Type</div>
+                            <div class="prime-toggle-group">
+                                <button type="button" id="prime-opt-type-limit" class="prime-toggle-btn active type" onclick="setPrimeOptType('LIMIT')">LIMIT</button>
+                                <button type="button" id="prime-opt-type-slm" class="prime-toggle-btn" onclick="setPrimeOptType('SL-M')">SL-M</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options Order Configuration Inputs -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div>
+                            <div class="prime-field-label">Lots</div>
+                            <input type="number" id="prime-opt-lots" class="prime-input" min="1" value="1" oninput="updatePrimeOptTotalQty()">
+                        </div>
+                        <div id="prime-opt-limit-box">
+                            <div class="prime-field-label">Limit Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-price" class="prime-input" placeholder="0.00" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div id="prime-opt-trigger-box" style="display: none;">
+                            <div class="prime-field-label">Trigger Price (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-trigger" class="prime-input" placeholder="0.00" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Stop-Loss (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-sl" class="prime-input" placeholder="SL Price" oninput="validatePrimeOptForm()">
+                        </div>
+                        <div>
+                            <div class="prime-field-label">Target (₹)</div>
+                            <input type="number" step="0.05" id="prime-opt-target" class="prime-input" placeholder="Target Price" oninput="validatePrimeOptForm()">
+                        </div>
+                    </div>
+
+                    <!-- Error Notice (Hidden by default) -->
+                    <div id="prime-opt-err" style="display: none; font-size: 10px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; border-radius: 6px;"></div>
+
+                    <!-- Review & Execution Action -->
+                    <button class="btn-primary" onclick="reviewPrimeOptOrder()" style="padding: 8px 12px; font-size: 11px; font-weight: 800; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; cursor: pointer; border: none; margin-top: 2px;">
+                        🎯 Review & Execute Options Order
+                    </button>
+                </div>
+
+                <!-- GRID 3 ONWARDS: AUTOMATICALLY CALCULATED RADAR CANDIDATES -->
+                <div id="auto-radars-container" style="display: contents;">
+                    <div class="scan-card" style="padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 16px;">
+                        <div style="font-size: 15px; font-weight: 800; color: var(--text);">Scanning 92 Nifty Stocks</div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Loading candidate setups...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4254,6 +4585,78 @@
     </div>
 
     <!-- ══════════════ MODALS ══════════════ -->
+
+    <!-- PRIMERADAR EXPLICIT ORDER CONFIRMATION MODAL -->
+    <div class="modal" id="m-prime-confirm">
+        <div class="modal-box" style="width: 500px; border-radius: 20px; box-shadow: var(--shadow-md);">
+            <div class="modal-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;" id="prime-confirm-icon">🛡️</span>
+                    <div>
+                        <div id="prime-confirm-title" style="font-weight: 800; font-size: 15px; color: var(--text);">Confirm PrimeRadar Order</div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 1px;">Review parameters before sending to broker</div>
+                    </div>
+                </div>
+                <button class="btn-close-modal" onclick="closePrimeConfirmModal()" style="background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px; font-size: 12px; display: flex; flex-direction: column; gap: 14px;">
+                <!-- Instrument Summary Header -->
+                <div style="background: var(--sub-box-bg); padding: 12px 14px; border-radius: 12px; border: 1px solid var(--sub-box-border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div id="conf-sym" style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">--</div>
+                        <div id="conf-desc" style="font-size: 11px; color: var(--muted); margin-top: 2px;">--</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span id="conf-side-badge" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px;">BUY</span>
+                        <div id="conf-type-badge" style="font-size: 10px; font-weight: 700; color: var(--muted); margin-top: 3px;">LIMIT</div>
+                    </div>
+                </div>
+
+                <!-- Parameters Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Order Quantity</div>
+                        <div id="conf-qty" style="font-size: 15px; font-weight: 800; color: var(--text); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">--</div>
+                        <div id="conf-lots-info" style="font-size: 10px; color: var(--muted); margin-top: 2px;">--</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Execution / Limit Price</div>
+                        <div id="conf-price" style="font-size: 15px; font-weight: 800; color: #ff6b00; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-trigger-info" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Trigger: ₹--</div>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: #ef4444; font-weight: 700; text-transform: uppercase;">Stop-Loss (SL)</div>
+                        <div id="conf-sl" style="font-size: 15px; font-weight: 800; color: #ef4444; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-sl-risk" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Risk: --</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.2); padding: 10px 12px; border-radius: 10px;">
+                        <div style="font-size: 10px; color: #10b981; font-weight: 700; text-transform: uppercase;">Target Price</div>
+                        <div id="conf-target" style="font-size: 15px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 2px;">₹--</div>
+                        <div id="conf-target-reward" style="font-size: 10px; color: var(--muted); margin-top: 2px;">Reward: --</div>
+                    </div>
+                </div>
+
+                <!-- Total Value & Notice -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255, 107, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.25); border-radius: 10px;">
+                    <div>
+                        <div style="font-size: 10px; font-weight: 700; color: #ff8533; text-transform: uppercase;">Estimated Outlay / Value</div>
+                        <div style="font-size: 11px; color: var(--muted);">Subject to broker margin requirements</div>
+                    </div>
+                    <div id="conf-total-val" style="font-size: 16px; font-weight: 800; color: #ff8533; font-family: 'JetBrains Mono', monospace;">₹0.00</div>
+                </div>
+
+                <div id="prime-confirm-err" style="display: none; font-size: 11px; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 8px 12px; border-radius: 8px;"></div>
+            </div>
+            <div class="modal-foot" style="border-top: 1px solid var(--border); padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-outline" onclick="closePrimeConfirmModal()" style="padding: 8px 16px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                    Modify Order
+                </button>
+                <button id="btn-prime-confirm-submit" class="btn-primary" onclick="submitPrimeOrderConfirmed()" style="padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; background: #16a34a; color: #fff; cursor: pointer; border: none;">
+                    🚀 Confirm & Submit Order
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- CANDIDATE SETUP DETAIL MODAL -->
     <div class="modal" id="m-candidate-detail">
@@ -4706,9 +5109,9 @@
                 }
 
                 const trades = state.trades_taken || 0;
-                const maxT = state.max_trades || 5;
+                const maxT = state.max_trades || (config && config.MAX_TRADES_PER_DAY) || 5;
                 document.getElementById('v-trades').textContent = `${trades} / ${maxT}`;
-                document.getElementById('v-trades-sub').textContent = `${maxT - trades} Trades remaining`;
+                document.getElementById('v-trades-sub').textContent = `${Math.max(0, maxT - trades)} Trades remaining`;
 
                 const mc = state.market_condition || 'WAITING';
                 const nifty = state.indices ? state.indices["NSE_INDEX|Nifty 50"] : 0;
@@ -4927,8 +5330,11 @@
                 const prices = await res.json();
                 window._latestPrices = prices;
 
-                // Update scanner price tickers
+                // Update scanner price tickers & candidateMeta cache
                 for (const sym in prices) {
+                    if (candidateMeta[sym]) {
+                        candidateMeta[sym].ltp = prices[sym];
+                    }
                     const el = document.getElementById(`scan-ltp-${sym}`);
                     if (el) {
                         const prev = parseFloat(el.getAttribute('data-prev') || prices[sym]);
@@ -4945,6 +5351,24 @@
                         activeP.setAttribute('data-prev', prices[sym]);
                         if (prices[sym] > prev) { activeP.style.color = 'var(--green)'; }
                         else if (prices[sym] < prev) { activeP.style.color = 'var(--red)'; }
+                // Also update PrimeRadar active prices if available in feed
+                if (typeof primeIntraState !== 'undefined' && primeIntraState.symbol) {
+                    const sym = primeIntraState.symbol;
+                    const ltp = prices[sym] || (primeIntraState.instrument_key && prices[primeIntraState.instrument_key]);
+                    if (ltp && parseFloat(ltp) > 0) {
+                        primeIntraState.ltp = parseFloat(ltp);
+                        const el = document.getElementById('prime-intra-ltp-val');
+                        if (el) el.textContent = `₹${parseFloat(ltp).toFixed(2)}`;
+                    }
+                }
+                if (typeof primeOptState !== 'undefined' && primeOptState.selectedContract) {
+                    const cKey = primeOptState.selectedContract.instrument_key;
+                    const cSym = primeOptState.selectedContract.trading_symbol;
+                    const optLtp = prices[cKey] || prices[cSym];
+                    if (optLtp && parseFloat(optLtp) > 0) {
+                        primeOptState.ltp = parseFloat(optLtp);
+                        const el = document.getElementById('prime-opt-ltp-val');
+                        if (el) el.textContent = `₹${parseFloat(optLtp).toFixed(2)}`;
                     }
                 }
             } catch (e) { }
@@ -4956,15 +5380,21 @@
         let radarBiasFilter = 'ALL';
 
         const candidateMeta = {
-            'INDUSINDBK': { trigger: '< ₹1,388.00', score: 88, vol: '2.1x', bias: 'SHORT', ltp: 1385.20, sl: 1396.00, target: 1362.00, sector: 'Banking & Financials' },
-            'NTPC': { trigger: '< ₹414.00', score: 86, vol: '1.9x', bias: 'SHORT', ltp: 412.50, sl: 417.00, target: 403.00, sector: 'Power & Utilities' },
-            'COALINDIA': { trigger: '< ₹487.50', score: 84, vol: '1.7x', bias: 'SHORT', ltp: 485.60, sl: 491.00, target: 474.00, sector: 'Metals & Mining' },
-            'TECHM': { trigger: '< ₹1,628.00', score: 82, vol: '1.6x', bias: 'SHORT', ltp: 1622.00, sl: 1638.00, target: 1590.00, sector: 'IT Services' },
-            'DMART': { trigger: '< ₹4,720.00', score: 80, vol: '1.5x', bias: 'SHORT', ltp: 4710.00, sl: 4755.00, target: 4620.00, sector: 'Retail & Consumer' },
+            'CANBK': { trigger: '> ₹122.50', score: 80, vol: '2.26x', bias: 'LONG', ltp: 121.83, sl: 120.60, target: 124.20, sector: 'Public Sector Banking' },
+            'ICICIBANK': { trigger: '< ₹1,380.00', score: 78, vol: '2.1x', bias: 'SHORT', ltp: 1383.70, sl: 1397.00, target: 1356.00, sector: 'Private Banking' },
+            'HDFCBANK': { trigger: '< ₹710.00', score: 76, vol: '1.9x', bias: 'SHORT', ltp: 712.65, sl: 719.50, target: 698.00, sector: 'Private Banking' },
+            'INDUSINDBK': { trigger: '< ₹866.00', score: 88, vol: '2.1x', bias: 'SHORT', ltp: 868.90, sl: 877.00, target: 851.00, sector: 'Banking & Financials' },
+            'NTPC': { trigger: '< ₹311.50', score: 86, vol: '1.9x', bias: 'SHORT', ltp: 312.90, sl: 316.00, target: 306.00, sector: 'Power & Utilities' },
+            'COALINDIA': { trigger: '< ₹414.00', score: 84, vol: '1.7x', bias: 'SHORT', ltp: 415.55, sl: 419.50, target: 407.00, sector: 'Metals & Mining' },
+            'TECHM': { trigger: '< ₹1,768.00', score: 82, vol: '1.6x', bias: 'SHORT', ltp: 1775.30, sl: 1792.00, target: 1738.00, sector: 'IT Services' },
+            'DMART': { trigger: '< ₹3,310.00', score: 80, vol: '1.5x', bias: 'SHORT', ltp: 3324.30, sl: 3357.00, target: 3257.00, sector: 'Retail & Consumer' },
+            'YESBANK': { trigger: '< ₹17.15', score: 85, vol: '2.4x', bias: 'SHORT', ltp: 17.28, sl: 17.45, target: 16.90, sector: 'Banking' },
             'APOLLOHOSP': { trigger: '< ₹6,850.00', score: 79, vol: '1.4x', bias: 'SHORT', ltp: 6835.00, sl: 6905.00, target: 6690.00, sector: 'Healthcare' },
-            'YESBANK': { trigger: '> ₹23.60', score: 85, vol: '2.4x', bias: 'LONG', ltp: 23.40, sl: 22.80, target: 24.80, sector: 'Banking' },
             'OLAELEC': { trigger: '< ₹74.50', score: 78, vol: '1.8x', bias: 'SHORT', ltp: 73.80, sl: 76.00, target: 69.50, sector: 'EV & Auto' },
-            'PFC': { trigger: '> ₹495.00', score: 83, vol: '1.9x', bias: 'LONG', ltp: 492.30, sl: 486.00, target: 508.00, sector: 'Financial Services' }
+            'PFC': { trigger: '> ₹495.00', score: 83, vol: '1.9x', bias: 'LONG', ltp: 492.30, sl: 486.00, target: 508.00, sector: 'Financial Services' },
+            'PNB': { trigger: '> ₹123.00', score: 84, vol: '2.0x', bias: 'LONG', ltp: 122.08, sl: 120.80, target: 124.50, sector: 'Banking & Financials' },
+            'PERSISTENT': { trigger: '> ₹5,800.00', score: 86, vol: '1.9x', bias: 'LONG', ltp: 5773.50, sl: 5715.00, target: 5890.00, sector: 'IT Services' },
+            'RELIANCE': { trigger: '> ₹1,225.00', score: 85, vol: '2.0x', bias: 'LONG', ltp: 1219.00, sl: 1206.00, target: 1245.00, sector: 'Energy & Conglomerate' }
         };
 
         function setRadarFilter(filter) {
@@ -5033,11 +5463,25 @@
         let currentModalCandidate = null;
         function openCandidateModal(sym) {
             const meta = candidateMeta[sym] || { trigger: '< Day Low', score: 82, vol: '1.8x', bias: 'SHORT', ltp: 1000, sl: 1010, target: 980, sector: 'Equities' };
-            currentModalCandidate = { sym, ...meta };
+            const liveP = (window._latestPrices && window._latestPrices[sym]) ? window._latestPrices[sym] : (meta.ltp || 100);
+            
+            // Dynamic capital allocation & 5x intraday leverage calculation
+            const totalCap = parseFloat(config.MANUAL_CAPITAL) || 10000.0;
+            const maxOpen = parseInt(config.MAX_OPEN_TRADES) || 2;
+            const leverage = 5.0;
+            const capPerTrade = totalCap / Math.max(1, maxOpen);
+            const buyingPower = capPerTrade * leverage;
+            const calculatedQty = Math.max(1, Math.floor(buyingPower / liveP));
+
+            const isShort = meta.bias === 'SHORT';
+            const slPrice = isShort ? Math.round(liveP * 1.01 * 100) / 100 : Math.round(liveP * 0.99 * 100) / 100;
+            const targetPrice = isShort ? Math.round(liveP * 0.98 * 100) / 100 : Math.round(liveP * 1.02 * 100) / 100;
+            const triggerLine = isShort ? `< ₹${(liveP * 0.996).toFixed(2)}` : `> ₹${(liveP * 1.004).toFixed(2)}`;
+
+            currentModalCandidate = { sym, ...meta, ltp: liveP, sl: slPrice, target: targetPrice, trigger: triggerLine, qty: calculatedQty };
             
             document.getElementById('cand-modal-title').textContent = `${sym} — Setup Intelligence`;
             const body = document.getElementById('cand-modal-body');
-            const isShort = meta.bias === 'SHORT';
             const biasColor = isShort ? 'var(--red)' : 'var(--green)';
             const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
             const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
@@ -5046,7 +5490,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; background: ${biasBg}; border: 1.5px solid ${biasBorder}; padding: 14px 18px; border-radius: 14px; margin-bottom: 14px;">
                     <div>
                         <div style="font-weight: 800; font-size: 17px; color: var(--text);">${sym} <span style="font-size: 11px; color: var(--muted); font-weight: 600;">• ${meta.sector}</span></div>
-                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Reference LTP: <strong style="color: var(--text);">₹${meta.ltp.toFixed(2)}</strong></div>
+                        <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">Live Market Price: <strong style="color: var(--text);">₹${liveP.toFixed(2)}</strong></div>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); color: ${biasColor}; border: 1px solid ${biasBorder};">
@@ -5056,18 +5500,33 @@
                     </div>
                 </div>
 
+                <!-- Position Sizing & Leverage Breakdown -->
+                <div style="background: rgba(255, 107, 0, 0.08); border: 1px solid rgba(255, 107, 0, 0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #ff6b00; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                        ⚡ Dynamic Position Sizing (5x Intraday Leverage)
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); line-height: 1.6;">
+                        <span>Allocated Capital: <strong style="color: var(--text);">₹${capPerTrade.toLocaleString('en-IN')}</strong> (${totalCap.toLocaleString('en-IN')} / ${maxOpen} slots)</span>
+                        <span>Leverage: <strong style="color: var(--text);">${leverage.toFixed(1)}x</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 2px;">
+                        <span>Effective Buying Power: <strong style="color: #10b981;">₹${buyingPower.toLocaleString('en-IN')}</strong></span>
+                        <span>Order Quantity: <strong style="color: #ff6b00; font-size: 13px;">${calculatedQty} shares</strong></span>
+                    </div>
+                </div>
+
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;">
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
                         <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TRIGGER LINE</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--text); margin-top: 2px;">${meta.trigger}</div>
+                        <div style="font-size: 13px; font-weight: 800; color: ${isShort ? '#ef4444' : '#10b981'}; margin-top: 2px;">${triggerLine}</div>
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">STOP LOSS</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${meta.sl.toFixed(2)}</div>
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">STOP LOSS (1%)</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--red); margin-top: 2px;">₹${slPrice.toFixed(2)}</div>
                     </div>
                     <div style="background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 10px; padding: 10px; text-align: center;">
-                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TARGET (1:2)</div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${meta.target.toFixed(2)}</div>
+                        <div style="font-size: 10px; color: var(--muted); font-weight: 700;">TARGET (2%)</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--green); margin-top: 2px;">₹${targetPrice.toFixed(2)}</div>
                     </div>
                 </div>
 
@@ -5076,7 +5535,7 @@
                     <div style="padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700;">✔ Layer 1: Market Pulse Correlated</div>
                     <div style="padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700;">✔ Layer 2: Liquidity Tier 1 (Spread &lt; 0.05%)</div>
                     <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 3: 15-Min ORB Zone Armed</div>
-                    <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 4: Vol Surge (${meta.vol}) Pending</div>
+                    <div style="padding: 7px 10px; background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); border-radius: 8px; font-weight: 700;">⏳ Layer 4: Vol Surge (${meta.vol || '1.8x'}) Pending</div>
                 </div>
                 <div style="margin-top: 8px; padding: 7px 10px; background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); border-radius: 8px; font-weight: 700; font-size: 11px;">
                     ✔ Layer 5: Claude 3.5 News Sentiment Safety Pass (No Black Swan Risk)
@@ -5088,152 +5547,236 @@
 
         function executeSimulatedCandidateTrade() {
             if (!currentModalCandidate) return;
-            const { sym, bias, ltp } = currentModalCandidate;
+            const { sym, bias, ltp, qty } = currentModalCandidate;
             closeModals();
-            executeActionSignal(sym, bias === 'SHORT' ? 'SELL' : 'BUY', ltp);
+            executeActionSignal(sym, bias === 'SHORT' ? 'SELL' : 'BUY', ltp, qty);
         }
 
-        function executeActionSignal(sym, side, price) {
-            const qty = Math.max(1, Math.floor(5000 / (price || 100)));
-            toast(`⚡ Order submitted: ${side} ${qty} qty of ${sym} at ₹${(price || 100).toFixed(2)}`, 'success');
-            addTimeline(`ORDER FIRED: ${side} ${sym}`, `Qty: ${qty} | Entry ₹${(price || 100).toFixed(2)} | Bracket Order with trailing SL`, 'exec');
-            pushAlert(`Simulated ${side} order placed for ${sym} (${qty} shares)`, 'trade');
-            appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${side} @ ₹${(price || 100).toFixed(2)})`);
+        async function executeActionSignal(sym, side, price, overrideQty) {
+            let tradeSide = (side || '').toUpperCase();
+            if (tradeSide !== 'BUY' && tradeSide !== 'SELL') {
+                const meta = candidateMeta[sym];
+                tradeSide = (meta && meta.bias === 'SHORT') ? 'SELL' : 'BUY';
+            }
+            const liveP = (window._latestPrices && window._latestPrices[sym])
+                ? window._latestPrices[sym]
+                : (candidateMeta[sym] ? candidateMeta[sym].ltp : (parseFloat(price) || 100));
+
+            // Accurate leverage & capital calculation:
+            // Total Capital (e.g. ₹10,000) / Max Open Trades (e.g. 2) = ₹5,000 per trade slot
+            // 5x Intraday Leverage = ₹25,000 effective buying power
+            // Quantity = Math.floor(25,000 / liveP)
+            const totalCap = parseFloat(config.MANUAL_CAPITAL) || 10000.0;
+            const maxOpen = parseInt(config.MAX_OPEN_TRADES) || 2;
+            const leverage = 5.0;
+            const capPerTrade = totalCap / Math.max(1, maxOpen);
+            const buyingPower = capPerTrade * leverage;
+            const calculatedQty = Math.max(1, Math.floor(buyingPower / liveP));
+            const qty = (overrideQty && overrideQty > 0) ? overrideQty : calculatedQty;
+            
+            toast(`⚡ Submitting ${tradeSide} order: ${qty} shares of ${sym} @ ₹${liveP.toFixed(2)} (Buying Power: ₹${buyingPower.toLocaleString('en-IN')})...`, 'info');
+            try {
+                const res = await fetch(`${API}/trade/manual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: sym,
+                        side: tradeSide,
+                        qty: qty,
+                        price: 0.0 // 0.0 instructs backend to execute at true verified live market price
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && (data.status === 'success' || data.status === 'COMPLETE' || data.order_id)) {
+                    const execPrice = data.price || liveP;
+                    toast(`✅ Order executed: ${tradeSide} ${qty} qty of ${sym} at ₹${execPrice.toFixed(2)} (ID: ${data.order_id || 'OK'})`, 'success');
+                    addTimeline(`ORDER EXECUTED: ${tradeSide} ${sym}`, `Qty: ${qty} | Entry ₹${execPrice.toFixed(2)} | Order ID: ${data.order_id}`, 'exec');
+                    pushAlert(`Simulated ${tradeSide} order executed for ${sym} (${qty} shares @ ₹${execPrice.toFixed(2)})`, 'trade');
+                    appendEngineLog('TRIGGER', `Manual execution confirmed for ${sym} (${tradeSide} @ ₹${execPrice.toFixed(2)})`);
+                    
+                    // Immediately refresh active trades
+                    if (typeof fetchActiveTrades === 'function') fetchActiveTrades();
+                    if (typeof fetchStatus === 'function') fetchStatus();
+                    if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
+                } else {
+                    const err = data.detail || data.message || 'Execution failed';
+                    toast(`⚠️ Execution failed: ${err}`, 'warning');
+                    appendEngineLog('RISK', `Order rejected for ${sym}: ${err}`);
+                }
+            } catch (err) {
+                console.error("Manual trade error:", err);
+                toast(`❌ Execution error: ${err.message}`, 'danger');
+            }
         }
 
         async function fetchSignals() {
             try {
-                const res = await fetch(`${API}/signals`);
-                let signals = await res.json();
+                let rawSignals = [];
+                try {
+                    const res = await fetch(`${API}/signals`);
+                    if (res && res.ok) {
+                        rawSignals = await res.json();
+                    }
+                } catch (fetchErr) {
+                    console.warn("fetchSignals network error:", fetchErr);
+                }
                 const box = document.getElementById('scanner-grid');
                 if (!box) return;
 
                 if (isDemoSignalActive) {
-                    signals = [
+                    rawSignals = [
                         {
-                            symbol: 'RELIANCE', score: 88, decision: 'BUY', entry_price: 2942.50,
-                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.8, rr_ratio: 2.2, breakout_level: 2940.00, atr_pct: 1.45, vwap: 2932.10 }
+                            symbol: 'RELIANCE', score: 88, decision: 'BUY', entry_price: 1219.00,
+                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.8, rr_ratio: 2.2, breakout_level: 1222.00, atr_pct: 1.45, vwap: 1215.10 }
                         },
                         {
-                            symbol: 'INDUSINDBK', score: 82, decision: 'SELL', entry_price: 1385.20,
-                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.1, rr_ratio: 1.9, breakdown_level: 1388.00, atr_pct: 1.80, vwap: 1391.40 }
+                            symbol: 'INDUSINDBK', score: 82, decision: 'SELL', entry_price: 868.90,
+                            metadata: { breakout: true, volume_spike: true, strong_candle: true, vwap_aligned: true, volume_ratio: 2.1, rr_ratio: 1.9, breakdown_level: 866.00, atr_pct: 1.80, vwap: 871.40 }
                         },
                         {
-                            symbol: 'COALINDIA', score: 76, decision: 'SELL', entry_price: 485.60,
-                            metadata: { breakout: true, volume_spike: false, strong_candle: true, vwap_aligned: true, volume_ratio: 1.4, rr_ratio: 1.7, breakdown_level: 487.50, atr_pct: 1.20, vwap: 489.10 }
+                            symbol: 'COALINDIA', score: 76, decision: 'SELL', entry_price: 415.55,
+                            metadata: { breakout: true, volume_spike: false, strong_candle: true, vwap_aligned: true, volume_ratio: 1.4, rr_ratio: 1.7, breakdown_level: 414.00, atr_pct: 1.20, vwap: 417.10 }
                         }
                     ];
                 }
 
                 document.getElementById('scan-cycle-time').textContent = `Last cycle: ${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}`;
 
-                if (!signals || signals.length === 0) {
-                    const fallbackList = Object.keys(candidateMeta).map(sym => ({
-                        symbol: sym,
-                        direction_bias: candidateMeta[sym].bias,
-                        priority_score: candidateMeta[sym].score,
-                        ltp: candidateMeta[sym].ltp,
-                        trigger: candidateMeta[sym].trigger,
-                        vol: candidateMeta[sym].vol
-                    }));
+                // 1. Build unified candidate universe
+                // Priority order: Live Active Watchlist -> Default 9 Momentum Setups -> Any detected signals
+                const defaultSetups = ['CANBK', 'ICICIBANK', 'HDFCBANK', 'INDUSINDBK', 'NTPC', 'COALINDIA', 'TECHM', 'DMART', 'YESBANK'];
+                
+                const candidateOrder = [];
+                if (activeWatchlist && activeWatchlist.length > 0) {
+                    activeWatchlist.forEach(c => {
+                        if (c.symbol && !candidateOrder.includes(c.symbol)) candidateOrder.push(c.symbol);
+                    });
+                }
+                defaultSetups.forEach(sym => {
+                    if (!candidateOrder.includes(sym)) candidateOrder.push(sym);
+                });
+                if (rawSignals && rawSignals.length > 0) {
+                    rawSignals.forEach(s => {
+                        if (s.symbol && !candidateOrder.includes(s.symbol)) candidateOrder.push(s.symbol);
+                    });
+                }
 
-                    let sourceList = activeWatchlist.length > 0 ? activeWatchlist.map((c, i) => {
-                        const m = candidateMeta[c.symbol] || { trigger: '< Day Low', score: 80 - i, vol: '1.6x', bias: 'SHORT', ltp: 500 };
-                        return { symbol: c.symbol, direction_bias: c.direction_bias, ...m };
-                    }) : fallbackList;
+                // 2. Build full candidate objects
+                const masterCandidates = candidateOrder.map((sym, idx) => {
+                    const sig = rawSignals ? rawSignals.find(s => s.symbol === sym) : null;
+                    const meta = candidateMeta[sym] || {
+                        trigger: '< Day Low',
+                        score: Math.max(70, 88 - idx * 2),
+                        vol: '1.8x',
+                        bias: 'SHORT',
+                        ltp: 500,
+                        sl: 0,
+                        target: 0,
+                        sector: 'Equities'
+                    };
 
-                    // Apply filter
-                    if (radarBiasFilter === 'SHORT') {
-                        sourceList = sourceList.filter(s => s.direction_bias && s.direction_bias.includes('SHORT'));
-                    } else if (radarBiasFilter === 'LONG') {
-                        sourceList = sourceList.filter(s => s.direction_bias && s.direction_bias.includes('LONG'));
-                    } else if (radarBiasFilter === 'HIGH') {
-                        sourceList = sourceList.filter(s => (s.score || s.priority_score || 0) >= 82);
+                    const wlItem = activeWatchlist ? activeWatchlist.find(w => w.symbol === sym) : null;
+                    const rawBias = (wlItem && wlItem.direction_bias) ? (wlItem.direction_bias.includes('SHORT') ? 'SHORT' : 'LONG') : (meta.bias || 'SHORT');
+
+                    // Resolve verified live price
+                    const livePrice = (window._latestPrices && window._latestPrices[sym])
+                        ? window._latestPrices[sym]
+                        : ((sig && sig.entry_price) ? sig.entry_price : (meta.ltp || 100));
+
+                    if (sig) {
+                        const m = sig.metadata || {};
+                        const dec = sig.decision || 'AVOID';
+                        const bias = dec === 'BUY' ? 'LONG' : (dec === 'SELL' ? 'SHORT' : rawBias);
+                        const dynamicSigTrigger = (bias === 'SHORT')
+                            ? `< ₹${(livePrice * 0.996).toFixed(2)}`
+                            : `> ₹${(livePrice * 1.004).toFixed(2)}`;
+                        const levelStr = dec === 'BUY' ? (m.breakout_level ? `> ₹${m.breakout_level}` : dynamicSigTrigger) : (m.breakdown_level ? `< ₹${m.breakdown_level}` : dynamicSigTrigger);
+                        return {
+                            symbol: sym,
+                            hasLiveSignal: true,
+                            decision: dec,
+                            score: sig.score || meta.score || 75,
+                            ltp: livePrice,
+                            bias: bias,
+                            trigger: dec !== 'AVOID'
+                                ? (dec === 'BUY' ? `Breakout ${levelStr}` : `Breakdown ${levelStr}`)
+                                : `Watch ${levelStr}`,
+                            metadata: m,
+                            meta: meta
+                        };
+                    } else {
+                        const dynamicTrigger = (rawBias === 'SHORT')
+                            ? `< ₹${(livePrice * 0.996).toFixed(2)}`
+                            : `> ₹${(livePrice * 1.004).toFixed(2)}`;
+                        let resolvedTrigger = meta.trigger;
+                        if (!resolvedTrigger || Math.abs(livePrice - (meta.ltp || livePrice)) / livePrice > 0.05) {
+                            resolvedTrigger = dynamicTrigger;
+                        }
+                        return {
+                            symbol: sym,
+                            hasLiveSignal: false,
+                            decision: rawBias === 'SHORT' ? 'SELL' : 'BUY',
+                            score: meta.score || Math.max(70, 88 - idx * 2),
+                            ltp: livePrice,
+                            bias: rawBias,
+                            trigger: resolvedTrigger,
+                            metadata: {
+                                breakout: true,
+                                volume_spike: false,
+                                volume_ratio: meta.vol ? parseFloat(meta.vol) : 1.8,
+                                strong_candle: true,
+                                vwap_aligned: true,
+                                rr_ratio: 2.0,
+                                atr_pct: 1.0,
+                                vwap: (livePrice * (rawBias === 'SHORT' ? 1.008 : 0.992)).toFixed(1)
+                            },
+                            meta: meta
+                        };
                     }
+                });
 
-                    if (sourceList.length === 0) {
-                        box.innerHTML = `<div style="grid-column: 1 / -1; padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidates matching '${radarBiasFilter}' filter.</div>`;
-                        return;
-                    }
+                // 3. Dynamic Filter Counts calculation
+                const totalCount = masterCandidates.length;
+                const shortCount = masterCandidates.filter(c => (c.bias && c.bias.includes('SHORT')) || c.decision === 'SELL').length;
+                const longCount = masterCandidates.filter(c => (c.bias && c.bias.includes('LONG')) || c.decision === 'BUY').length;
+                const highCount = masterCandidates.filter(c => (c.score || 0) >= 82).length;
 
-                    box.innerHTML = `
-                        <div style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; background: var(--radar-banner-bg); border: 1.5px solid var(--radar-banner-border); border-radius: 14px; padding: 12px 20px; box-shadow: var(--shadow-sm);">
-                            <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--radar-banner-text);">
-                                <span class="live-blink" style="color: #ff6b00; font-size: 16px;">●</span>
-                                <span><strong>Candidate Radar Armed:</strong> Monitoring <strong>${sourceList.length} priority setups</strong> across 92 Nifty stocks for Volume Spike & Breakout trigger lines.</span>
-                            </div>
-                            <span style="font-size: 11px; color: var(--tag-orange-color); font-weight: 800; background: var(--tag-orange-bg); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--tag-orange-border);">STANDBY FOR ENTRY</span>
-                        </div>
-                        ` + sourceList.map((c, idx) => {
-                            const isShort = c.direction_bias && c.direction_bias.includes('SHORT');
-                            const biasColor = isShort ? 'var(--red)' : 'var(--green)';
-                            const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
-                            const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
-                            const biasIcon = isShort ? '📉 SHORT' : '📈 LONG';
-                            const score = c.score || c.priority_score || (88 - idx * 2);
-                            return `
-                            <div class="scan-card" id="radar-card-${c.symbol}">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${idx + 1} RADAR</span>
-                                        <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
-                                    </div>
-                                    <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: ${biasBg}; color: ${biasColor}; border: 1px solid ${biasBorder};">
-                                        ${biasIcon}
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: baseline; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                                    <span>Trigger Line:</span>
-                                    <strong style="color: var(--text); font-size: 13px;">${c.trigger || (isShort ? 'Breakdown < Day Low' : 'Breakout > Day High')}</strong>
-                                </div>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                                        <span style="color: var(--muted); font-weight: 600;">Setup Score:</span>
-                                        <strong style="color: #ff6b00; font-size: 12px;">${score}/100</strong>
-                                    </div>
-                                    <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
-                                        <div style="height: 100%; width: ${score}%; background: linear-gradient(90deg, #ff6b00, #ea580c); border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
-                                    <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>✔</span> Liquidity Pass
-                                    </div>
-                                    <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>✔</span> Volatility Tier 1
-                                    </div>
-                                    <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>⏳</span> Vol Surge (${c.vol || '1.8x'})
-                                    </div>
-                                    <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
-                                        <span>⏳</span> Trigger Tick
-                                    </div>
-                                </div>
-                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                                    <span style="font-size: 10px; font-weight: 700; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); border: 1px solid var(--tag-neutral-border); padding: 3px 8px; border-radius: 6px;">RR 1:2</span>
-                                    <span style="font-size: 10px; font-weight: 700; color: var(--tag-orange-color); background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">ORB 15-Min</span>
-                                    <span style="font-size: 10px; font-weight: 700; color: #0284c7; background: var(--tag-blue-bg); border: 1px solid var(--tag-blue-border); padding: 3px 8px; border-radius: 6px;">VWAP Guard</span>
-                                </div>
-                                <div style="display: flex; gap: 8px; margin-top: 2px;">
-                                    <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; color: #ff6b00; border-color: rgba(255,107,0,0.35);">
-                                        🔍 Setup Details
-                                    </button>
-                                    <button class="btn-outline" onclick="focusRadarStock('${c.symbol}', '${c.direction_bias}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
-                                        🎯 Focus Radar
-                                    </button>
-                                </div>
-                            </div>`;
-                        }).join('');
+                const btnAll = document.getElementById('rf-ALL');
+                if (btnAll) btnAll.textContent = `All Candidates (${totalCount})`;
+                const btnShort = document.getElementById('rf-SHORT');
+                if (btnShort) btnShort.textContent = `📉 Short Candidates (${shortCount})`;
+                const btnLong = document.getElementById('rf-LONG');
+                if (btnLong) btnLong.textContent = `📈 Long Candidates (${longCount})`;
+                const btnHigh = document.getElementById('rf-HIGH');
+                if (btnHigh) btnHigh.textContent = `🔥 Priority Score ≥82 (${highCount})`;
+
+                const wlCountEl = document.getElementById('radar-watchlist-count');
+                if (wlCountEl) wlCountEl.textContent = `${totalCount} Momentum`;
+
+                // 4. Apply filter
+                let filteredList = masterCandidates;
+                if (radarBiasFilter === 'SHORT') {
+                    filteredList = masterCandidates.filter(c => (c.bias && c.bias.includes('SHORT')) || c.decision === 'SELL');
+                } else if (radarBiasFilter === 'LONG') {
+                    filteredList = masterCandidates.filter(c => (c.bias && c.bias.includes('LONG')) || c.decision === 'BUY');
+                } else if (radarBiasFilter === 'HIGH') {
+                    filteredList = masterCandidates.filter(c => (c.score || 0) >= 82);
+                }
+
+                const autoBox = document.getElementById('auto-radars-container') || box;
+                if (filteredList.length === 0) {
+                    autoBox.innerHTML = `<div class="scan-card" style="padding: 30px; text-align: center; color: var(--muted); background: var(--card-bg); border-radius: 14px; border: 1.5px dashed var(--card-border);">No candidate setups matching '${radarBiasFilter}' filter.</div>`;
                     return;
                 }
 
-                const sorted = [...signals].sort((a, b) => b.score - a.score).slice(0, 12);
+                // Sort: signals first, then highest score
+                filteredList.sort((a, b) => (b.hasLiveSignal ? 1 : 0) - (a.hasLiveSignal ? 1 : 0) || b.score - a.score);
 
-                // Detect new actionable signals
-                const tradeableSyms = sorted.filter(s => s.decision !== 'AVOID').map(s => s.symbol);
+                // Detect new actionable signals to notify
+                const tradeableSyms = filteredList.filter(s => s.hasLiveSignal && s.decision !== 'AVOID').map(s => s.symbol);
                 tradeableSyms.forEach(sym => {
                     if (!lastSignalSymbols.includes(sym)) {
-                        const sig = sorted.find(s => s.symbol === sym);
+                        const sig = filteredList.find(s => s.symbol === sym);
                         const m = sig.metadata || {};
                         addTimeline(`SIGNAL ACQUIRED: ${sym}`, `Score ${sig.score}/100 | Vol ${m.volume_ratio}x | RR 1:${m.rr_ratio}`, 'detect');
                         toast(`🎯 Strong setup detected: ${sym} → ${sig.decision} | Score: ${sig.score}/100`, 'info');
@@ -5241,68 +5784,142 @@
                 });
                 lastSignalSymbols = tradeableSyms;
 
-                box.innerHTML = sorted.map((s, i) => {
-                    const m = s.metadata || {};
-                    const confScore = s.score || 0;
-                    const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 40 ? 'var(--yellow)' : 'var(--muted)';
-                    const decColor = s.decision === 'BUY' ? 'var(--green)' : s.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
-                    const decLabel = s.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${s.decision}`;
+                // 5. Render cards (starting at Grid 3)
+                autoBox.innerHTML = filteredList.map((c, i) => {
+                    const m = c.metadata || {};
+                    const confScore = c.score || 0;
+                    const confColor = confScore >= 70 ? 'var(--green)' : confScore >= 50 ? 'var(--yellow)' : 'var(--muted)';
+                    const isShort = c.bias && c.bias.includes('SHORT');
+                    const biasColor = isShort ? 'var(--red)' : 'var(--green)';
+                    const biasBg = isShort ? 'var(--tag-red-bg)' : 'var(--tag-green-bg)';
+                    const biasBorder = isShort ? 'var(--tag-red-border)' : 'var(--tag-green-border)';
+                    const biasIcon = isShort ? '📉 SHORT' : '📈 LONG';
 
-                    const brkLabel = s.decision !== 'AVOID'
-                        ? (s.decision === 'BUY' ? `Breakout: ₹${m.breakout_level || '--'}` : `Breakdown: ₹${m.breakdown_level || '--'}`)
-                        : `Watch: ₹${m.breakout_level || '--'}`;
+                    if (c.hasLiveSignal) {
+                        const decColor = c.decision === 'BUY' ? 'var(--green)' : c.decision === 'SELL' ? 'var(--red)' : 'var(--muted)';
+                        const decLabel = c.decision === 'AVOID' ? '⏸ HOLD' : `⚡ ${c.decision}`;
+                        const vwapDist = m.vwap && c.ltp ? ((c.ltp - m.vwap) / m.vwap * 100).toFixed(2) : '--';
+                        
+                        const isHold = (c.decision === 'AVOID');
+                        const execSide = (c.decision === 'BUY' || c.decision === 'SELL') ? c.decision : (isShort ? 'SELL' : 'BUY');
+                        const btnColor = execSide === 'BUY' ? 'var(--green)' : 'var(--red)';
+                        const btnLabel = isHold ? `⚡ Execute ${execSide} (Override)` : `⚡ Execute ${execSide} (Simulated)`;
 
-                    const vwapDist = m.vwap && s.entry_price ? ((s.entry_price - m.vwap) / m.vwap * 100).toFixed(2) : '--';
-
-                    return `
-            <div class="scan-card" id="action-card-${s.symbol}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 1} ACTION</span>
-                        <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${s.symbol}</span>
-                    </div>
-                    <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
-                </div>
-                <div style="display: flex; justify-content: space-between; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
-                    <span id="scan-ltp-${s.symbol}">₹${(s.entry_price || 0).toFixed(2)}</span>
-                    <span style="color:var(--muted); font-family:'Inter'; text-transform:uppercase; font-size:10px; font-weight: 700;">${brkLabel}</span>
-                </div>
-                <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
-                        <span style="color: var(--muted); font-weight: 600;">Confidence Score:</span>
-                        <strong style="color: ${confColor}; font-size: 12px;">${confScore}/100</strong>
-                    </div>
-                    <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width:${confScore}%; background:${confColor}; border-radius: 4px;"></div>
-                    </div>
-                </div>
-
-                <div class="scan-checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
-                    <div class="chk ${m.breakout ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line' : '✖ Below line'}</div>
-                    <div class="chk ${m.volume_spike ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.volume_spike ? `✔ Vol ${m.volume_ratio}x` : `✖ Low vol`}</div>
-                    <div class="chk ${m.strong_candle ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum' : '✖ Weak'}</div>
-                    <div class="chk ${m.vwap_aligned ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP (${vwapDist}%)` : `✖ VWAP bias`}</div>
-                </div>
-
-                <div class="scan-insights" style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '--'}</span>
-                    <span class="insight-chip ${s.score >= 70 ? 'active' : ''}">Score ${s.score}/100</span>
-                    <span class="insight-chip">ATR ${m.atr_pct || '--'}%</span>
-                    <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
-                </div>
-
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <button class="btn-primary" onclick="executeActionSignal('${s.symbol}', '${s.decision}', ${s.entry_price || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${s.decision === 'BUY' ? 'var(--green)' : 'var(--red)'}; color: #fff; cursor: pointer;">
-                        ⚡ Execute ${s.decision} (Simulated)
-                    </button>
-                    <button class="btn-outline" onclick="openCandidateModal('${s.symbol}')" style="padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 9px; cursor: pointer;">
-                        🔍 Details
-                    </button>
-                </div>
-            </div>`;
+                        return `
+                        <div class="scan-card" id="action-card-${c.symbol}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 3} ACTION</span>
+                                    <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
+                                </div>
+                                <div class="scan-decision" style="color:${decColor}; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px;">${decLabel}</div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: var(--text); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <div style="display: flex; flex-direction: column; text-align: left;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Live Price (LTP)</span>
+                                    <span id="scan-ltp-${c.symbol}" style="font-size: 14px; font-weight: 800; color: var(--text);">₹${(c.ltp || 0).toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; text-align: right;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Trigger Level</span>
+                                    <span style="font-size: 12px; font-weight: 800; color: ${isShort ? '#ef4444' : '#10b981'};">${c.trigger}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                                    <span style="color: var(--muted); font-weight: 600;">Confidence Score:</span>
+                                    <strong style="color: ${confColor}; font-size: 12px;">${confScore}/100</strong>
+                                </div>
+                                <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width:${confScore}%; background:${confColor}; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div class="scan-checks" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
+                                <div class="chk ${m.breakout ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.breakout ? '✔ Breakout line' : '✖ Below line'}</div>
+                                <div class="chk ${m.volume_spike ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.volume_spike ? `✔ Vol ${m.volume_ratio}x` : (m.volume_ratio ? `✔ Vol ${m.volume_ratio}x` : '✖ Low vol')}</div>
+                                <div class="chk ${m.strong_candle ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.strong_candle ? '✔ Momentum' : '✖ Weak'}</div>
+                                <div class="chk ${m.vwap_aligned ? 'pass' : ''}" style="padding: 4px 8px; border-radius: 8px;"><div class="chk-dot"></div>${m.vwap_aligned ? `✔ VWAP (${vwapDist}%)` : '✖ VWAP bias'}</div>
+                            </div>
+                            <div class="scan-insights" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span class="insight-chip ${m.rr_ratio >= 1.5 ? 'active' : ''}">RR 1:${m.rr_ratio || '2'}</span>
+                                <span class="insight-chip ${c.score >= 70 ? 'active' : ''}">Score ${c.score}/100</span>
+                                <span class="insight-chip">ATR ${m.atr_pct || '1.0'}%</span>
+                                <span class="insight-chip">VWAP ₹${m.vwap || '--'}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                <button class="btn-primary" onclick="executeActionSignal('${c.symbol}', '${execSide}', ${c.ltp || 0})" style="flex: 1; padding: 7px 12px; font-size: 11px; font-weight: 800; border-radius: 9px; background: ${btnColor}; color: #fff; cursor: pointer;">
+                                    ${btnLabel}
+                                </button>
+                                <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 9px; cursor: pointer;">
+                                    🔍 Details
+                                </button>
+                            </div>
+                        </div>`;
+                    } else {
+                        // Radar candidate standby card
+                        return `
+                        <div class="scan-card" id="radar-card-${c.symbol}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 10px; font-weight: 800; color: #ff6b00; background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">#${i + 3} RADAR</span>
+                                    <span style="font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.4px;">${c.symbol}</span>
+                                </div>
+                                <span style="font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: ${biasBg}; color: ${biasColor}; border: 1px solid ${biasBorder};">
+                                    ${biasIcon}
+                                </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); background: var(--sub-box-bg); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--sub-box-border);">
+                                <div style="display: flex; flex-direction: column; text-align: left;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Live Price (LTP)</span>
+                                    <span id="scan-ltp-${c.symbol}" style="font-size: 14px; font-weight: 800; color: var(--text);">₹${(c.ltp || 0).toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; text-align: right;">
+                                    <span style="font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Inter', sans-serif;">Trigger Level</span>
+                                    <strong style="color: ${isShort ? '#ef4444' : '#10b981'}; font-size: 12px; font-weight: 800;">${c.trigger}</strong>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px;">
+                                    <span style="color: var(--muted); font-weight: 600;">Setup Score:</span>
+                                    <strong style="color: #ff6b00; font-size: 12px;">${confScore}/100</strong>
+                                </div>
+                                <div style="height: 6px; background: var(--border-light); border-radius: 4px; overflow: hidden;">
+                                    <div style="height: 100%; width: ${confScore}%; background: linear-gradient(90deg, #ff6b00, #ea580c); border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 11px; font-weight: 600;">
+                                <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>✔</span> Liquidity Pass
+                                </div>
+                                <div style="background: var(--tag-green-bg); border: 1px solid var(--tag-green-border); color: var(--tag-green-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>✔</span> Volatility Tier 1
+                                </div>
+                                <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>⏳</span> Vol Surge (${c.meta.vol || '1.8x'})
+                                </div>
+                                <div style="background: var(--tag-orange-bg); border: 1px solid var(--tag-orange-border); color: var(--tag-orange-color); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px;">
+                                    <span>⏳</span> Trigger Tick
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-size: 10px; font-weight: 700; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); border: 1px solid var(--tag-neutral-border); padding: 3px 8px; border-radius: 6px;">RR 1:2</span>
+                                <span style="font-size: 10px; font-weight: 700; color: var(--tag-orange-color); background: var(--tag-orange-bg); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--tag-orange-border);">ORB 15-Min</span>
+                                <span style="font-size: 10px; font-weight: 700; color: #0284c7; background: var(--tag-blue-bg); border: 1px solid var(--tag-blue-border); padding: 3px 8px; border-radius: 6px;">VWAP Guard</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; margin-top: 2px;">
+                                <button class="btn-outline" onclick="openCandidateModal('${c.symbol}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; color: #ff6b00; border-color: rgba(255,107,0,0.35);">
+                                    🔍 Setup Details
+                                </button>
+                                <button class="btn-outline" onclick="focusRadarStock('${c.symbol}', '${c.bias}')" style="flex: 1; padding: 7px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                                    🎯 Focus Radar
+                                </button>
+                            </div>
+                        </div>`;
+                    }
                 }).join('');
 
-            } catch (e) { }
+            } catch (e) {
+                console.error("fetchSignals render error:", e);
+            }
         }
 
         // ─── HISTORY (main dashboard table + win rate) ───────────────────────────
@@ -6363,6 +6980,799 @@
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ─── PRIMERADAR CLIENT-SIDE CONTROLLERS (INTRADAY & OPTIONS) ──────────────
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // State Store for PrimeRadar – Intraday
+        const primeIntraState = {
+            symbol: 'RELIANCE',
+            name: 'RELIANCE INDUSTRIES LTD',
+            instrument_key: 'NSE_EQ|INE002A01018',
+            lot_size: 1,
+            tick_size: 0.05,
+            ltp: 0.0,
+            side: 'BUY',
+            order_type: 'LIMIT',
+            qty: 1,
+            price: 0.0,
+            trigger_price: 0.0,
+            sl: 0.0,
+            target: 0.0
+        };
+
+        // State Store for PrimeRadar – Options
+        const primeOptState = {
+            underlying: 'NIFTY',
+            expiries: [],
+            selectedExpiry: null,
+            option_type: 'CE',
+            contracts: [],
+            selectedContract: null,
+            ltp: 0.0,
+            side: 'BUY',
+            order_type: 'LIMIT',
+            lots: 1,
+            qty: 1,
+            price: 0.0,
+            trigger_price: 0.0,
+            sl: 0.0,
+            target: 0.0
+        };
+
+        // Order awaiting explicit confirmation
+        let pendingPrimeOrder = null;
+        let primeIntraSearchDebounce = null;
+
+        // ─── PRIMERADAR – INTRADAY CONTROLLER ────────────────────────────────────
+
+        async function onPrimeIntraSearchInput(query) {
+            clearTimeout(primeIntraSearchDebounce);
+            const drop = document.getElementById('prime-intra-suggestions');
+            if (!query || query.trim().length < 1) {
+                if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+                return;
+            }
+
+            primeIntraSearchDebounce = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(query.trim())}&limit=12`);
+                    if (!res.ok) return;
+                    const stocks = await res.json();
+                    if (!drop) return;
+
+                    if (stocks.length === 0) {
+                        drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching stocks found</div>';
+                        drop.style.display = 'block';
+                        return;
+                    }
+
+                    drop.innerHTML = stocks.map(s => `
+                        <div class="prime-suggestion-item" onclick="selectPrimeIntraStock('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}', '${s.instrument_key}', ${s.lot_size || 1}, ${s.tick_size || 0.05})">
+                            <div>
+                                <span style="font-weight: 800; color: #38bdf8;">${s.symbol}</span>
+                                <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${s.name || ''}</div>
+                            </div>
+                            <span style="font-size: 9px; color: var(--tag-neutral-color); background: var(--tag-neutral-bg); padding: 1px 5px; border-radius: 4px;">EQ</span>
+                        </div>
+                    `).join('');
+                    drop.style.display = 'block';
+                } catch (e) {
+                    console.warn("Stock autocomplete error:", e);
+                }
+            }, 250);
+        }
+
+        async function selectPrimeIntraStock(sym, name, key, lotSize, tickSize) {
+            primeIntraState.symbol = sym;
+            primeIntraState.name = name;
+            primeIntraState.instrument_key = key;
+            primeIntraState.lot_size = lotSize || 1;
+            primeIntraState.tick_size = tickSize || 0.05;
+
+            // Update UI elements
+            const symEl = document.getElementById('prime-intra-sym-display');
+            if (symEl) symEl.textContent = sym;
+            const nameEl = document.getElementById('prime-intra-name-display');
+            if (nameEl) nameEl.textContent = name;
+            const searchInput = document.getElementById('prime-intra-search');
+            if (searchInput) searchInput.value = '';
+
+            const drop = document.getElementById('prime-intra-suggestions');
+            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+
+            // Fetch live market quote for selected stock
+            await refreshPrimeIntraLTP();
+        }
+
+        async function refreshPrimeIntraLTP() {
+            try {
+                const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeIntraState.instrument_key)}&symbol=${encodeURIComponent(primeIntraState.symbol)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const ltp = parseFloat(data.ltp || 0);
+                    if (ltp > 0) {
+                        primeIntraState.ltp = ltp;
+                        const ltpEl = document.getElementById('prime-intra-ltp-val');
+                        if (ltpEl) {
+                            ltpEl.textContent = `₹${ltp.toFixed(2)}`;
+                            ltpEl.style.color = '#10b981';
+                            setTimeout(() => { if (ltpEl) ltpEl.style.color = '#38bdf8'; }, 300);
+                        }
+
+                        // Auto-populate price suggestions if empty
+                        const priceInput = document.getElementById('prime-intra-price');
+                        if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                            priceInput.value = ltp.toFixed(2);
+                        }
+                        const triggerInput = document.getElementById('prime-intra-trigger');
+                        if (triggerInput && (!triggerInput.value || parseFloat(triggerInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            triggerInput.value = (ltp * (isBuy ? 1.002 : 0.998)).toFixed(2);
+                        }
+                        const slInput = document.getElementById('prime-intra-sl');
+                        if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
+                        }
+                        const targetInput = document.getElementById('prime-intra-target');
+                        if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
+                            const isBuy = (primeIntraState.side === 'BUY');
+                            targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Error refreshing Intraday LTP:", e);
+            }
+        }
+
+        function setPrimeIntraSide(side) {
+            primeIntraState.side = side;
+            const btnBuy = document.getElementById('prime-intra-side-buy');
+            const btnSell = document.getElementById('prime-intra-side-sell');
+            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
+            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+
+            // Recalculate default SL/Target recommendations for chosen side
+            if (primeIntraState.ltp > 0) {
+                const ltp = primeIntraState.ltp;
+                const isBuy = (side === 'BUY');
+                const slInput = document.getElementById('prime-intra-sl');
+                if (slInput) slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
+                const targetInput = document.getElementById('prime-intra-target');
+                if (targetInput) targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
+            }
+            validatePrimeIntraForm();
+        }
+
+        function setPrimeIntraType(type) {
+            primeIntraState.order_type = type;
+            const btnLimit = document.getElementById('prime-intra-type-limit');
+            const btnSlm = document.getElementById('prime-intra-type-slm');
+            if (btnLimit) btnLimit.classList.toggle('active', type === 'LIMIT');
+            if (btnSlm) btnSlm.classList.toggle('active', type === 'SL-M');
+
+            const limitBox = document.getElementById('prime-intra-limit-box');
+            const triggerBox = document.getElementById('prime-intra-trigger-box');
+
+            if (type === 'LIMIT') {
+                if (limitBox) limitBox.style.display = 'block';
+                if (triggerBox) triggerBox.style.display = 'none';
+            } else if (type === 'SL-M') {
+                if (limitBox) limitBox.style.display = 'none';
+                if (triggerBox) triggerBox.style.display = 'block';
+            }
+            validatePrimeIntraForm();
+        }
+
+        function validatePrimeIntraForm() {
+            const errEl = document.getElementById('prime-intra-err');
+            if (!errEl) return true;
+            errEl.style.display = 'none';
+            errEl.textContent = '';
+
+            const qty = parseInt(document.getElementById('prime-intra-qty').value || 0);
+            if (qty <= 0) {
+                errEl.textContent = 'Quantity must be at least 1 share.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const type = primeIntraState.order_type;
+            const side = primeIntraState.side;
+            const price = parseFloat(document.getElementById('prime-intra-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-intra-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-intra-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-intra-target').value || 0);
+
+            if (type === 'LIMIT') {
+                if (price <= 0) {
+                    errEl.textContent = 'Please enter a valid Limit Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= price) {
+                        errEl.textContent = 'Stop-Loss must be lower than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= price) {
+                        errEl.textContent = 'Target Price must be higher than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= price) {
+                        errEl.textContent = 'Stop-Loss must be higher than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= price) {
+                        errEl.textContent = 'Target Price must be lower than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            } else if (type === 'SL-M') {
+                if (trigger <= 0) {
+                    errEl.textContent = 'Please enter an SL Trigger Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= trigger) {
+                        errEl.textContent = 'Stop-Loss must be lower than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= trigger) {
+                        errEl.textContent = 'Target Price must be higher than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= trigger) {
+                        errEl.textContent = 'Stop-Loss must be higher than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= trigger) {
+                        errEl.textContent = 'Target Price must be lower than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function reviewPrimeIntraOrder() {
+            if (!validatePrimeIntraForm()) return;
+
+            const qty = parseInt(document.getElementById('prime-intra-qty').value || 1);
+            const price = parseFloat(document.getElementById('prime-intra-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-intra-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-intra-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-intra-target').value || 0);
+
+            const execPrice = primeIntraState.order_type === 'LIMIT' ? price : (trigger || primeIntraState.ltp);
+            const estVal = execPrice * qty;
+
+            const order = {
+                symbol: primeIntraState.symbol,
+                instrument_key: primeIntraState.instrument_key,
+                desc: primeIntraState.name,
+                side: primeIntraState.side,
+                order_type: primeIntraState.order_type,
+                qty: qty,
+                lots: null,
+                lot_size: 1,
+                price: price,
+                trigger_price: trigger,
+                sl: sl,
+                target: target,
+                radar_type: 'INTRADAY',
+                product: 'I',
+                est_val: estVal,
+                contract_info: {
+                    segment: 'NSE_EQ',
+                    lot_size: 1,
+                    tick_size: primeIntraState.tick_size
+                }
+            };
+
+            openPrimeConfirmModal(order);
+        }
+
+        // ─── PRIMERADAR – OPTIONS CONTROLLER ─────────────────────────────────────
+
+        async function initPrimeOptions() {
+            try {
+                const res = await fetch('/api/instruments/options/underlyings');
+                if (!res.ok) return;
+                const underlyings = await res.json();
+                const sel = document.getElementById('prime-opt-underlying');
+                if (sel && underlyings && underlyings.length > 0) {
+                    sel.innerHTML = underlyings.map(u => `<option value="${u}">${u}</option>`).join('');
+                    sel.value = primeOptState.underlying;
+                }
+                await onPrimeOptUnderlyingChange(primeOptState.underlying);
+            } catch (e) {
+                console.warn("initPrimeOptions error:", e);
+            }
+        }
+
+        async function onPrimeOptUnderlyingChange(underlying) {
+            primeOptState.underlying = underlying;
+            try {
+                const res = await fetch(`/api/instruments/options/expiries?underlying=${encodeURIComponent(underlying)}`);
+                if (!res.ok) return;
+                const expiries = await res.json();
+                primeOptState.expiries = expiries;
+
+                const expirySel = document.getElementById('prime-opt-expiry');
+                if (expirySel) {
+                    if (expiries.length === 0) {
+                        expirySel.innerHTML = '<option value="">No active expiries</option>';
+                        return;
+                    }
+                    expirySel.innerHTML = expiries.map(e => `<option value="${e.expiry}">${e.formatted}</option>`).join('');
+                    primeOptState.selectedExpiry = expiries[0].expiry;
+                    expirySel.value = primeOptState.selectedExpiry;
+                }
+                await loadPrimeOptContracts();
+            } catch (e) {
+                console.warn("onPrimeOptUnderlyingChange error:", e);
+            }
+        }
+
+        async function onPrimeOptExpiryChange(expiryVal) {
+            primeOptState.selectedExpiry = parseInt(expiryVal);
+            await loadPrimeOptContracts();
+        }
+
+        function setPrimeOptCePe(type) {
+            primeOptState.option_type = type;
+            const btnCe = document.getElementById('prime-opt-ce');
+            const btnPe = document.getElementById('prime-opt-pe');
+            if (btnCe) btnCe.classList.toggle('active', type === 'CE');
+            if (btnPe) btnPe.classList.toggle('active', type === 'PE');
+            loadPrimeOptContracts();
+        }
+
+        async function loadPrimeOptContracts() {
+            if (!primeOptState.underlying || !primeOptState.selectedExpiry) return;
+            try {
+                const url = `/api/instruments/options/contracts?underlying=${encodeURIComponent(primeOptState.underlying)}&expiry=${primeOptState.selectedExpiry}&type=${primeOptState.option_type}`;
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const contracts = await res.json();
+                primeOptState.contracts = contracts;
+
+                const strikeSel = document.getElementById('prime-opt-strike');
+                if (!strikeSel) return;
+
+                if (contracts.length === 0) {
+                    strikeSel.innerHTML = '<option value="">No strikes found</option>';
+                    return;
+                }
+
+                // Middle strike (ATM proxy) as default selection
+                const midIndex = Math.floor(contracts.length / 2);
+                strikeSel.innerHTML = contracts.map((c, idx) => `
+                    <option value="${c.instrument_key}" ${idx === midIndex ? 'selected' : ''}>
+                        ₹${c.strike_price} ${c.instrument_type}
+                    </option>
+                `).join('');
+
+                onPrimeOptStrikeChange(strikeSel.value);
+            } catch (e) {
+                console.warn("loadPrimeOptContracts error:", e);
+            }
+        }
+
+        async function onPrimeOptStrikeChange(token) {
+            const contract = primeOptState.contracts.find(c => c.instrument_key === token) || primeOptState.contracts[0];
+            if (!contract) return;
+            primeOptState.selectedContract = contract;
+
+            const symEl = document.getElementById('prime-opt-sym-display');
+            if (symEl) symEl.textContent = contract.trading_symbol;
+
+            const lotEl = document.getElementById('prime-opt-lotsize-display');
+            if (lotEl) lotEl.textContent = `Lot: ${contract.lot_size}`;
+
+            updatePrimeOptTotalQty();
+
+            // Fetch live contract LTP
+            await refreshPrimeOptLTP();
+        }
+
+        async function refreshPrimeOptLTP() {
+            if (!primeOptState.selectedContract) return;
+            try {
+                const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeOptState.selectedContract.instrument_key)}&symbol=${encodeURIComponent(primeOptState.selectedContract.trading_symbol)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const ltp = parseFloat(data.ltp || 0);
+                    primeOptState.ltp = ltp;
+
+                    const ltpEl = document.getElementById('prime-opt-ltp-val');
+                    if (ltpEl) {
+                        ltpEl.textContent = `₹${ltp.toFixed(2)}`;
+                        ltpEl.style.color = '#10b981';
+                        setTimeout(() => { if (ltpEl) ltpEl.style.color = '#c084fc'; }, 300);
+                    }
+
+                    // Auto-suggest price inputs
+                    const priceInput = document.getElementById('prime-opt-price');
+                    if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                        priceInput.value = ltp > 0 ? ltp.toFixed(2) : '50.00';
+                    }
+                    const slInput = document.getElementById('prime-opt-sl');
+                    if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
+                        const base = ltp > 0 ? ltp : 50.0;
+                        const isBuy = (primeOptState.side === 'BUY');
+                        slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
+                    }
+                    const targetInput = document.getElementById('prime-opt-target');
+                    if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
+                        const base = ltp > 0 ? ltp : 50.0;
+                        const isBuy = (primeOptState.side === 'BUY');
+                        targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
+                    }
+                }
+            } catch (e) {
+                console.warn("Error refreshing Options LTP:", e);
+            }
+        }
+
+        function setPrimeOptSide(side) {
+            primeOptState.side = side;
+            const btnBuy = document.getElementById('prime-opt-side-buy');
+            const btnSell = document.getElementById('prime-opt-side-sell');
+            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
+            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+
+            if (primeOptState.ltp > 0) {
+                const base = primeOptState.ltp;
+                const isBuy = (side === 'BUY');
+                const slInput = document.getElementById('prime-opt-sl');
+                if (slInput) slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
+                const targetInput = document.getElementById('prime-opt-target');
+                if (targetInput) targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
+            }
+            validatePrimeOptForm();
+        }
+
+        function setPrimeOptType(type) {
+            primeOptState.order_type = type;
+            const btnLimit = document.getElementById('prime-opt-type-limit');
+            const btnSlm = document.getElementById('prime-opt-type-slm');
+            if (btnLimit) btnLimit.classList.toggle('active', type === 'LIMIT');
+            if (btnSlm) btnSlm.classList.toggle('active', type === 'SL-M');
+
+            const limitBox = document.getElementById('prime-opt-limit-box');
+            const triggerBox = document.getElementById('prime-opt-trigger-box');
+
+            if (type === 'LIMIT') {
+                if (limitBox) limitBox.style.display = 'block';
+                if (triggerBox) triggerBox.style.display = 'none';
+            } else if (type === 'SL-M') {
+                if (limitBox) limitBox.style.display = 'none';
+                if (triggerBox) triggerBox.style.display = 'block';
+            }
+            validatePrimeOptForm();
+        }
+
+        function updatePrimeOptTotalQty() {
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 1);
+            const lotSize = (primeOptState.selectedContract && primeOptState.selectedContract.lot_size) ? primeOptState.selectedContract.lot_size : 1;
+            const totalQty = Math.max(1, lots) * lotSize;
+            primeOptState.lots = Math.max(1, lots);
+            primeOptState.qty = totalQty;
+
+            const totalQtyEl = document.getElementById('prime-opt-total-qty');
+            if (totalQtyEl) totalQtyEl.textContent = `Qty: ${totalQty}`;
+            validatePrimeOptForm();
+        }
+
+        function validatePrimeOptForm() {
+            const errEl = document.getElementById('prime-opt-err');
+            if (!errEl) return true;
+            errEl.style.display = 'none';
+            errEl.textContent = '';
+
+            if (!primeOptState.selectedContract) {
+                errEl.textContent = 'Please select a valid options contract.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 0);
+            if (lots <= 0) {
+                errEl.textContent = 'Number of lots must be at least 1.';
+                errEl.style.display = 'block';
+                return false;
+            }
+
+            const type = primeOptState.order_type;
+            const side = primeOptState.side;
+            const price = parseFloat(document.getElementById('prime-opt-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-opt-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-opt-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-opt-target').value || 0);
+
+            if (type === 'LIMIT') {
+                if (price <= 0) {
+                    errEl.textContent = 'Please enter a valid Limit Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= price) {
+                        errEl.textContent = 'Stop-Loss must be lower than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= price) {
+                        errEl.textContent = 'Target Price must be higher than Limit Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= price) {
+                        errEl.textContent = 'Stop-Loss must be higher than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= price) {
+                        errEl.textContent = 'Target Price must be lower than Limit Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            } else if (type === 'SL-M') {
+                if (trigger <= 0) {
+                    errEl.textContent = 'Please enter an SL Trigger Price > 0.';
+                    errEl.style.display = 'block';
+                    return false;
+                }
+                if (side === 'BUY') {
+                    if (sl > 0 && sl >= trigger) {
+                        errEl.textContent = 'Stop-Loss must be lower than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target <= trigger) {
+                        errEl.textContent = 'Target Price must be higher than Trigger Price for BUY orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                } else if (side === 'SELL') {
+                    if (sl > 0 && sl <= trigger) {
+                        errEl.textContent = 'Stop-Loss must be higher than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                    if (target > 0 && target >= trigger) {
+                        errEl.textContent = 'Target Price must be lower than Trigger Price for SELL orders.';
+                        errEl.style.display = 'block';
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function reviewPrimeOptOrder() {
+            if (!validatePrimeOptForm()) return;
+
+            const contract = primeOptState.selectedContract;
+            const lots = parseInt(document.getElementById('prime-opt-lots').value || 1);
+            const totalQty = lots * (contract.lot_size || 1);
+            const price = parseFloat(document.getElementById('prime-opt-price').value || 0);
+            const trigger = parseFloat(document.getElementById('prime-opt-trigger').value || 0);
+            const sl = parseFloat(document.getElementById('prime-opt-sl').value || 0);
+            const target = parseFloat(document.getElementById('prime-opt-target').value || 0);
+
+            const execPrice = primeOptState.order_type === 'LIMIT' ? price : (trigger || primeOptState.ltp || 50.0);
+            const estVal = execPrice * totalQty;
+
+            const order = {
+                symbol: contract.trading_symbol,
+                instrument_key: contract.instrument_key,
+                desc: `${contract.underlying} ${contract.strike_price} ${contract.instrument_type} (${lots} lot${lots > 1 ? 's' : ''})`,
+                side: primeOptState.side,
+                order_type: primeOptState.order_type,
+                qty: totalQty,
+                lots: lots,
+                lot_size: contract.lot_size,
+                price: price,
+                trigger_price: trigger,
+                sl: sl,
+                target: target,
+                radar_type: 'OPTIONS',
+                product: 'I',
+                est_val: estVal,
+                contract_info: {
+                    segment: 'NSE_FO',
+                    underlying: contract.underlying,
+                    expiry: contract.expiry,
+                    strike_price: contract.strike_price,
+                    instrument_type: contract.instrument_type,
+                    lot_size: contract.lot_size,
+                    tick_size: contract.tick_size
+                }
+            };
+
+            openPrimeConfirmModal(order);
+        }
+
+        // ─── EXPLICIT ORDER CONFIRMATION MODAL LOGIC ─────────────────────────────
+
+        function openPrimeConfirmModal(order) {
+            pendingPrimeOrder = order;
+
+            const isOpt = (order.radar_type === 'OPTIONS');
+            const isBuy = (order.side === 'BUY');
+
+            document.getElementById('prime-confirm-icon').textContent = isOpt ? '🎯' : '⚡';
+            document.getElementById('prime-confirm-title').textContent = `Review PrimeRadar Order: ${order.radar_type}`;
+
+            document.getElementById('conf-sym').textContent = order.symbol;
+            document.getElementById('conf-desc').textContent = order.desc || '';
+
+            const sideBadge = document.getElementById('conf-side-badge');
+            sideBadge.textContent = order.side;
+            sideBadge.style.background = isBuy ? '#16a34a' : '#dc2626';
+            sideBadge.style.color = '#ffffff';
+
+            document.getElementById('conf-type-badge').textContent = order.order_type;
+
+            const qtyEl = document.getElementById('conf-qty');
+            qtyEl.textContent = `${order.qty} ${isOpt ? 'Contracts' : 'Shares'}`;
+
+            const lotsInfo = document.getElementById('conf-lots-info');
+            lotsInfo.textContent = isOpt ? `(${order.lots} Lot${order.lots > 1 ? 's' : ''} × ${order.lot_size})` : `Lot Size: 1`;
+
+            const priceEl = document.getElementById('conf-price');
+            priceEl.textContent = order.order_type === 'LIMIT' ? `₹${order.price.toFixed(2)}` : 'MARKET (SL-M)';
+
+            const trigEl = document.getElementById('conf-trigger-info');
+            trigEl.textContent = order.order_type === 'SL-M' ? `Trigger: ₹${order.trigger_price.toFixed(2)}` : (order.trigger_price > 0 ? `Trigger: ₹${order.trigger_price.toFixed(2)}` : 'Immediate Execution');
+
+            const slEl = document.getElementById('conf-sl');
+            slEl.textContent = order.sl > 0 ? `₹${order.sl.toFixed(2)}` : 'None Configured';
+
+            const slRiskEl = document.getElementById('conf-sl-risk');
+            const entryRef = (order.order_type === 'LIMIT' && order.price > 0) ? order.price : (order.trigger_price > 0 ? order.trigger_price : 100);
+            if (order.sl > 0) {
+                const perUnitRisk = Math.abs(entryRef - order.sl);
+                const totalRisk = perUnitRisk * order.qty;
+                slRiskEl.textContent = `Risk: ₹${perUnitRisk.toFixed(2)}/unit (₹${totalRisk.toFixed(2)} total)`;
+            } else {
+                slRiskEl.textContent = 'Default 1% SL will apply';
+            }
+
+            const targetEl = document.getElementById('conf-target');
+            targetEl.textContent = order.target > 0 ? `₹${order.target.toFixed(2)}` : 'None Configured';
+
+            const targetRewEl = document.getElementById('conf-target-reward');
+            if (order.target > 0) {
+                const perUnitRew = Math.abs(order.target - entryRef);
+                const totalRew = perUnitRew * order.qty;
+                targetRewEl.textContent = `Reward: ₹${perUnitRew.toFixed(2)}/unit (₹${totalRew.toFixed(2)} total)`;
+            } else {
+                targetRewEl.textContent = 'Default 2% Target will apply';
+            }
+
+            document.getElementById('conf-total-val').textContent = `₹${order.est_val.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+            const errBox = document.getElementById('prime-confirm-err');
+            if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+            const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+            }
+
+            document.getElementById('m-prime-confirm').classList.add('open');
+        }
+
+        function closePrimeConfirmModal() {
+            const modal = document.getElementById('m-prime-confirm');
+            if (modal) modal.classList.remove('open');
+            pendingPrimeOrder = null;
+        }
+
+        async function submitPrimeOrderConfirmed() {
+            if (!pendingPrimeOrder) return;
+
+            const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            const errBox = document.getElementById('prime-confirm-err');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '⏳ Transmitting to Broker...';
+            }
+            if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+            try {
+                const res = await fetch('/api/prime-radar/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: pendingPrimeOrder.symbol,
+                        instrument_key: pendingPrimeOrder.instrument_key,
+                        side: pendingPrimeOrder.side,
+                        order_type: pendingPrimeOrder.order_type,
+                        qty: pendingPrimeOrder.qty,
+                        price: pendingPrimeOrder.price || 0.0,
+                        trigger_price: pendingPrimeOrder.trigger_price || 0.0,
+                        sl: pendingPrimeOrder.sl || 0.0,
+                        target: pendingPrimeOrder.target || 0.0,
+                        radar_type: pendingPrimeOrder.radar_type,
+                        product: pendingPrimeOrder.product || 'I',
+                        contract_info: pendingPrimeOrder.contract_info || null
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    closePrimeConfirmModal();
+                    toast(`✅ Order Executed: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (ID: ${data.order_id})`, 'success');
+                    addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)}`, 'exec');
+                    pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed for ${data.symbol} (${data.qty} qty)`, 'trade');
+                    appendEngineLog('TRIGGER', `PrimeRadar [${data.radar_type}] execution confirmed for ${data.symbol} (${data.side} @ ₹${data.price.toFixed(2)})`);
+
+                    if (typeof fetchTrades === 'function') fetchTrades();
+                    if (typeof fetchStatus === 'function') fetchStatus();
+                    if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
+                } else {
+                    const errMsg = data.detail || data.message || 'Order submission was rejected by the broker.';
+                    if (errBox) {
+                        errBox.textContent = `⚠️ Execution Failed: ${errMsg}`;
+                        errBox.style.display = 'block';
+                    }
+                    toast(`Order rejected: ${errMsg}`, 'error');
+                }
+            } catch (err) {
+                console.error("submitPrimeOrderConfirmed network error:", err);
+                if (errBox) {
+                    errBox.textContent = `❌ Network Error: ${err.message}`;
+                    errBox.style.display = 'block';
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+                }
+            }
+        }
+
+        // Global initialization entry point for PrimeRadars
+        async function initPrimeRadars() {
+            // Close autocomplete if clicked outside
+            document.addEventListener('click', (e) => {
+                const searchContainer = document.getElementById('prime-intra-search');
+                const drop = document.getElementById('prime-intra-suggestions');
+                if (drop && searchContainer && !searchContainer.contains(e.target) && !drop.contains(e.target)) {
+                    drop.style.display = 'none';
+                }
+            });
+
+            // Initialize default Intraday stock LTP
+            refreshPrimeIntraLTP();
+
+            // Initialize Options dropdowns and contracts
+            initPrimeOptions();
+        }
+
         // ─── POLLING ENGINE ───────────────────────────────────────────────────────────
         (async function boot() {
             initTheme();
@@ -6377,6 +7787,9 @@
             addTimeline('System Initialized', 'Neural engine successfully connected to API', 'scan');
 
             renderSignalLogBox();
+
+            // Initialize PrimeRadars
+            await initPrimeRadars();
 
             await fetchStatus();
             await fetchTrades();
