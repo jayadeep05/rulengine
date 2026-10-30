@@ -410,25 +410,39 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .prime-toggle-btn.active.buy {
+        .prime-toggle-btn.active.buy,
+        .prime-toggle-btn.buy.active,
+        #prime-intra-side-buy.active,
+        #prime-opt-side-buy.active {
             background: #16a34a !important;
             color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(22, 163, 74, 0.45) !important;
         }
-        .prime-toggle-btn.active.sell {
+        .prime-toggle-btn.active.sell,
+        .prime-toggle-btn.sell.active,
+        #prime-intra-side-sell.active,
+        #prime-opt-side-sell.active {
             background: #dc2626 !important;
             color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.45) !important;
         }
         .prime-toggle-btn.active.type {
             background: rgba(255, 255, 255, 0.15) !important;
             color: var(--text) !important;
         }
-        .prime-toggle-btn.active.ce {
+        .prime-toggle-btn.active.ce,
+        .prime-toggle-btn.ce.active,
+        #prime-opt-ce.active {
             background: #16a34a !important;
             color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(22, 163, 74, 0.45) !important;
         }
-        .prime-toggle-btn.active.pe {
+        .prime-toggle-btn.active.pe,
+        .prime-toggle-btn.pe.active,
+        #prime-opt-pe.active {
             background: #dc2626 !important;
             color: #ffffff !important;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.45) !important;
         }
         .prime-suggestions-dropdown {
             position: absolute;
@@ -3874,6 +3888,7 @@
             <button id="btn-theme" class="btn-theme hide-mob" onclick="toggleTheme()" title="Toggle Light/Dark Mode">☀️</button>
             <button id="btn-hist-tab" class="btn-hist-tab hide-mob" onclick="toggleHistoryScreen()" title="View Trade History">📋 History</button>
             <a href="/dual" style="text-decoration: none;"><button class="btn-outline hide-mob">🔄 Dual Strategy</button></a>
+            <button id="btn-radar-config" class="btn-outline hide-mob" onclick="openRadarConfigModal()" title="Configure Radar Stocks">🎯 Configure Stocks</button>
             <button id="btn-toggle" class="btn-toggle" onclick="toggleSystem()">▶ START</button>
             <button class="btn-outline hide-mob" onclick="openConfig()">⚙ Config</button>
             <button id="btn-mode" class="btn-mode test hide-mob" onclick="requestModeSwitch()">TEST</button>
@@ -3890,6 +3905,8 @@
                 <div class="footer-cap" id="footer-cap">Total Cap: ₹--</div>
                 <button onclick="toggleHistoryScreen()"
                     style="width: 32px; height: 32px; margin: 0; padding: 0; border: 1px solid rgba(139,92,246,0.35); display: flex; align-items: center; justify-content: center; background: rgba(139,92,246,0.12); border-radius: 8px; font-size: 15px;">📋</button>
+                <button class="btn-theme hide-desk" onclick="openRadarConfigModal()"
+                    style="width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);" title="Configure Radar Stocks">🎯</button>
                 <button class="btn-theme hide-desk" onclick="openConfig()"
                     style="width: 28px; height: 28px; margin: 0; padding: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">⚙</button>
                 <button class="btn-theme hide-desk" onclick="toggleTheme()"
@@ -4169,8 +4186,8 @@
                         <div>
                             <div class="prime-field-label">Action Side</div>
                             <div class="prime-toggle-group">
-                                <button type="button" id="prime-intra-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeIntraSide('BUY')">BUY</button>
-                                <button type="button" id="prime-intra-side-sell" class="prime-toggle-btn" onclick="setPrimeIntraSide('SELL')">SELL</button>
+                                <button type="button" id="prime-intra-side-buy" class="prime-toggle-btn buy active" onclick="setPrimeIntraSide('BUY')">BUY</button>
+                                <button type="button" id="prime-intra-side-sell" class="prime-toggle-btn sell" onclick="setPrimeIntraSide('SELL')">SELL</button>
                             </div>
                         </div>
                         <div>
@@ -4251,8 +4268,8 @@
                         <div>
                             <div class="prime-field-label">Option Type</div>
                             <div class="prime-toggle-group">
-                                <button type="button" id="prime-opt-ce" class="prime-toggle-btn active ce" onclick="setPrimeOptCePe('CE')">📈 CE (Call)</button>
-                                <button type="button" id="prime-opt-pe" class="prime-toggle-btn" onclick="setPrimeOptCePe('PE')">📉 PE (Put)</button>
+                                <button type="button" id="prime-opt-ce" class="prime-toggle-btn ce active" onclick="setPrimeOptCePe('CE')">📈 CE (Call)</button>
+                                <button type="button" id="prime-opt-pe" class="prime-toggle-btn pe" onclick="setPrimeOptCePe('PE')">📉 PE (Put)</button>
                             </div>
                         </div>
                         <div>
@@ -4283,8 +4300,8 @@
                         <div>
                             <div class="prime-field-label">Action Side</div>
                             <div class="prime-toggle-group">
-                                <button type="button" id="prime-opt-side-buy" class="prime-toggle-btn active buy" onclick="setPrimeOptSide('BUY')">BUY</button>
-                                <button type="button" id="prime-opt-side-sell" class="prime-toggle-btn" onclick="setPrimeOptSide('SELL')">SELL</button>
+                                <button type="button" id="prime-opt-side-buy" class="prime-toggle-btn buy active" onclick="setPrimeOptSide('BUY')">BUY</button>
+                                <button type="button" id="prime-opt-side-sell" class="prime-toggle-btn sell" onclick="setPrimeOptSide('SELL')">SELL</button>
                             </div>
                         </div>
                         <div>
@@ -4654,6 +4671,58 @@
                 <button id="btn-prime-confirm-submit" class="btn-primary" onclick="submitPrimeOrderConfirmed()" style="padding: 8px 20px; font-size: 12px; font-weight: 800; border-radius: 8px; background: #16a34a; color: #fff; cursor: pointer; border: none;">
                     🚀 Confirm & Submit Order
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RADAR STOCKS CONFIGURATION MODAL -->
+    <div class="modal" id="m-radar-stocks">
+        <div class="modal-box" style="width: 580px; max-width: 95vw; border-radius: 20px; box-shadow: var(--shadow-md);">
+            <div class="modal-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255, 107, 0, 0.15); color: #ff6b00; display: flex; align-items: center; justify-content: center; font-size: 16px;">🎯</div>
+                    <div>
+                        <div style="font-weight: 800; font-size: 15px; color: var(--text);">Configure Radar Stocks</div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 1px;">Customize which stocks appear on the Live Intelligence Radar</div>
+                    </div>
+                </div>
+                <button class="btn-close-modal" onclick="closeRadarConfigModal()" style="background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 18px 20px; font-size: 12px; display: flex; flex-direction: column; gap: 14px;">
+                <!-- Search Input for Stocks -->
+                <div style="position: relative;">
+                    <label class="prime-field-label" style="margin-bottom: 5px;">Search & Add NSE Stocks</label>
+                    <input type="text" id="radar-config-search-input" class="prime-input" placeholder="🔎 Search by symbol or company name (e.g. RELIANCE, TATASTEEL)..." autocomplete="off" oninput="onRadarStockSearch(this.value)">
+                    <div id="radar-config-suggestions" class="prime-suggestions-dropdown" style="max-height: 220px;"></div>
+                </div>
+
+                <!-- Configured Stocks Summary & List -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="prime-field-label" style="margin-bottom: 0;">Active Monitored Stocks (<span id="radar-config-count">0</span>)</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" onclick="loadNiftyTopPreset()" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; padding: 3px 8px; cursor: pointer;">+ Nifty Top 10</button>
+                            <button type="button" onclick="clearRadarConfigStocks()" style="font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 3px 8px; cursor: pointer;">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="radar-config-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 12px; min-height: 80px; align-content: flex-start;">
+                        <!-- Tags rendered dynamically -->
+                    </div>
+                    <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">
+                        💡 If no custom stocks are added, the radar automatically monitors the default universe.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot" style="border-top: 1px solid var(--border); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn-outline" onclick="resetRadarConfigToDefault()" style="font-size: 11px; padding: 6px 14px; border-radius: 8px;">
+                    ↺ Reset to Default (Universe 92)
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-outline" onclick="closeRadarConfigModal()" style="font-size: 11px; padding: 6px 14px; border-radius: 8px;">Cancel</button>
+                    <button class="btn-primary" onclick="saveRadarConfig()" style="font-size: 11px; padding: 6px 18px; border-radius: 8px; font-weight: 800; background: linear-gradient(135deg, #ff6b00, #ea580c); color: #fff; border: none; cursor: pointer;">
+                        ✓ Save & Apply
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -5646,22 +5715,30 @@
                 document.getElementById('scan-cycle-time').textContent = `Last cycle: ${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}`;
 
                 // 1. Build unified candidate universe
-                // Priority order: Live Active Watchlist -> Default 9 Momentum Setups -> Any detected signals
-                const defaultSetups = ['CANBK', 'ICICIBANK', 'HDFCBANK', 'INDUSINDBK', 'NTPC', 'COALINDIA', 'TECHM', 'DMART', 'YESBANK'];
-                
+                // Priority order: User Configured Radar Stocks -> Live Active Watchlist -> Default 9 Momentum Setups -> Any detected signals
+                const configuredStocks = (typeof getSavedRadarStocks === 'function') ? getSavedRadarStocks() : [];
                 const candidateOrder = [];
-                if (activeWatchlist && activeWatchlist.length > 0) {
-                    activeWatchlist.forEach(c => {
-                        if (c.symbol && !candidateOrder.includes(c.symbol)) candidateOrder.push(c.symbol);
+
+                if (configuredStocks && configuredStocks.length > 0) {
+                    configuredStocks.forEach(sym => {
+                        const s = sym.trim().toUpperCase();
+                        if (s && !candidateOrder.includes(s)) candidateOrder.push(s);
                     });
-                }
-                defaultSetups.forEach(sym => {
-                    if (!candidateOrder.includes(sym)) candidateOrder.push(sym);
-                });
-                if (rawSignals && rawSignals.length > 0) {
-                    rawSignals.forEach(s => {
-                        if (s.symbol && !candidateOrder.includes(s.symbol)) candidateOrder.push(s.symbol);
+                } else {
+                    const defaultSetups = ['CANBK', 'ICICIBANK', 'HDFCBANK', 'INDUSINDBK', 'NTPC', 'COALINDIA', 'TECHM', 'DMART', 'YESBANK'];
+                    if (activeWatchlist && activeWatchlist.length > 0) {
+                        activeWatchlist.forEach(c => {
+                            if (c.symbol && !candidateOrder.includes(c.symbol)) candidateOrder.push(c.symbol);
+                        });
+                    }
+                    defaultSetups.forEach(sym => {
+                        if (!candidateOrder.includes(sym)) candidateOrder.push(sym);
                     });
+                    if (rawSignals && rawSignals.length > 0) {
+                        rawSignals.forEach(s => {
+                            if (s.symbol && !candidateOrder.includes(s.symbol)) candidateOrder.push(s.symbol);
+                        });
+                    }
                 }
 
                 // 2. Build full candidate objects
@@ -5754,7 +5831,13 @@
                 if (btnHigh) btnHigh.textContent = `🔥 Priority Score ≥82 (${highCount})`;
 
                 const wlCountEl = document.getElementById('radar-watchlist-count');
-                if (wlCountEl) wlCountEl.textContent = `${totalCount} Momentum`;
+                if (wlCountEl) {
+                    if (configuredStocks && configuredStocks.length > 0) {
+                        wlCountEl.textContent = `${totalCount} Configured`;
+                    } else {
+                        wlCountEl.textContent = `${totalCount} Momentum`;
+                    }
+                }
 
                 // 4. Apply filter
                 let filteredList = masterCandidates;
@@ -7084,11 +7167,11 @@
             const drop = document.getElementById('prime-intra-suggestions');
             if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
 
-            // Fetch live market quote for selected stock
-            await refreshPrimeIntraLTP();
+            // Fetch live market quote for selected stock & force price recalculation
+            await refreshPrimeIntraLTP(true);
         }
 
-        async function refreshPrimeIntraLTP() {
+        async function refreshPrimeIntraLTP(force = false) {
             try {
                 const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeIntraState.instrument_key)}&symbol=${encodeURIComponent(primeIntraState.symbol)}`);
                 if (res.ok) {
@@ -7103,24 +7186,22 @@
                             setTimeout(() => { if (ltpEl) ltpEl.style.color = '#38bdf8'; }, 300);
                         }
 
-                        // Auto-populate price suggestions if empty
+                        const isBuy = (primeIntraState.side === 'BUY');
+                        // Automatically update price parameters based on new stock LTP
                         const priceInput = document.getElementById('prime-intra-price');
-                        if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                        if (priceInput && (force || !priceInput.value || parseFloat(priceInput.value) <= 0)) {
                             priceInput.value = ltp.toFixed(2);
                         }
                         const triggerInput = document.getElementById('prime-intra-trigger');
-                        if (triggerInput && (!triggerInput.value || parseFloat(triggerInput.value) <= 0)) {
-                            const isBuy = (primeIntraState.side === 'BUY');
+                        if (triggerInput && (force || !triggerInput.value || parseFloat(triggerInput.value) <= 0)) {
                             triggerInput.value = (ltp * (isBuy ? 1.002 : 0.998)).toFixed(2);
                         }
                         const slInput = document.getElementById('prime-intra-sl');
-                        if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
-                            const isBuy = (primeIntraState.side === 'BUY');
+                        if (slInput && (force || !slInput.value || parseFloat(slInput.value) <= 0)) {
                             slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
                         }
                         const targetInput = document.getElementById('prime-intra-target');
-                        if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
-                            const isBuy = (primeIntraState.side === 'BUY');
+                        if (targetInput && (force || !targetInput.value || parseFloat(targetInput.value) <= 0)) {
                             targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
                         }
                     }
@@ -7134,17 +7215,25 @@
             primeIntraState.side = side;
             const btnBuy = document.getElementById('prime-intra-side-buy');
             const btnSell = document.getElementById('prime-intra-side-sell');
-            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
-            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+            if (btnBuy) {
+                btnBuy.classList.toggle('active', side === 'BUY');
+                btnBuy.classList.toggle('buy', side === 'BUY');
+            }
+            if (btnSell) {
+                btnSell.classList.toggle('active', side === 'SELL');
+                btnSell.classList.toggle('sell', side === 'SELL');
+            }
 
             // Recalculate default SL/Target recommendations for chosen side
-            if (primeIntraState.ltp > 0) {
-                const ltp = primeIntraState.ltp;
+            const basePrice = primeIntraState.ltp > 0 ? primeIntraState.ltp : parseFloat(document.getElementById('prime-intra-price')?.value || 0);
+            if (basePrice > 0) {
                 const isBuy = (side === 'BUY');
                 const slInput = document.getElementById('prime-intra-sl');
-                if (slInput) slInput.value = (ltp * (isBuy ? 0.99 : 1.01)).toFixed(2);
+                if (slInput) slInput.value = (basePrice * (isBuy ? 0.99 : 1.01)).toFixed(2);
                 const targetInput = document.getElementById('prime-intra-target');
-                if (targetInput) targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
+                if (targetInput) targetInput.value = (basePrice * (isBuy ? 1.02 : 0.98)).toFixed(2);
+                const triggerInput = document.getElementById('prime-intra-trigger');
+                if (triggerInput) triggerInput.value = (basePrice * (isBuy ? 1.002 : 0.998)).toFixed(2);
             }
             validatePrimeIntraForm();
         }
@@ -7314,16 +7403,22 @@
                 const res = await fetch(`/api/instruments/options/expiries?underlying=${encodeURIComponent(underlying)}`);
                 if (!res.ok) return;
                 const expiries = await res.json();
-                primeOptState.expiries = expiries;
+                
+                // Exclude any past/expired dates for valid display
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const validExpiries = expiries.filter(e => !e.date || e.date >= todayStr);
+                const displayExpiries = validExpiries.length > 0 ? validExpiries : expiries;
+                
+                primeOptState.expiries = displayExpiries;
 
                 const expirySel = document.getElementById('prime-opt-expiry');
                 if (expirySel) {
-                    if (expiries.length === 0) {
+                    if (displayExpiries.length === 0) {
                         expirySel.innerHTML = '<option value="">No active expiries</option>';
                         return;
                     }
-                    expirySel.innerHTML = expiries.map(e => `<option value="${e.expiry}">${e.formatted}</option>`).join('');
-                    primeOptState.selectedExpiry = expiries[0].expiry;
+                    expirySel.innerHTML = displayExpiries.map(e => `<option value="${e.expiry}">${e.formatted}</option>`).join('');
+                    primeOptState.selectedExpiry = displayExpiries[0].expiry;
                     expirySel.value = primeOptState.selectedExpiry;
                 }
                 await loadPrimeOptContracts();
@@ -7341,8 +7436,14 @@
             primeOptState.option_type = type;
             const btnCe = document.getElementById('prime-opt-ce');
             const btnPe = document.getElementById('prime-opt-pe');
-            if (btnCe) btnCe.classList.toggle('active', type === 'CE');
-            if (btnPe) btnPe.classList.toggle('active', type === 'PE');
+            if (btnCe) {
+                btnCe.classList.toggle('active', type === 'CE');
+                btnCe.classList.toggle('ce', type === 'CE');
+            }
+            if (btnPe) {
+                btnPe.classList.toggle('active', type === 'PE');
+                btnPe.classList.toggle('pe', type === 'PE');
+            }
             loadPrimeOptContracts();
         }
 
@@ -7390,11 +7491,11 @@
 
             updatePrimeOptTotalQty();
 
-            // Fetch live contract LTP
-            await refreshPrimeOptLTP();
+            // Fetch live contract LTP & force recalculate price parameters
+            await refreshPrimeOptLTP(true);
         }
 
-        async function refreshPrimeOptLTP() {
+        async function refreshPrimeOptLTP(force = false) {
             if (!primeOptState.selectedContract) return;
             try {
                 const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeOptState.selectedContract.instrument_key)}&symbol=${encodeURIComponent(primeOptState.selectedContract.trading_symbol)}`);
@@ -7410,21 +7511,24 @@
                         setTimeout(() => { if (ltpEl) ltpEl.style.color = '#c084fc'; }, 300);
                     }
 
+                    const base = ltp > 0 ? ltp : 50.0;
+                    const isBuy = (primeOptState.side === 'BUY');
+
                     // Auto-suggest price inputs
                     const priceInput = document.getElementById('prime-opt-price');
-                    if (priceInput && (!priceInput.value || parseFloat(priceInput.value) <= 0)) {
+                    if (priceInput && (force || !priceInput.value || parseFloat(priceInput.value) <= 0)) {
                         priceInput.value = ltp > 0 ? ltp.toFixed(2) : '50.00';
                     }
+                    const triggerInput = document.getElementById('prime-opt-trigger');
+                    if (triggerInput && (force || !triggerInput.value || parseFloat(triggerInput.value) <= 0)) {
+                        triggerInput.value = (base * (isBuy ? 1.05 : 0.95)).toFixed(2);
+                    }
                     const slInput = document.getElementById('prime-opt-sl');
-                    if (slInput && (!slInput.value || parseFloat(slInput.value) <= 0)) {
-                        const base = ltp > 0 ? ltp : 50.0;
-                        const isBuy = (primeOptState.side === 'BUY');
+                    if (slInput && (force || !slInput.value || parseFloat(slInput.value) <= 0)) {
                         slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
                     }
                     const targetInput = document.getElementById('prime-opt-target');
-                    if (targetInput && (!targetInput.value || parseFloat(targetInput.value) <= 0)) {
-                        const base = ltp > 0 ? ltp : 50.0;
-                        const isBuy = (primeOptState.side === 'BUY');
+                    if (targetInput && (force || !targetInput.value || parseFloat(targetInput.value) <= 0)) {
                         targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
                     }
                 }
@@ -7437,16 +7541,24 @@
             primeOptState.side = side;
             const btnBuy = document.getElementById('prime-opt-side-buy');
             const btnSell = document.getElementById('prime-opt-side-sell');
-            if (btnBuy) btnBuy.classList.toggle('active', side === 'BUY');
-            if (btnSell) btnSell.classList.toggle('active', side === 'SELL');
+            if (btnBuy) {
+                btnBuy.classList.toggle('active', side === 'BUY');
+                btnBuy.classList.toggle('buy', side === 'BUY');
+            }
+            if (btnSell) {
+                btnSell.classList.toggle('active', side === 'SELL');
+                btnSell.classList.toggle('sell', side === 'SELL');
+            }
 
-            if (primeOptState.ltp > 0) {
-                const base = primeOptState.ltp;
+            const base = primeOptState.ltp > 0 ? primeOptState.ltp : parseFloat(document.getElementById('prime-opt-price')?.value || 50.0);
+            if (base > 0) {
                 const isBuy = (side === 'BUY');
                 const slInput = document.getElementById('prime-opt-sl');
                 if (slInput) slInput.value = (base * (isBuy ? 0.85 : 1.15)).toFixed(2);
                 const targetInput = document.getElementById('prime-opt-target');
                 if (targetInput) targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
+                const triggerInput = document.getElementById('prime-opt-trigger');
+                if (triggerInput) triggerInput.value = (base * (isBuy ? 1.05 : 0.95)).toFixed(2);
             }
             validatePrimeOptForm();
         }
@@ -7758,6 +7870,173 @@
             }
         }
 
+        // ─── RADAR STOCKS CONFIGURATION CONTROLLER ─────────────────────────────
+        const RADAR_CONFIG_STORAGE_KEY = 'quantedge_configured_radar_stocks';
+        let currentRadarConfigList = [];
+        let radarStockSearchTimeout = null;
+
+        function getSavedRadarStocks() {
+            try {
+                const raw = localStorage.getItem(RADAR_CONFIG_STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn("Error reading saved radar stocks:", e);
+            }
+            return [];
+        }
+
+        function openRadarConfigModal() {
+            currentRadarConfigList = [...getSavedRadarStocks()];
+            renderRadarConfigTags();
+            const searchInput = document.getElementById('radar-config-search-input');
+            if (searchInput) searchInput.value = '';
+            const drop = document.getElementById('radar-config-suggestions');
+            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+            
+            const modal = document.getElementById('m-radar-stocks');
+            if (modal) modal.classList.add('open');
+            if (searchInput) setTimeout(() => searchInput.focus(), 150);
+        }
+
+        function closeRadarConfigModal() {
+            const modal = document.getElementById('m-radar-stocks');
+            if (modal) modal.classList.remove('open');
+            const drop = document.getElementById('radar-config-suggestions');
+            if (drop) drop.style.display = 'none';
+        }
+
+        function renderRadarConfigTags() {
+            const container = document.getElementById('radar-config-tags-container');
+            const countEl = document.getElementById('radar-config-count');
+            if (countEl) countEl.textContent = currentRadarConfigList.length;
+
+            if (!container) return;
+
+            if (currentRadarConfigList.length === 0) {
+                container.innerHTML = `
+                    <div style="width: 100%; text-align: center; color: var(--muted); font-size: 11px; padding: 24px 10px;">
+                        No custom stocks configured. Live Intelligence Radar will display the default momentum universe (9 constituents).
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = currentRadarConfigList.map(sym => `
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.4); padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: #38bdf8; transition: all 0.2s ease;">
+                    <span>${sym}</span>
+                    <button type="button" onclick="removeStockFromRadarConfig('${sym}')" style="background: none; border: none; color: #94a3b8; font-size: 13px; line-height: 1; cursor: pointer; padding: 0 2px; margin-left: 2px; border-radius: 4px;" title="Remove ${sym}" onmouseenter="this.style.color='#ef4444';" onmouseleave="this.style.color='#94a3b8';">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function onRadarStockSearch(query) {
+            clearTimeout(radarStockSearchTimeout);
+            const drop = document.getElementById('radar-config-suggestions');
+            if (!drop) return;
+
+            const q = query ? query.trim() : '';
+            if (q.length < 1) {
+                drop.innerHTML = '';
+                drop.style.display = 'none';
+                return;
+            }
+
+            radarStockSearchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(q)}&limit=12`);
+                    if (!res.ok) return;
+                    const stocks = await res.json();
+                    if (!stocks || stocks.length === 0) {
+                        drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching stocks found</div>';
+                        drop.style.display = 'block';
+                        return;
+                    }
+
+                    drop.innerHTML = stocks.map(s => {
+                        const isAlreadyAdded = currentRadarConfigList.includes(s.symbol);
+                        return `
+                            <div class="prime-suggestion-item" onclick="addStockToRadarConfig('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')" style="${isAlreadyAdded ? 'opacity: 0.5;' : ''}">
+                                <div>
+                                    <span style="font-weight: 800; color: #38bdf8;">${s.symbol}</span>
+                                    <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${s.name || ''}</div>
+                                </div>
+                                <span style="font-size: 9px; color: ${isAlreadyAdded ? '#10b981' : 'var(--tag-neutral-color)'}; background: ${isAlreadyAdded ? 'rgba(16,185,129,0.15)' : 'var(--tag-neutral-bg)'}; padding: 1px 6px; border-radius: 4px;">
+                                    ${isAlreadyAdded ? '✓ Added' : 'NSE EQ'}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                    drop.style.display = 'block';
+                } catch (e) {
+                    console.warn("Radar stock search error:", e);
+                }
+            }, 250);
+        }
+
+        function addStockToRadarConfig(sym, name) {
+            const cleanSym = sym.trim().toUpperCase();
+            if (!currentRadarConfigList.includes(cleanSym)) {
+                currentRadarConfigList.push(cleanSym);
+                renderRadarConfigTags();
+            }
+            const searchInput = document.getElementById('radar-config-search-input');
+            if (searchInput) searchInput.value = '';
+            const drop = document.getElementById('radar-config-suggestions');
+            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+        }
+
+        function removeStockFromRadarConfig(sym) {
+            currentRadarConfigList = currentRadarConfigList.filter(s => s !== sym);
+            renderRadarConfigTags();
+        }
+
+        function loadNiftyTopPreset() {
+            const top10 = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'TCS', 'ITC', 'LT', 'SBIN', 'BHARTIARTL', 'AXISBANK'];
+            top10.forEach(sym => {
+                if (!currentRadarConfigList.includes(sym)) {
+                    currentRadarConfigList.push(sym);
+                }
+            });
+            renderRadarConfigTags();
+        }
+
+        function clearRadarConfigStocks() {
+            currentRadarConfigList = [];
+            renderRadarConfigTags();
+        }
+
+        function resetRadarConfigToDefault() {
+            localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY);
+            currentRadarConfigList = [];
+            renderRadarConfigTags();
+            closeRadarConfigModal();
+            toast('↺ Radar reset to default universe', 'info');
+            pushAlert('Radar constituent universe reset to default 9 momentum stocks', 'info');
+            fetchSignals();
+        }
+
+        function saveRadarConfig() {
+            try {
+                if (currentRadarConfigList.length > 0) {
+                    localStorage.setItem(RADAR_CONFIG_STORAGE_KEY, JSON.stringify(currentRadarConfigList));
+                    toast(`✅ Radar configured: ${currentRadarConfigList.length} custom stock${currentRadarConfigList.length > 1 ? 's' : ''} active`, 'success');
+                    pushAlert(`🎯 Radar stocks updated (${currentRadarConfigList.length} constituents monitored)`, 'trade');
+                } else {
+                    localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY);
+                    toast('Radar reset to default constituents', 'info');
+                }
+            } catch (e) {
+                console.error("Error saving radar config:", e);
+            }
+            closeRadarConfigModal();
+            fetchSignals();
+        }
+
         // Global initialization entry point for PrimeRadars
         async function initPrimeRadars() {
             // Close autocomplete if clicked outside
@@ -7766,6 +8045,12 @@
                 const drop = document.getElementById('prime-intra-suggestions');
                 if (drop && searchContainer && !searchContainer.contains(e.target) && !drop.contains(e.target)) {
                     drop.style.display = 'none';
+                }
+
+                const radarSearchContainer = document.getElementById('radar-config-search-input');
+                const radarDrop = document.getElementById('radar-config-suggestions');
+                if (radarDrop && radarSearchContainer && !radarSearchContainer.contains(e.target) && !radarDrop.contains(e.target)) {
+                    radarDrop.style.display = 'none';
                 }
             });
 

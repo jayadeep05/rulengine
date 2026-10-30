@@ -7,6 +7,7 @@ from nse_instruments.json.gz for PrimeRadar – Intraday and PrimeRadar – Opti
 import os
 import gzip
 import json
+import time
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional, Any
@@ -40,8 +41,33 @@ class InstrumentService:
         self.options_by_underlying: Dict[str, Dict[int, List[Dict[str, Any]]]] = {}
         self.unique_underlyings: List[str] = []
         
+        self._refresh_instruments_file_if_stale()
         self._load_and_index()
         self._initialized = True
+
+    def _refresh_instruments_file_if_stale(self):
+        """Refreshes nse_instruments.json.gz from Upstox CDN if older than 24 hours or missing."""
+        try:
+            should_download = False
+            if not os.path.exists(self.data_path):
+                should_download = True
+            else:
+                file_age = time.time() - os.path.getmtime(self.data_path)
+                if file_age > 86400:  # 24 hours
+                    should_download = True
+
+            if should_download:
+                import urllib.request, shutil
+                url = "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz"
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                temp_path = self.data_path + ".tmp"
+                with urllib.request.urlopen(req, timeout=15) as resp, open(temp_path, "wb") as out_f:
+                    shutil.copyfileobj(resp, out_f)
+                if os.path.exists(temp_path) and os.path.getsize(temp_path) > 100000:
+                    os.replace(temp_path, self.data_path)
+                    logger.info("Successfully refreshed nse_instruments.json.gz from Upstox CDN")
+        except Exception as e:
+            logger.warning(f"Could not auto-refresh instruments from CDN (using local file): {e}")
 
     def _load_and_index(self):
         """Loads and indexes nse_instruments.json.gz into memory."""
@@ -202,21 +228,39 @@ class InstrumentService:
 
     def get_options_expiries(self, underlying: str) -> List[Dict[str, Any]]:
         """
-        Returns sorted list of available expiry dates for an underlying.
+        Returns sorted list of available valid upcoming expiry dates for an underlying.
+        Past/expired dates are excluded.
         Returns: [ { "expiry": epoch_ms, "date": "YYYY-MM-DD", "formatted": "DD MMM YYYY" } ]
         """
         underlying_upper = underlying.strip().upper()
         expiries_map = self.options_by_underlying.get(underlying_upper, {})
         sorted_epochs = sorted(list(expiries_map.keys()))
 
+        today = datetime.now().date()
         results = []
         for epoch_ms in sorted_epochs:
             dt = datetime.fromtimestamp(epoch_ms / 1000.0)
+            # Exclude past expired dates
+            if dt.date() < today:
+                continue
             results.append({
                 "expiry": epoch_ms,
                 "date": dt.strftime("%Y-%m-%d"),
                 "formatted": dt.strftime("%d %b %Y")
             })
+
+        # Fallback safeguard: if all expiries in local dump are prior to today (e.g. offline testing),
+        # return the latest 5 expiries so interface remains functional
+        if not results and sorted_epochs:
+            latest_epochs = sorted_epochs[-5:]
+            for epoch_ms in latest_epochs:
+                dt = datetime.fromtimestamp(epoch_ms / 1000.0)
+                results.append({
+                    "expiry": epoch_ms,
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "formatted": dt.strftime("%d %b %Y")
+                })
+
         return results
 
     def get_options_contracts(
@@ -235,8 +279,17 @@ class InstrumentService:
         if not expiries_map:
             return []
 
-        # If expiry not supplied, default to the earliest available expiry
-        target_expiry = int(expiry) if expiry is not None else sorted(expiries_map.keys())[0]
+        # If expiry not supplied, default to the earliest upcoming expiry
+        if expiry is not None:
+            target_expiry = int(expiry)
+        else:
+            today = datetime.now().date()
+            valid_upcoming = [
+                e for e in sorted(expiries_map.keys())
+                if datetime.fromtimestamp(e / 1000.0).date() >= today
+            ]
+            target_expiry = valid_upcoming[0] if valid_upcoming else sorted(expiries_map.keys())[0]
+
         contracts = expiries_map.get(target_expiry, [])
 
         if option_type:
