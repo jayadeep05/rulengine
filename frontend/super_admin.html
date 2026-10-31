@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Admin Terminal — QuantEdge</title>
+    <!-- Auth Client: ensures valid session and handles 401/403 -->
+    <script src="/static/auth-client.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060913;
+            --bg-panel: rgba(13, 20, 36, 0.85);
+            --bg-panel-solid: #0d1424;
+            --bg-panel-hover: rgba(20, 30, 52, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-light: rgba(255, 255, 255, 0.15);
+            --border-gold: rgba(245, 158, 11, 0.4);
+
+            --text: #f8fafc;
+            --text-heading: #ffffff;
+            --muted: #94a3b8;
+            --muted-dark: #64748b;
+
+            --gold: #f59e0b;
+            --gold-light: #fbbf24;
+            --gold-bg: rgba(245, 158, 11, 0.12);
+            --gold-border: rgba(245, 158, 11, 0.35);
+
+            --green: #00e676;
+            --green-bg: rgba(0, 230, 118, 0.12);
+            --green-border: rgba(0, 230, 118, 0.3);
+
+            --red: #ff4d4d;
+            --red-bg: rgba(255, 77, 77, 0.14);
+            --red-border: rgba(255, 77, 77, 0.35);
+
+            --purple: #a855f7;
+            --purple-bg: rgba(168, 85, 247, 0.12);
+            --purple-border: rgba(168, 85, 247, 0.3);
+
+            --blue: #38bdf8;
+            --blue-bg: rgba(56, 189, 248, 0.12);
+            --blue-border: rgba(56, 189, 248, 0.3);
+
+            --input-bg: rgba(10, 15, 28, 0.9);
+            --input-border: rgba(255, 255, 255, 0.12);
+            --input-text: #f8fafc;
+
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.08), transparent),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.05), transparent);
+        }
+
+        /* ══════════════ HEADER ══════════════ */
+        .admin-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 15, 28, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-gold);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-badge-super {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #060913;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 6px;
+            letter-spacing: 0.8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-header {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn-header:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--border-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-header.primary {
+            background: var(--gold-bg);
+            border-color: var(--gold-border);
+            color: var(--gold-light);
+        }
+
+        .btn-header.primary:hover {
+            background: rgba(245, 158, 11, 0.22);
+            border-color: var(--gold);
+        }
+
+        /* ══════════════ OVERVIEW KPI CARDS ══════════════ */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 20px;
+            width: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: var(--card-shadow);
+            transition: border-color 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-light);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-val {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            color: var(--muted-dark);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* ══════════════ NAVIGATION TABS ══════════════ */
+        .admin-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: var(--gold-bg);
+            border: 1px solid var(--gold-border);
+            font-weight: 700;
+        }
+
+        /* ══════════════ TAB CONTENT PANELS ══════════════ */
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ══════════════ CONTROLS / TOOLBAR ══════════════ */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .search-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .admin-input {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 9px 14px;
+            color: var(--input-text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s ease;
+            width: 100%;
+        }
+
+        .admin-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+        }
+
+        .admin-select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            color: var(--input-text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .admin-select:focus {
+            border-color: var(--gold);
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #060913;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+        }
+
+        /* ══════════════ DATA TABLES ══════════════ */
+        .table-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .admin-table th {
+            background: rgba(10, 15, 28, 0.95);
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .admin-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            vertical-align: middle;
+        }
+
+        .admin-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* ══════════════ BADGES & PILLS ══════════════ */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .badge-super {
+            background: var(--gold-bg);
+            border: 1px solid var(--gold-border);
+            color: var(--gold-light);
+        }
+
+        .badge-master {
+            background: var(--purple-bg);
+            border: 1px solid var(--purple-border);
+            color: #d8b4fe;
+        }
+
+        .badge-user {
+            background: var(--blue-bg);
+            border: 1px solid var(--blue-border);
+            color: var(--blue);
+        }
+
+        .badge-active {
+            background: var(--green-bg);
+            border: 1px solid var(--green-border);
+            color: var(--green);
+        }
+
+        .badge-inactive {
+            background: var(--red-bg);
+            border: 1px solid var(--red-border);
+            color: var(--red);
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--border-light);
+            transform: scale(1.05);
+        }
+
+        .btn-icon.delete:hover {
+            background: var(--red-bg);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-icon.config:hover {
+            background: var(--gold-bg);
+            border-color: var(--gold);
+            color: var(--gold-light);
+        }
+
+        /* ══════════════ CONFIGURATION FORM ══════════════ */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .config-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .config-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-card-desc {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--muted-dark);
+            margin-top: 4px;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(10, 15, 28, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-switch-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .toggle-switch-desc {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .switch-input {
+            appearance: none;
+            width: 44px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .switch-input:checked {
+            background: var(--gold);
+        }
+
+        .switch-input::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s ease;
+        }
+
+        .switch-input:checked::before {
+            transform: translateX(20px);
+            background: #060913;
+        }
+
+        /* ══════════════ MODALS ══════════════ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: var(--bg-panel-solid);
+            border: 1px solid var(--border-gold);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 650px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            background: rgba(10, 15, 28, 0.5);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-cancel:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ══════════════ TOAST NOTIFICATION ══════════════ */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        #toast.success {
+            background: rgba(6, 95, 70, 0.95);
+            border: 1px solid var(--green);
+            color: #ecfdf5;
+        }
+
+        #toast.error {
+            background: rgba(153, 27, 27, 0.95);
+            border: 1px solid var(--red);
+            color: #fef2f2;
+        }
+
+        @media (max-width: 768px) {
+            .admin-header {
+                padding: 10px 14px;
+            }
+            .container {
+                padding: 14px 10px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stat-val {
+                font-size: 19px;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ══════════════ HEADER ══════════════ -->
+    <header class="admin-header">
+        <div class="header-brand">
+            <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+                <img src="/static/logo.svg" alt="QuantEdge Logo" style="width: 26px; height: 26px;" />
+            </a>
+            <div>
+                <div class="brand-title">
+                    Quant<span style="color:var(--gold);">Edge</span>
+                    <span class="brand-badge-super">👑 Super Admin</span>
+                </div>
+                <div class="brand-subtitle">Centralized Control Panel &amp; User Engine</div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <a href="/" class="btn-header" title="Return to Main Trading Terminal">
+                ← Trading Terminal
+            </a>
+            <button class="btn-header primary" onclick="refreshAdminData()" title="Refresh All Data">
+                🔄 Refresh
+            </button>
+            <button class="btn-header" onclick="authClient.logout()" title="Sign Out">
+                🚪 Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- ══════════════ MAIN CONTENT CONTAINER ══════════════ -->
+    <div class="container">
+
+        <!-- ══════════════ STATS KPI BANNER ══════════════ -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span>Total Registered Users</span>
+                    <span>👥</span>
+                </div>
+                <div class="stat-val" id="kpi-total-users">--</div>
+                <div class="stat-sub" id="kpi-users-sub">-- Active / -- Inactive</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span>Autonomous Bots Active</span>
+                    <span>🤖</span>
+                </div>
+                <div class="stat-val" id="kpi-active-bots" style="color: var(--green);">--</div>
+                <div class="stat-sub">Trading Engine Running</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span>Trades Today (All Users)</span>
+                    <span>⚡</span>
+                </div>
+                <div class="stat-val" id="kpi-today-trades">--</div>
+                <div class="stat-sub">Total Executions Today</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">
+                    <span>Aggregate P&amp;L Today</span>
+                    <span>💰</span>
+                </div>
+                <div class="stat-val" id="kpi-today-pnl">₹0.00</div>
+                <div class="stat-sub">Across All User Accounts</div>
+            </div>
+        </div>
+
+        <!-- ══════════════ NAVIGATION TABS ══════════════ -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('users')" id="tab-btn-users">
+                👥 Users Management
+            </button>
+            <button class="tab-btn" onclick="switchTab('config')" id="tab-btn-config">
+                ⚙️ User Configuration
+            </button>
+            <button class="tab-btn" onclick="switchTab('roles')" id="tab-btn-roles">
+                🔐 Roles &amp; Permissions
+            </button>
+            <button class="tab-btn" onclick="switchTab('audit')" id="tab-btn-audit">
+                📊 Activity &amp; Audit Logs
+            </button>
+        </div>
+
+        <!-- ══════════════ TAB 1: USERS MANAGEMENT ══════════════ -->
+        <div class="tab-panel active" id="panel-users">
+            <div class="toolbar">
+                <div class="search-group">
+                    <input type="text" id="user-search-input" class="admin-input" placeholder="Search users by name, email, or role..." oninput="filterUsersTable()" />
+                    <select id="user-role-filter" class="admin-select" onchange="filterUsersTable()">
+                        <option value="ALL">All Roles</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="master_admin">Master Admin</option>
+                        <option value="user">Regular User</option>
+                    </select>
+                    <select id="user-status-filter" class="admin-select" onchange="filterUsersTable()">
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button class="btn-action" onclick="openCreateUserModal()">
+                        ➕ Add New User
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username / Email</th>
+                                <th>Assigned Role</th>
+                                <th>Account Status</th>
+                                <th>Upstox API</th>
+                                <th>Trades Today</th>
+                                <th>P&amp;L Today</th>
+                                <th>Linked Accts</th>
+                                <th>Last Active</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr>
+                                <td colspan="10" style="text-align: center; color: var(--muted); padding: 30px;">
+                                    Loading registered users...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ TAB 2: INDIVIDUAL USER CONFIGURATION ══════════════ -->
+        <div class="tab-panel" id="panel-config">
+            <div class="toolbar" style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <label class="form-label" style="margin: 0; white-space: nowrap;">Selected User:</label>
+                    <select id="config-user-select" class="admin-select" style="min-width: 260px; font-weight: 700;" onchange="loadUserForConfig(this.value)">
+                        <option value="">Select a user to configure...</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-action" onclick="saveUserConfiguration()">
+                        💾 Save User Configuration
+                    </button>
+                </div>
+            </div>
+
+            <div id="config-container" style="display: none;">
+                <div class="config-grid">
+                    <!-- Card 1: Trading & Risk Limits -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>🛡️ Risk Management &amp; Limits</span>
+                        </div>
+                        <div class="config-card-desc">
+                            Enforce individual capital boundaries and automated loss caps for this user.
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Trading Mode</label>
+                            <select id="cfg-trading-mode" class="admin-select" style="width: 100%;">
+                                <option value="TEST">TEST (Paper Trading)</option>
+                                <option value="LIVE">LIVE (Real Orders)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Capital Allocation (₹)</label>
+                            <input type="number" id="cfg-capital" class="admin-input" step="1000" min="5000" />
+                            <div class="form-hint">Maximum capital deployed for this user's strategy execution.</div>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Max Trades Per Day</label>
+                            <input type="number" id="cfg-max-trades" class="admin-input" min="1" max="50" />
+                            <div class="form-hint">Daily trade limit before algorithmic lock kicks in.</div>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Daily Loss Cap (₹)</label>
+                            <input type="number" id="cfg-daily-loss" class="admin-input" step="500" min="0" />
+                            <div class="form-hint">Hard circuit breaker stop when daily loss threshold is hit.</div>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Trailing SL Mode</label>
+                            <select id="cfg-sl-mode" class="admin-select" style="width: 100%;">
+                                <option value="POINTS">Points Based</option>
+                                <option value="PERCENTAGE">Percentage Based</option>
+                                <option value="ATR">ATR Dynamic</option>
+                                <option value="STEP">Step Ladder</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Feature Permissions -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>⚡ Feature Access &amp; Permissions</span>
+                        </div>
+                        <div class="config-card-desc">
+                            Toggle granular module permissions specifically for this user account.
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">Automatic Intelligence Engine</div>
+                                <div class="toggle-switch-desc">Autonomous multi-stage intraday strategy scanner</div>
+                            </div>
+                            <input type="checkbox" id="perm-auto-engine" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">PrimeRadar — Intraday</div>
+                                <div class="toggle-switch-desc">Live momentum radar and breakout monitoring</div>
+                            </div>
+                            <input type="checkbox" id="perm-radar-intra" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">PrimeRadar — Options</div>
+                                <div class="toggle-switch-desc">Options chain scanner and strike intelligence</div>
+                            </div>
+                            <input type="checkbox" id="perm-radar-options" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">Multi-Account Replication</div>
+                                <div class="toggle-switch-desc">Permission to replicate trades across linked accounts</div>
+                            </div>
+                            <input type="checkbox" id="perm-multi-acct" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">Dual Strategy Engine</div>
+                                <div class="toggle-switch-desc">Independent dual strategy pipeline access</div>
+                            </div>
+                            <input type="checkbox" id="perm-dual-strat" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">Live Trading Execution</div>
+                                <div class="toggle-switch-desc">Authorize real order placement to broker API</div>
+                            </div>
+                            <input type="checkbox" id="perm-live-trading" class="switch-input" />
+                        </div>
+
+                        <div class="toggle-switch">
+                            <div>
+                                <div class="toggle-switch-label">Risk Limit Override</div>
+                                <div class="toggle-switch-desc">Allow user to modify their own capital and loss caps</div>
+                            </div>
+                            <input type="checkbox" id="perm-risk-override" class="switch-input" />
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Account Status & Linked Accounts -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span>🔗 Linked Accounts &amp; Bot State</span>
+                        </div>
+                        <div class="config-card-desc">
+                            Overview of child trading accounts and autonomous execution status.
+                        </div>
+
+                        <div class="form-row">
+                            <label class="form-label">Autonomous Bot State</label>
+                            <select id="cfg-bot-running" class="admin-select" style="width: 100%;">
+                                <option value="0">STOPPED (Bot Inactive)</option>
+                                <option value="1">RUNNING (Autonomous Trading Active)</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 16px;">
+                            <label class="form-label">Linked Trading Accounts</label>
+                            <div id="cfg-linked-accounts-list" style="max-height: 200px; overflow-y: auto; background: rgba(10,15,28,0.5); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                                <div style="color: var(--muted); font-size: 12px;">No linked accounts for this user.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="config-empty-state" style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <div style="font-size: 40px; margin-bottom: 12px;">👤</div>
+                <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">No User Selected</div>
+                <div>Please select a user from the dropdown above to view and edit their isolated configuration.</div>
+            </div>
+        </div>
+
+        <!-- ══════════════ TAB 3: ROLES & PERMISSIONS ══════════════ -->
+        <div class="tab-panel" id="panel-roles">
+            <div class="config-grid">
+                <!-- Role 1: Super Admin -->
+                <div class="config-card" style="border-color: var(--gold-border);">
+                    <div class="config-card-title" style="color: var(--gold-light);">
+                        👑 Super Admin
+                    </div>
+                    <div class="config-card-desc">
+                        Master-level administrative supremacy with unrestricted authority across all users and systems.
+                    </div>
+                    <ul style="list-style: none; font-size: 13px; color: var(--text); line-height: 2;">
+                        <li>✅ Dedicated Super Admin Control Panel</li>
+                        <li>✅ Add, modify, deactivate, or delete any user</li>
+                        <li>✅ Configure individual user risk parameters &amp; limits</li>
+                        <li>✅ Control feature permissions per user</li>
+                        <li>✅ Multi-account trade replication management</li>
+                        <li>✅ Real-time audit trails &amp; activity monitoring</li>
+                        <li>✅ Emergency global kill switch</li>
+                    </ul>
+                </div>
+
+                <!-- Role 2: Master Admin -->
+                <div class="config-card" style="border-color: var(--purple-border);">
+                    <div class="config-card-title" style="color: #d8b4fe;">
+                        🛡️ Master Admin
+                    </div>
+                    <div class="config-card-desc">
+                        High-tier trading administrator authorized to execute and replicate trades across linked accounts.
+                    </div>
+                    <ul style="list-style: none; font-size: 13px; color: var(--text); line-height: 2;">
+                        <li>❌ No access to Super Admin configuration panel</li>
+                        <li>✅ Multi-Account Trade Replication to linked accounts</li>
+                        <li>✅ Autonomous Intelligence Engine &amp; Strategy Execution</li>
+                        <li>✅ PrimeRadar Intraday &amp; Options Scanner</li>
+                        <li>✅ Dual Strategy Pipeline Access</li>
+                        <li>✅ Higher default capital ceiling (₹10,00,000)</li>
+                        <li>❌ Cannot modify system permissions of other users</li>
+                    </ul>
+                </div>
+
+                <!-- Role 3: Regular User -->
+                <div class="config-card" style="border-color: var(--blue-border);">
+                    <div class="config-card-title" style="color: var(--blue);">
+                        👤 Regular Trader
+                    </div>
+                    <div class="config-card-desc">
+                        Standard user account executing trades isolated strictly to their personal Upstox credentials.
+                    </div>
+                    <ul style="list-style: none; font-size: 13px; color: var(--text); line-height: 2;">
+                        <li>❌ No administrative privileges</li>
+                        <li>❌ No multi-account replication capabilities</li>
+                        <li>✅ Personal Autonomous Trading Engine</li>
+                        <li>✅ PrimeRadar Intraday &amp; Options Scanner</li>
+                        <li>✅ Personal trade history and P&amp;L analytics</li>
+                        <li>✅ Bound strictly by Super Admin configured risk limits</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ TAB 4: ACTIVITY & AUDIT LOGS ══════════════ -->
+        <div class="tab-panel" id="panel-audit">
+            <div class="toolbar">
+                <div style="font-size: 14px; font-weight: 700; color: #ffffff;">
+                    Live System &amp; User Activity Stream
+                </div>
+                <div>
+                    <button class="btn-header" onclick="loadAuditLogs()">
+                        🔄 Refresh Logs
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Level</th>
+                                <th>User Attribution</th>
+                                <th>Event Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-logs-body">
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--muted); padding: 30px;">
+                                    Loading audit trail...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══════════════ MODAL: CREATE / EDIT USER ══════════════ -->
+    <div class="modal-overlay" id="modal-user-form">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-user-title">
+                    ➕ Add New User
+                </div>
+                <button class="modal-close" onclick="closeUserModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="form-user-id" value="" />
+
+                <div class="form-row">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="form-username" class="admin-input" placeholder="e.g. trader_rahul" required />
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" id="form-email" class="admin-input" placeholder="e.g. rahul@example.com" required />
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label" id="form-password-label">Password</label>
+                    <input type="password" id="form-password" class="admin-input" placeholder="Minimum 6 characters" />
+                    <div class="form-hint" id="form-password-hint">Leave blank when editing if you do not want to change the password.</div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label">Assigned Role</label>
+                    <select id="form-role" class="admin-select" style="width: 100%;">
+                        <option value="user">👤 Regular User (Trader)</option>
+                        <option value="master_admin">🛡️ Master Admin (Multi-Account)</option>
+                        <option value="super_admin">👑 Super Admin (Full Control)</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label">Account Status</label>
+                    <select id="form-status" class="admin-select" style="width: 100%;">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive (Deactivated)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeUserModal()">Cancel</button>
+                <button class="btn-action" onclick="submitUserForm()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ MODAL: USER FULL DETAILS DRAWER ══════════════ -->
+    <div class="modal-overlay" id="modal-user-details">
+        <div class="modal-card" style="max-width: 850px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    👁️ User Profile &amp; Audit Inspector
+                </div>
+                <button class="modal-close" onclick="closeUserDetailsModal()">✕</button>
+            </div>
+            <div class="modal-body" id="user-details-content">
+                Loading user profile...
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeUserDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ TOAST NOTIFICATION ══════════════ -->
+    <div id="toast"></div>
+
+    <!-- ══════════════ JAVASCRIPT LOGIC ══════════════ -->
+    <script>
+        // Global state store
+        let allUsers = [];
+        let currentEditingUserId = null;
+        let selectedConfigUserId = null;
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await refreshAdminData();
+        });
+
+        // ══════════════ DATA FETCHING ══════════════
+        async function refreshAdminData() {
+            try {
+                await Promise.all([
+                    loadOverviewStats(),
+                    loadUsersList(),
+                    loadAuditLogs()
+                ]);
+            } catch (e) {
+                console.error("Refresh error:", e);
+            }
+        }
+
+        async function loadOverviewStats() {
+            try {
+                const res = await fetch('/api/super-admin/overview');
+                if (!res.ok) throw new Error("Failed to load overview");
+                const d = await res.json();
+
+                document.getElementById('kpi-total-users').innerText = d.total_users || 0;
+                document.getElementById('kpi-users-sub').innerText = `${d.active_users || 0} Active / ${d.inactive_users || 0} Inactive`;
+                document.getElementById('kpi-active-bots').innerText = d.active_bots || 0;
+                document.getElementById('kpi-today-trades').innerText = d.total_trades_today || 0;
+
+                const pnl = d.total_pnl_today || 0;
+                const pnlEl = document.getElementById('kpi-today-pnl');
+                pnlEl.innerText = (pnl >= 0 ? '+' : '') + '₹' + pnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            } catch (e) {
+                console.error("Overview stats error:", e);
+            }
+        }
+
+        async function loadUsersList() {
+            try {
+                const res = await fetch('/api/super-admin/users');
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        alert("Access Denied: Super Admin role required.");
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error("Failed to fetch users");
+                }
+                allUsers = await res.json();
+                renderUsersTable(allUsers);
+                populateConfigUserDropdown(allUsers);
+            } catch (e) {
+                console.error("Users list error:", e);
+                showToast("Failed to load users: " + e.message, "error");
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--muted); padding: 30px;">No users found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => {
+                const roleBadge = u.role === 'super_admin'
+                    ? `<span class="badge badge-super">👑 Super Admin</span>`
+                    : u.role === 'master_admin'
+                        ? `<span class="badge badge-master">🛡️ Master Admin</span>`
+                        : `<span class="badge badge-user">👤 User</span>`;
+
+                const statusBadge = u.is_active
+                    ? `<span class="badge badge-active">Active</span>`
+                    : `<span class="badge badge-inactive">Inactive</span>`;
+
+                const upstoxBadge = u.upstox_connected
+                    ? `<span style="color:var(--green); font-size:12px; font-weight:600;">● Connected</span>`
+                    : `<span style="color:var(--muted); font-size:12px;">○ Not Linked</span>`;
+
+                const pnl = u.today_pnl || 0;
+                const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+                const pnlFormatted = (pnl >= 0 ? '+' : '') + '₹' + pnl.toFixed(2);
+
+                const lastActive = u.last_login
+                    ? new Date(u.last_login).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : 'Never';
+
+                return `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted);">${u.id}</td>
+                        <td>
+                            <div style="font-weight:700; color:#ffffff;">${escapeHtml(u.username)}</div>
+                            <div style="font-size:11px; color:var(--muted);">${escapeHtml(u.email)}</div>
+                        </td>
+                        <td>${roleBadge}</td>
+                        <td>
+                            <button onclick="toggleUserStatus(${u.id})" style="background:none; border:none; cursor:pointer;" title="Click to toggle status">
+                                ${statusBadge}
+                            </button>
+                        </td>
+                        <td>${upstoxBadge}</td>
+                        <td style="font-family:'JetBrains Mono';">${u.today_trades}</td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:${pnlColor};">${pnlFormatted}</td>
+                        <td style="font-family:'JetBrains Mono';">${u.linked_accounts_count}</td>
+                        <td style="font-size:12px; color:var(--muted);">${lastActive}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <button class="btn-icon config" onclick="switchToUserConfig(${u.id})" title="Configure User Limits &amp; Permissions">⚙️</button>
+                            <button class="btn-icon" onclick="viewUserDetails(${u.id})" title="View Full Profile &amp; Trades">👁️</button>
+                            <button class="btn-icon" onclick="openEditUserModal(${u.id})" title="Edit User">✏️</button>
+                            <button class="btn-icon delete" onclick="confirmDeleteUser(${u.id}, '${escapeHtml(u.username)}')" title="Delete User">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterUsersTable() {
+            const query = (document.getElementById('user-search-input').value || '').toLowerCase();
+            const roleFilter = document.getElementById('user-role-filter').value;
+            const statusFilter = document.getElementById('user-status-filter').value;
+
+            const filtered = allUsers.filter(u => {
+                const matchesQuery = !query || 
+                    u.username.toLowerCase().includes(query) || 
+                    u.email.toLowerCase().includes(query) || 
+                    u.role.toLowerCase().includes(query);
+
+                const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+                const matchesStatus = statusFilter === 'ALL' || 
+                    (statusFilter === 'ACTIVE' && u.is_active) || 
+                    (statusFilter === 'INACTIVE' && !u.is_active);
+
+                return matchesQuery && matchesRole && matchesStatus;
+            });
+
+            renderUsersTable(filtered);
+        }
+
+        // ══════════════ USER STATUS TOGGLE & DELETE ══════════════
+        async function toggleUserStatus(userId) {
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}/toggle-status`, { method: 'POST' });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to toggle status");
+                }
+                const data = await res.json();
+                showToast(`User status set to ${data.is_active ? 'Active' : 'Inactive'}`, 'success');
+                await loadUsersList();
+                await loadOverviewStats();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function confirmDeleteUser(userId, username) {
+            if (!confirm(`⚠️ Are you sure you want to permanently delete user "${username}" (ID: ${userId})?\n\nThis will remove their isolated configuration, credentials, and unlink their accounts.`)) {
+                return;
+            }
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to delete user");
+                }
+                showToast(`User ${username} deleted successfully`, 'success');
+                await loadUsersList();
+                await loadOverviewStats();
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        // ══════════════ USER MODAL (CREATE / EDIT) ══════════════
+        function openCreateUserModal() {
+            currentEditingUserId = null;
+            document.getElementById('modal-user-title').innerText = "➕ Add New User";
+            document.getElementById('form-user-id').value = "";
+            document.getElementById('form-username').value = "";
+            document.getElementById('form-username').disabled = false;
+            document.getElementById('form-email').value = "";
+            document.getElementById('form-password').value = "";
+            document.getElementById('form-password').required = true;
+            document.getElementById('form-password-label').innerText = "Password";
+            document.getElementById('form-password-hint').style.display = "none";
+            document.getElementById('form-role').value = "user";
+            document.getElementById('form-status').value = "1";
+            document.getElementById('modal-user-form').style.display = "flex";
+        }
+
+        function openEditUserModal(userId) {
+            const u = allUsers.find(x => x.id === userId);
+            if (!u) return;
+
+            currentEditingUserId = userId;
+            document.getElementById('modal-user-title').innerText = `✏️ Edit User (${u.username})`;
+            document.getElementById('form-user-id').value = u.id;
+            document.getElementById('form-username').value = u.username;
+            document.getElementById('form-username').disabled = false;
+            document.getElementById('form-email').value = u.email;
+            document.getElementById('form-password').value = "";
+            document.getElementById('form-password').required = false;
+            document.getElementById('form-password-label').innerText = "New Password (Optional)";
+            document.getElementById('form-password-hint').style.display = "block";
+            document.getElementById('form-role').value = u.role;
+            document.getElementById('form-status').value = u.is_active ? "1" : "0";
+            document.getElementById('modal-user-form').style.display = "flex";
+        }
+
+        function closeUserModal() {
+            document.getElementById('modal-user-form').style.display = "none";
+        }
+
+        async function submitUserForm() {
+            const userId = document.getElementById('form-user-id').value;
+            const username = document.getElementById('form-username').value.trim();
+            const email = document.getElementById('form-email').value.trim();
+            const password = document.getElementById('form-password').value;
+            const role = document.getElementById('form-role').value;
+            const isActive = document.getElementById('form-status').value === "1";
+
+            if (!username || !email) {
+                showToast("Username and email are required", "error");
+                return;
+            }
+
+            try {
+                if (!userId) {
+                    // Create
+                    if (!password || password.length < 6) {
+                        showToast("Password must be at least 6 characters", "error");
+                        return;
+                    }
+                    const res = await fetch('/api/super-admin/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password, role, is_active: isActive })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.detail || "Failed to create user");
+                    }
+                    showToast("User created successfully!", "success");
+                } else {
+                    // Update
+                    const payload = { username, email, role, is_active: isActive };
+                    if (password && password.trim().length >= 6) {
+                        payload.password = password.trim();
+                    }
+                    const res = await fetch(`/api/super-admin/users/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.detail || "Failed to update user");
+                    }
+                    showToast("User updated successfully!", "success");
+                }
+                closeUserModal();
+                await loadUsersList();
+                await loadOverviewStats();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        // ══════════════ USER DETAILS MODAL ══════════════
+        async function viewUserDetails(userId) {
+            const modal = document.getElementById('modal-user-details');
+            const content = document.getElementById('user-details-content');
+            modal.style.display = 'flex';
+            content.innerHTML = `<div style="text-align:center; padding:30px; color:var(--muted);">Loading details for user #${userId}...</div>`;
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}`);
+                if (!res.ok) throw new Error("Failed to load user details");
+                const d = await res.json();
+
+                const p = d.profile;
+                const c = d.trading_config || {};
+                const perms = d.effective_permissions || {};
+
+                content.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:16px;">
+                        <div>
+                            <div style="font-size:18px; font-weight:800; color:#fff;">${escapeHtml(p.username)} <span style="font-size:12px; color:var(--muted); font-weight:400;">(#${p.id})</span></div>
+                            <div style="font-size:13px; color:var(--muted);">${escapeHtml(p.email)}</div>
+                            <div style="font-size:11px; color:var(--muted-dark); margin-top:4px;">Joined: ${p.created_at || 'N/A'} • Last Login: ${p.last_login || 'Never'}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span class="badge ${p.role === 'super_admin' ? 'badge-super' : p.role === 'master_admin' ? 'badge-master' : 'badge-user'}">${p.role}</span>
+                            <div style="margin-top:6px;"><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:20px;">
+                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Capital Deployed</div>
+                            <div style="font-size:16px; font-weight:800; font-family:'JetBrains Mono';">₹${(c.capital || 0).toLocaleString()}</div>
+                        </div>
+                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Daily Loss Cap</div>
+                            <div style="font-size:16px; font-weight:800; font-family:'JetBrains Mono'; color:var(--red);">₹${(c.daily_loss_cap || 0).toLocaleString()}</div>
+                        </div>
+                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Trading Mode</div>
+                            <div style="font-size:16px; font-weight:800; color:${c.trading_mode === 'LIVE' ? 'var(--red)' : 'var(--blue)'};">${c.trading_mode || 'TEST'}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:20px;">
+                        <div style="font-size:13px; font-weight:700; color:#ffffff; margin-bottom:8px;">Recent Trade Executions (${(d.recent_trades || []).length})</div>
+                        <div style="max-height: 220px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
+                            <table class="admin-table" style="font-size:12px;">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Symbol</th>
+                                        <th>Side</th>
+                                        <th>Strategy</th>
+                                        <th>Entry</th>
+                                        <th>Exit</th>
+                                        <th>P&amp;L</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${(d.recent_trades || []).length === 0 ? `<tr><td colspan="7" style="text-align:center; color:var(--muted);">No trades recorded for this user</td></tr>` : 
+                                    (d.recent_trades || []).map(t => {
+                                        const pnlColor = t.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+                                        return `
+                                            <tr>
+                                                <td style="font-size:11px;">${t.entry_time || t.created_at || ''}</td>
+                                                <td style="font-weight:700;">${t.symbol}</td>
+                                                <td>${t.side}</td>
+                                                <td>${t.strategy || '-'}</td>
+                                                <td>₹${t.entry_price}</td>
+                                                <td>${t.exit_price ? '₹'+t.exit_price : '-'}</td>
+                                                <td style="font-weight:700; color:${pnlColor};">${t.pnl != null ? '₹'+t.pnl.toFixed(2) : '-'}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                content.innerHTML = `<div style="color:var(--red); padding:20px;">Error: ${e.message}</div>`;
+            }
+        }
+
+        function closeUserDetailsModal() {
+            document.getElementById('modal-user-details').style.display = 'none';
+        }
+
+        // ══════════════ TAB 2: USER CONFIGURATION LOGIC ══════════════
+        function populateConfigUserDropdown(users) {
+            const sel = document.getElementById('config-user-select');
+            sel.innerHTML = `<option value="">Select a user to configure...</option>` +
+                users.map(u => `<option value="${u.id}">${escapeHtml(u.username)} (${u.email}) — ${u.role}</option>`).join('');
+
+            if (selectedConfigUserId) {
+                sel.value = selectedConfigUserId;
+            }
+        }
+
+        function switchToUserConfig(userId) {
+            switchTab('config');
+            document.getElementById('config-user-select').value = userId;
+            loadUserForConfig(userId);
+        }
+
+        async function loadUserForConfig(userId) {
+            if (!userId) {
+                document.getElementById('config-container').style.display = 'none';
+                document.getElementById('config-empty-state').style.display = 'block';
+                selectedConfigUserId = null;
+                return;
+            }
+
+            selectedConfigUserId = parseInt(userId);
+            document.getElementById('config-empty-state').style.display = 'none';
+            document.getElementById('config-container').style.display = 'block';
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}`);
+                if (!res.ok) throw new Error("Failed to load user config");
+                const d = await res.json();
+
+                const c = d.trading_config || {};
+                const p = d.effective_permissions || {};
+
+                document.getElementById('cfg-trading-mode').value = c.trading_mode || 'TEST';
+                document.getElementById('cfg-capital').value = c.capital || 100000;
+                document.getElementById('cfg-max-trades').value = c.max_trades || 3;
+                document.getElementById('cfg-daily-loss').value = c.daily_loss_cap || 5000;
+                document.getElementById('cfg-sl-mode').value = c.trailing_sl_mode || 'POINTS';
+                document.getElementById('cfg-bot-running').value = c.is_running ? "1" : "0";
+
+                document.getElementById('perm-auto-engine').checked = !!p.allow_automatic_engine;
+                document.getElementById('perm-radar-intra').checked = !!p.allow_primeradar_intra;
+                document.getElementById('perm-radar-options').checked = !!p.allow_primeradar_options;
+                document.getElementById('perm-multi-acct').checked = !!p.allow_multi_account;
+                document.getElementById('perm-dual-strat').checked = !!p.allow_dual_strategy;
+                document.getElementById('perm-live-trading').checked = !!p.allow_live_trading;
+                document.getElementById('perm-risk-override').checked = !!p.allow_risk_override;
+
+                // Linked accounts list
+                const lList = document.getElementById('cfg-linked-accounts-list');
+                const linked = d.linked_accounts || [];
+                if (linked.length === 0) {
+                    lList.innerHTML = `<div style="color:var(--muted); font-size:12px;">No accounts linked to this user.</div>`;
+                } else {
+                    lList.innerHTML = linked.map(la => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px;">
+                            <span>${escapeHtml(la.target_username)} (${escapeHtml(la.target_email)})</span>
+                            <span class="badge ${la.is_active ? 'badge-active' : 'badge-inactive'}">${la.is_active ? 'Active' : 'Muted'}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                showToast("Failed to load user configuration: " + e.message, "error");
+            }
+        }
+
+        async function saveUserConfiguration() {
+            if (!selectedConfigUserId) {
+                showToast("Please select a user first", "error");
+                return;
+            }
+
+            const payload = {
+                trading_mode: document.getElementById('cfg-trading-mode').value,
+                capital: parseFloat(document.getElementById('cfg-capital').value) || 100000,
+                max_trades: parseInt(document.getElementById('cfg-max-trades').value) || 3,
+                daily_loss_cap: parseFloat(document.getElementById('cfg-daily-loss').value) || 5000,
+                trailing_sl_mode: document.getElementById('cfg-sl-mode').value,
+                is_running: parseInt(document.getElementById('cfg-bot-running').value),
+                permissions: {
+                    allow_automatic_engine: document.getElementById('perm-auto-engine').checked,
+                    allow_primeradar_intra: document.getElementById('perm-radar-intra').checked,
+                    allow_primeradar_options: document.getElementById('perm-radar-options').checked,
+                    allow_multi_account: document.getElementById('perm-multi-acct').checked,
+                    allow_dual_strategy: document.getElementById('perm-dual-strat').checked,
+                    allow_live_trading: document.getElementById('perm-live-trading').checked,
+                    allow_risk_override: document.getElementById('perm-risk-override').checked
+                }
+            };
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${selectedConfigUserId}/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to save configuration");
+                }
+                showToast("Configuration saved successfully!", "success");
+                await loadUsersList();
+                await loadOverviewStats();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        // ══════════════ TAB 4: AUDIT LOGS ══════════════
+        async function loadAuditLogs() {
+            try {
+                const res = await fetch('/api/super-admin/audit-logs?limit=50');
+                if (!res.ok) return;
+                const logs = await res.json();
+
+                const tbody = document.getElementById('audit-logs-body');
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:30px;">No audit logs found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const userAttribution = l.username 
+                        ? `<span style="font-weight:600; color:#ffffff;">${escapeHtml(l.username)}</span> <span style="font-size:11px; color:var(--muted);">(ID: ${l.user_id})</span>`
+                        : `<span style="color:var(--muted-dark);">System</span>`;
+
+                    const lvlColor = l.level === 'ERROR' ? 'var(--red)' : l.level === 'WARNING' ? 'var(--gold)' : 'var(--blue)';
+
+                    return `
+                        <tr>
+                            <td style="font-family:'JetBrains Mono'; font-size:11px; color:var(--muted); white-space:nowrap;">${l.timestamp}</td>
+                            <td><span style="color:${lvlColor}; font-weight:700; font-size:11px;">${l.level}</span></td>
+                            <td>${userAttribution}</td>
+                            <td style="font-family:'JetBrains Mono'; font-size:12px; color:var(--text);">${escapeHtml(l.message)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error("Audit logs error:", e);
+            }
+        }
+
+        // ══════════════ TAB SWITCHER ══════════════
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+
+            const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+            const targetPanel = document.getElementById(`panel-${tabName}`);
+
+            if (targetBtn) targetBtn.classList.add('active');
+            if (targetPanel) targetPanel.classList.add('active');
+
+            if (tabName === 'audit') {
+                loadAuditLogs();
+            }
+        }
+
+        // ══════════════ UTILS ══════════════
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.className = type;
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3500);
+        }
+    </script>
+</body>
+
+</html>

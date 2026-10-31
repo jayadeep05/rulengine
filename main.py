@@ -22,7 +22,7 @@ from auth import (
     ACCESS_TOKEN_EXP, REFRESH_TOKEN_EXP,
     get_user_by_id, create_user, verify_access_token, hash_password
 )
-from auth_middleware import require_auth, require_admin, get_token_from_request
+from auth_middleware import require_auth, require_admin, require_master_admin, require_super_admin, get_token_from_request
 
 # Local imports
 from config import Config, SystemState
@@ -148,10 +148,10 @@ async def startup_event():
     # Initial index fetch using shared engine
     try:
         logger.info("Performing initial data fetch...")
-        idx_keys = [
+        idx_keys = getattr(Config, 'ALL_INDEX_KEYS', [
             "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
             "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
-        ]
+        ])
         res = _shared_engine.get_market_quotes(idx_keys)
         for idx in idx_keys:
             key_in_res = idx if idx in res else idx.replace("|", ":")
@@ -176,6 +176,15 @@ async def startup_event():
         credentials=shared_creds
     )
     logger.info("[WS] Upstox WebSocket Market Feed started.")
+
+    # Start Global / International Indices Background Poller
+    try:
+        from global_indices_service import start_global_indices_poller
+        start_global_indices_poller()
+        logger.info("[GlobalIndices] Background poller successfully initialized.")
+    except Exception as e:
+        logger.warning(f"Error starting global indices poller: {e}")
+
     asyncio.create_task(ws_fallback_pump())
     asyncio.create_task(periodic_stat_sync())
     asyncio.create_task(dynamic_discovery_loop())
@@ -373,10 +382,10 @@ async def periodic_stat_sync():
                 await asyncio.sleep(60)
                 continue
 
-            idx_keys = [
+            idx_keys = getattr(Config, 'ALL_INDEX_KEYS', [
                 "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
                 "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
-            ]
+            ])
             res = _shared_engine.get_market_quotes(idx_keys)
             for idx in idx_keys:
                 key_in_res = idx if idx in res else idx.replace("|", ":")
@@ -408,10 +417,10 @@ async def ws_fallback_pump():
         await asyncio.sleep(10)
 
         if not market_feed.is_index_live():
-            idx_keys = [
+            idx_keys = getattr(Config, 'ALL_INDEX_KEYS', [
                 "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
                 "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
-            ]
+            ])
             try:
                 res = _shared_engine.get_ltp_bulk(idx_keys)
                 for idx in idx_keys:
@@ -1969,6 +1978,15 @@ async def post_login(request: Request, body: LoginRequest, db=Depends(get_db)):
         record_login_attempt(client_ip)
         raise HTTPException(status_code=401, detail="Invalid username or password.")
 
+    if getattr(user, "is_active", True) is False:
+        raise HTTPException(status_code=403, detail="Your account has been deactivated. Please contact the Super Admin.")
+
+    try:
+        user.last_login = get_ist_now()
+        db.commit()
+    except Exception:
+        db.rollback()
+
     clear_login_attempts(client_ip)
     access_token  = create_access_token(user.id, user.email, user.role)
     refresh_token = create_refresh_token(user.id, user.email)
@@ -2151,6 +2169,17 @@ def get_dual_demo(request: Request, token: Optional[str] = Depends(get_token_fro
         return RedirectResponse("/login", status_code=302)
     with open("frontend/dual_demo.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
+
+@app.get("/super-admin")
+def get_super_admin_screen(request: Request, token: Optional[str] = Depends(get_token_from_request)):
+    if not token:
+        return RedirectResponse("/login", status_code=302)
+    payload = verify_access_token(token)
+    if not payload or payload.get("role") != "super_admin":
+        return RedirectResponse("/", status_code=302)
+    with open("frontend/super_admin.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
 
 # ────────────────────────────────────────────────────────────────────────────
 # API ROUTES (per-user isolated)
@@ -2490,14 +2519,25 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     uid = user["uid"]
     bot = get_or_create_bot(uid, db)
     global_halt = not get_global_trading_enabled()
+    # Merge live Indian indices and International/Global indices
+    all_indices = dict(_shared_state.live_indices)
+    all_prev_close = dict(_shared_state.index_prev_close)
+    try:
+        from global_indices_service import get_global_indices_data
+        g_prices, g_prev = get_global_indices_data()
+        all_indices.update(g_prices)
+        all_prev_close.update(g_prev)
+    except Exception as e:
+        logger.debug(f"Error merging global indices: {e}")
+
     if not bot:
         return {
             "is_running": False, "kill_switch_active": False,
             "daily_pnl": 0.0, "trades_taken": 0, "max_trades": Config.MAX_TRADES_PER_DAY,
             "market_condition": "WAITING", "active_capital": 0.0,
             "account_balance": 0.0, "usable_balance": 0.0,
-            "indices": _shared_state.live_indices,
-            "indices_prev_close": _shared_state.index_prev_close,
+            "indices": all_indices,
+            "indices_prev_close": all_prev_close,
             "active_trades": [], "mode": "TEST",
             "credentials_set": False,
             "ws_live": False,
@@ -2562,8 +2602,8 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
         "active_capital":     bot.state.active_capital,
         "account_balance":    bot.state.account_balance,
         "usable_balance":     bot.state.usable_balance,
-        "indices":            _shared_state.live_indices,
-        "indices_prev_close": _shared_state.index_prev_close,
+        "indices":            all_indices,
+        "indices_prev_close": all_prev_close,
         "active_trades":      dynamic_trades,
         "mode":               bot.config.get("MODE", "TEST"),
         "credentials_set":    bool(bot.creds.get("upstox_access_token")),
@@ -2823,12 +2863,8 @@ async def api_manual_trade(
     db=Depends(get_db)
 ):
     uid = user["uid"]
-    bot = get_or_create_bot(uid, db)
-    
-    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
-    if len(bot.tm.active_trades) >= max_open:
-        raise HTTPException(status_code=400, detail=f"Cannot place manual trade. Max open trades limit ({max_open}) reached.")
-        
+    role = user.get("role", "user")
+
     symbol_key = Config.SYMBOLS_MAPPING.get(body.symbol)
     if not symbol_key:
         try:
@@ -2842,6 +2878,34 @@ async def api_manual_trade(
     side = body.side.upper()
     if side not in ("BUY", "SELL"):
         raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
+
+    # Check if Multi-Account Trading is enabled and user is Master Admin
+    from multi_account_manager import MultiAccountManager
+    if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
+        order_payload = {
+            "symbol": body.symbol,
+            "instrument_key": symbol_key,
+            "side": side,
+            "qty": body.qty or 1,
+            "price": body.price or 0.0,
+            "trigger_price": 0.0,
+            "sl": 0.0,
+            "target": 0.0,
+            "order_type": "MARKET",
+            "radar_type": "ACTION_SIGNAL",
+            "product": "I"
+        }
+        return await MultiAccountManager.execute_multi_account_trade(
+            master_user_id=uid,
+            order_payload=order_payload,
+            db=db
+        )
+
+    bot = get_or_create_bot(uid, db)
+    
+    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
+    if len(bot.tm.active_trades) >= max_open:
+        raise HTTPException(status_code=400, detail=f"Cannot place manual trade. Max open trades limit ({max_open}) reached.")
         
     # Always fetch the verified real-time live market LTP
     live_ltp = bot.engine.get_ltp(symbol_key)
@@ -2933,6 +2997,17 @@ async def api_prime_radar_execute(
 ):
     """Executes validated orders from PrimeRadar – Intraday or PrimeRadar – Options."""
     uid = user["uid"]
+    role = user.get("role", "user")
+
+    # Multi-Account Trade Replication (Master Admin Only)
+    from multi_account_manager import MultiAccountManager
+    if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
+        return await MultiAccountManager.execute_multi_account_trade(
+            master_user_id=uid,
+            order_payload=body.dict(),
+            db=db
+        )
+
     bot = get_or_create_bot(uid, db)
 
     # 1. Side & Order Type validation
@@ -3255,8 +3330,273 @@ def get_global_kill_switch(user: dict = Depends(require_admin)):
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# MULTI-ACCOUNT TRADE REPLICATION CONTROLLERS (MASTER ADMIN ONLY)
+# ────────────────────────────────────────────────────────────────────────────
+
+class MultiAccountToggleRequest(BaseModel):
+    enabled: bool
+
+class MultiAccountLinkRequest(BaseModel):
+    target_user_id: int
+    allocation_pct: Optional[float] = 1.0
+
+class MultiAccountAccountToggleRequest(BaseModel):
+    target_user_id: int
+    is_active: bool
+
+@app.get("/api/admin/multi-account/config")
+def api_admin_get_multi_account_config(
+    user: dict = Depends(require_master_admin),
+    db=Depends(get_db)
+):
+    """Retrieve multi-account state, linked people, and available accounts."""
+    from multi_account_manager import MultiAccountManager
+    return MultiAccountManager.get_linked_accounts_status(db, master_user_id=user["uid"])
+
+@app.post("/api/admin/multi-account/toggle")
+def api_admin_toggle_multi_account(
+    body: MultiAccountToggleRequest,
+    user: dict = Depends(require_master_admin),
+    db=Depends(get_db)
+):
+    """Enable or disable multi-account trade replication globally for Master Admin."""
+    from multi_account_manager import MultiAccountManager
+    enabled = MultiAccountManager.set_multi_account_enabled(db, body.enabled)
+    return {"status": "success", "multi_account_enabled": enabled}
+
+@app.post("/api/admin/multi-account/link")
+def api_admin_link_account(
+    body: MultiAccountLinkRequest,
+    user: dict = Depends(require_master_admin),
+    db=Depends(get_db)
+):
+    """Link a person / trading account to Master Admin."""
+    from multi_account_manager import MultiAccountManager
+    try:
+        res = MultiAccountManager.link_account(
+            db=db,
+            master_user_id=user["uid"],
+            target_user_id=body.target_user_id,
+            allocation_pct=body.allocation_pct or 1.0
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/admin/multi-account/unlink/{target_user_id}")
+def api_admin_unlink_account(
+    target_user_id: int,
+    user: dict = Depends(require_master_admin),
+    db=Depends(get_db)
+):
+    """Unlink a person / trading account."""
+    from multi_account_manager import MultiAccountManager
+    try:
+        res = MultiAccountManager.unlink_account(
+            db=db,
+            master_user_id=user["uid"],
+            target_user_id=target_user_id
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/admin/multi-account/account-toggle")
+def api_admin_toggle_account(
+    body: MultiAccountAccountToggleRequest,
+    user: dict = Depends(require_master_admin),
+    db=Depends(get_db)
+):
+    """Enable or disable execution for a specific linked account."""
+    from multi_account_manager import MultiAccountManager
+    try:
+        res = MultiAccountManager.toggle_account_active(
+            db=db,
+            master_user_id=user["uid"],
+            target_user_id=body.target_user_id,
+            is_active=body.is_active
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# SUPER ADMIN CENTRALIZED CONTROL PANEL (SUPER ADMIN ONLY)
+# ────────────────────────────────────────────────────────────────────────────
+
+class SuperAdminCreateUserRequest(BaseModel):
+    email: str
+    username: str
+    password: str
+    role: Optional[str] = "user"
+    is_active: Optional[bool] = True
+    permissions: Optional[Dict[str, Any]] = None
+
+class SuperAdminUpdateUserRequest(BaseModel):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+    permissions: Optional[Dict[str, Any]] = None
+
+class SuperAdminUpdateConfigRequest(BaseModel):
+    trading_mode: Optional[str] = None
+    capital: Optional[float] = None
+    max_trades: Optional[int] = None
+    daily_loss_cap: Optional[float] = None
+    trailing_sl_mode: Optional[str] = None
+    risk_per_trade: Optional[float] = None
+    is_running: Optional[int] = None
+    permissions: Optional[Dict[str, Any]] = None
+
+@app.get("/api/super-admin/overview")
+def api_super_admin_overview(user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Summary overview stats across all users, bots, and executions."""
+    from super_admin_service import SuperAdminService
+    return SuperAdminService.get_system_overview_stats(db)
+
+@app.get("/api/super-admin/users")
+def api_super_admin_users(user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Full list of registered users with Upstox status, trading activity, and roles."""
+    from super_admin_service import SuperAdminService
+    return SuperAdminService.get_all_users_summary(db)
+
+@app.post("/api/super-admin/users")
+def api_super_admin_create_user(req: SuperAdminCreateUserRequest, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Provision a new user account with default isolated trading configuration."""
+    from super_admin_service import SuperAdminService
+    try:
+        new_u = SuperAdminService.create_user_admin(
+            db=db,
+            email=req.email,
+            username=req.username,
+            password=req.password,
+            role=req.role or "user",
+            is_active=req.is_active if req.is_active is not None else True,
+            permissions=req.permissions,
+            admin_user_id=user["uid"]
+        )
+        return {"status": "success", "user": new_u}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/super-admin/users/{target_user_id}")
+def api_super_admin_get_user(target_user_id: int, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Get complete isolated configuration, linked accounts, and trade history for a specific user."""
+    from super_admin_service import SuperAdminService
+    details = SuperAdminService.get_user_full_details(db, target_user_id)
+    if not details:
+        raise HTTPException(status_code=404, detail="User not found")
+    return details
+
+@app.put("/api/super-admin/users/{target_user_id}")
+def api_super_admin_update_user(target_user_id: int, req: SuperAdminUpdateUserRequest, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Modify user credentials, role, status, or granular permissions."""
+    from super_admin_service import SuperAdminService
+    try:
+        updated = SuperAdminService.update_user_admin(
+            db=db,
+            target_user_id=target_user_id,
+            email=req.email,
+            username=req.username,
+            role=req.role,
+            is_active=req.is_active,
+            password=req.password,
+            permissions=req.permissions,
+            admin_user_id=user["uid"]
+        )
+        return {"status": "success", "user": updated}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/super-admin/users/{target_user_id}")
+def api_super_admin_delete_user(target_user_id: int, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Safely remove a user account and clean up isolated state."""
+    from super_admin_service import SuperAdminService
+    try:
+        SuperAdminService.delete_user_admin(db, target_user_id, admin_user_id=user["uid"])
+        return {"status": "success", "deleted": True, "user_id": target_user_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/super-admin/users/{target_user_id}/toggle-status")
+def api_super_admin_toggle_user_status(target_user_id: int, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Instantly activate or deactivate a user account."""
+    from super_admin_service import SuperAdminService
+    try:
+        new_active = SuperAdminService.toggle_user_active_status(db, target_user_id, admin_user_id=user["uid"])
+        return {"status": "success", "is_active": new_active, "user_id": target_user_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/api/super-admin/users/{target_user_id}/config")
+def api_super_admin_update_user_config(target_user_id: int, req: SuperAdminUpdateConfigRequest, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Update risk management parameters, trading mode, capital, and feature-level access for a specific user."""
+    from super_admin_service import SuperAdminService
+    try:
+        cfg_dict = {
+            "trading_mode": req.trading_mode,
+            "capital": req.capital,
+            "max_trades": req.max_trades,
+            "daily_loss_cap": req.daily_loss_cap,
+            "trailing_sl_mode": req.trailing_sl_mode,
+            "is_running": req.is_running
+        }
+        res = SuperAdminService.update_user_trading_config_and_permissions(
+            db=db,
+            target_user_id=target_user_id,
+            config_data=cfg_dict,
+            permissions_data=req.permissions,
+            admin_user_id=user["uid"]
+        )
+        return {"status": "success", "config": res}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/super-admin/roles")
+def api_super_admin_roles(user: dict = Depends(require_super_admin)):
+    """Catalog of supported roles and their default permission profiles."""
+    from super_admin_service import DEFAULT_ROLE_PERMISSIONS
+    return {
+        "roles": [
+            {
+                "key": "super_admin",
+                "name": "Super Admin",
+                "badge": "👑 Super Admin",
+                "description": "Full unconstrained administrative access to all users, settings, and trading systems.",
+                "permissions": DEFAULT_ROLE_PERMISSIONS["super_admin"]
+            },
+            {
+                "key": "master_admin",
+                "name": "Master Admin",
+                "badge": "🛡️ Master Admin",
+                "description": "High-tier trading administrator with multi-account trade replication and higher limits.",
+                "permissions": DEFAULT_ROLE_PERMISSIONS["master_admin"]
+            },
+            {
+                "key": "user",
+                "name": "Regular User",
+                "badge": "👤 Trader",
+                "description": "Standard trader with personal account execution and standard risk constraints.",
+                "permissions": DEFAULT_ROLE_PERMISSIONS["user"]
+            }
+        ]
+    }
+
+@app.get("/api/super-admin/audit-logs")
+def api_super_admin_audit_logs(limit: int = 100, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Real-time system audit trail with user attribution."""
+    from super_admin_service import SuperAdminService
+    return SuperAdminService.get_system_audit_logs(db, limit=limit)
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # v2 API ENDPOINTS — Watchlist, Signal Log, Feed Health, Pipeline Stats
 # ────────────────────────────────────────────────────────────────────────────
+
 
 @app.get("/api/watchlist/morning")
 def api_get_morning_watchlist(user: dict = Depends(require_auth)):

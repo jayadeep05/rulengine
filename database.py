@@ -82,7 +82,10 @@ class User(Base):
     email         = Column(String(255), unique=True, index=True, nullable=False)
     username      = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role          = Column(String(20), default="user")  # "user" or "admin"
+    role          = Column(String(20), default="user")  # "super_admin", "master_admin", "user"
+    is_active     = Column(Boolean, default=True)
+    last_login    = Column(DateTime, nullable=True)
+    permissions_json = Column(Text, nullable=True)     # JSON string of granular feature permissions
     created_at    = Column(DateTime, default=get_ist_now)
 
     # Relationships
@@ -300,6 +303,29 @@ class DailyReconciliation(Base):
     untracked_trades  = Column(Integer, default=0)
     details           = Column(Text, nullable=True)
     created_at        = Column(DateTime, default=get_ist_now)
+
+
+class MasterLinkedAccount(Base):
+    """
+    Stores accounts linked by Master Admin for multi-account trade replication.
+    """
+    __tablename__ = "master_linked_accounts"
+    __table_args__ = (
+        UniqueConstraint("master_user_id", "linked_user_id", name="uq_master_linked_account"),
+    )
+
+    id             = Column(Integer, primary_key=True, autoincrement=True)
+    master_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    linked_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    is_active      = Column(Integer, default=1)  # 1 = Enabled in multi-trading, 0 = Paused/Excluded
+    allocation_pct = Column(Float, default=1.0)  # Quantity multiplier (default 1.0 = exact same qty)
+    created_at     = Column(DateTime, default=get_ist_now)
+    updated_at     = Column(DateTime, default=get_ist_now, onupdate=get_ist_now)
+
+    # Relationships
+    master_user = relationship("User", foreign_keys=[master_user_id])
+    linked_user = relationship("User", foreign_keys=[linked_user_id])
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

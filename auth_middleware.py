@@ -56,11 +56,29 @@ def require_auth(
     return payload
 
 
+def require_super_admin(user: dict = Depends(require_auth)) -> dict:
+    if user.get("role") != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super Admin access required.",
+        )
+    return user
+
+
 def require_admin(user: dict = Depends(require_auth)) -> dict:
-    if user.get("role") != "admin":
+    if user.get("role") not in ("super_admin", "admin", "master_admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
+        )
+    return user
+
+
+def require_master_admin(user: dict = Depends(require_auth)) -> dict:
+    if user.get("role") not in ("super_admin", "admin", "master_admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Master Admin role access required.",
         )
     return user
 
