@@ -4167,6 +4167,7 @@
                             <input type="text" id="prime-intra-search" class="prime-input" placeholder="🔎 Type symbol or company (e.g. RELIANCE, TCS)..." autocomplete="off" oninput="onPrimeIntraSearchInput(this.value)">
                             <div id="prime-intra-suggestions" class="prime-suggestions-dropdown"></div>
                         </div>
+                        <div id="prime-intra-quick-chips" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; margin-top: -4px;"></div>
                     </div>
 
                     <!-- Selected Stock Details & Live Price -->
@@ -4263,6 +4264,8 @@
                             </select>
                         </div>
                     </div>
+
+                    <div id="prime-opt-quick-chips" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; margin-top: -4px;"></div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
@@ -4677,45 +4680,61 @@
 
     <!-- RADAR STOCKS CONFIGURATION MODAL -->
     <div class="modal" id="m-radar-stocks">
-        <div class="modal-box" style="width: 580px; max-width: 95vw; border-radius: 20px; box-shadow: var(--shadow-md);">
+        <div class="modal-box" style="width: 600px; max-width: 95vw; border-radius: 20px; box-shadow: var(--shadow-md);">
             <div class="modal-head" style="border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255, 107, 0, 0.15); color: #ff6b00; display: flex; align-items: center; justify-content: center; font-size: 16px;">🎯</div>
+                    <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 107, 0, 0.15); color: #ff6b00; display: flex; align-items: center; justify-content: center; font-size: 17px;">🎯</div>
                     <div>
                         <div style="font-weight: 800; font-size: 15px; color: var(--text);">Configure Radar Stocks</div>
-                        <div style="font-size: 11px; color: var(--muted); margin-top: 1px;">Customize which stocks appear on the Live Intelligence Radar</div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 1px;">Manage monitored stocks & underlyings for Intraday and Options</div>
                     </div>
                 </div>
                 <button class="btn-close-modal" onclick="closeRadarConfigModal()" style="background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer;">✕</button>
             </div>
+            
             <div class="modal-body" style="padding: 18px 20px; font-size: 12px; display: flex; flex-direction: column; gap: 14px;">
-                <!-- Search Input for Stocks -->
+                <!-- SELECTION TABS: INTRADAY vs OPTIONS -->
+                <div style="display: flex; background: var(--sub-box-bg); padding: 4px; border-radius: 12px; border: 1px solid var(--border); gap: 6px;">
+                    <button type="button" id="tab-radar-intra" onclick="switchRadarConfigTab('INTRA')" style="flex: 1; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; border: 1px solid rgba(2, 132, 199, 0.5); background: rgba(2, 132, 199, 0.2); color: #38bdf8; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease;">
+                        <span>⚡ Intraday Stocks</span>
+                        <span id="tab-count-intra" style="background: rgba(2, 132, 199, 0.35); padding: 2px 8px; border-radius: 10px; font-size: 10px;">0</span>
+                    </button>
+                    <button type="button" id="tab-radar-opt" onclick="switchRadarConfigTab('OPT')" style="flex: 1; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; border: 1px solid transparent; background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease;">
+                        <span>🎯 Options (F&O) Stocks</span>
+                        <span id="tab-count-opt" style="background: rgba(139, 92, 246, 0.2); padding: 2px 8px; border-radius: 10px; font-size: 10px; color: #c084fc;">0</span>
+                    </button>
+                </div>
+
+                <!-- Search Input with Dynamic Context -->
                 <div style="position: relative;">
-                    <label class="prime-field-label" style="margin-bottom: 5px;">Search & Add NSE Stocks</label>
-                    <input type="text" id="radar-config-search-input" class="prime-input" placeholder="🔎 Search by symbol or company name (e.g. RELIANCE, TATASTEEL)..." autocomplete="off" oninput="onRadarStockSearch(this.value)">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label id="radar-config-search-label" class="prime-field-label" style="margin-bottom: 0;">Search & Add NSE Stocks (Intraday)</label>
+                        <span id="radar-config-search-meta" style="font-size: 10px; color: #38bdf8; font-weight: 600;">2,381 Equities</span>
+                    </div>
+                    <input type="text" id="radar-config-search-input" class="prime-input" placeholder="🔎 Search by symbol or company name (e.g. RELIANCE, TCS)..." autocomplete="off" oninput="onRadarStockSearch(this.value)">
                     <div id="radar-config-suggestions" class="prime-suggestions-dropdown" style="max-height: 220px;"></div>
                 </div>
 
-                <!-- Configured Stocks Summary & List -->
+                <!-- Active Monitored List & Quick Presets -->
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span class="prime-field-label" style="margin-bottom: 0;">Active Monitored Stocks (<span id="radar-config-count">0</span>)</span>
-                        <div style="display: flex; gap: 6px;">
-                            <button type="button" onclick="loadNiftyTopPreset()" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; padding: 3px 8px; cursor: pointer;">+ Nifty Top 10</button>
-                            <button type="button" onclick="clearRadarConfigStocks()" style="font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 3px 8px; cursor: pointer;">Clear All</button>
+                        <span id="radar-config-list-heading" class="prime-field-label" style="margin-bottom: 0;">Active Monitored Stocks (<span id="radar-config-active-count">0</span>)</span>
+                        <div id="radar-config-presets" style="display: flex; gap: 6px;">
+                            <!-- Injected dynamically based on active tab -->
                         </div>
                     </div>
-                    <div id="radar-config-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 12px; min-height: 80px; align-content: flex-start;">
+                    <div id="radar-config-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: var(--sub-box-bg); border: 1px solid var(--sub-box-border); border-radius: 12px; min-height: 80px; align-content: flex-start;">
                         <!-- Tags rendered dynamically -->
                     </div>
-                    <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">
-                        💡 If no custom stocks are added, the radar automatically monitors the default universe.
+                    <div id="radar-config-hint" style="font-size: 10px; color: var(--muted); margin-top: 6px;">
+                        💡 Configured stocks will be prioritized and displayed across the Live Intelligence Radar and PrimeRadar Intraday.
                     </div>
                 </div>
             </div>
+
             <div class="modal-foot" style="border-top: 1px solid var(--border); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button class="btn-outline" onclick="resetRadarConfigToDefault()" style="font-size: 11px; padding: 6px 14px; border-radius: 8px;">
-                    ↺ Reset to Default (Universe 92)
+                <button class="btn-outline" onclick="resetRadarConfigCurrentTab()" style="font-size: 11px; padding: 6px 14px; border-radius: 8px;">
+                    ↺ Reset Tab to Default
                 </button>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeRadarConfigModal()" style="font-size: 11px; padding: 6px 14px; border-radius: 8px;">Cancel</button>
@@ -7383,13 +7402,11 @@
 
         async function initPrimeOptions() {
             try {
-                const res = await fetch('/api/instruments/options/underlyings');
-                if (!res.ok) return;
-                const underlyings = await res.json();
+                await fetchOptionsUnderlyingsList();
+                await updatePrimeOptUnderlyingsDropdown();
                 const sel = document.getElementById('prime-opt-underlying');
-                if (sel && underlyings && underlyings.length > 0) {
-                    sel.innerHTML = underlyings.map(u => `<option value="${u}">${u}</option>`).join('');
-                    sel.value = primeOptState.underlying;
+                if (sel && sel.value) {
+                    primeOptState.underlying = sel.value;
                 }
                 await onPrimeOptUnderlyingChange(primeOptState.underlying);
             } catch (e) {
@@ -7870,14 +7887,21 @@
             }
         }
 
-        // ─── RADAR STOCKS CONFIGURATION CONTROLLER ─────────────────────────────
-        const RADAR_CONFIG_STORAGE_KEY = 'quantedge_configured_radar_stocks';
-        let currentRadarConfigList = [];
+        // ─── RADAR STOCKS CONFIGURATION CONTROLLER (INTRADAY & OPTIONS TABS) ───────────
+        const RADAR_CONFIG_STORAGE_KEY_INTRA = 'quantedge_configured_radar_stocks';
+        const RADAR_CONFIG_STORAGE_KEY_OPT = 'quantedge_configured_opt_stocks';
+        
+        let currentRadarConfigTab = 'INTRA'; // 'INTRA' or 'OPT'
+        let currentRadarConfigState = {
+            intra: [],
+            opt: []
+        };
+        let cachedOptionsUnderlyings = [];
         let radarStockSearchTimeout = null;
 
         function getSavedRadarStocks() {
             try {
-                const raw = localStorage.getItem(RADAR_CONFIG_STORAGE_KEY);
+                const raw = localStorage.getItem(RADAR_CONFIG_STORAGE_KEY_INTRA);
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -7890,16 +7914,52 @@
             return [];
         }
 
-        function openRadarConfigModal() {
-            currentRadarConfigList = [...getSavedRadarStocks()];
-            renderRadarConfigTags();
-            const searchInput = document.getElementById('radar-config-search-input');
-            if (searchInput) searchInput.value = '';
-            const drop = document.getElementById('radar-config-suggestions');
-            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+        function getSavedOptStocks() {
+            try {
+                const raw = localStorage.getItem(RADAR_CONFIG_STORAGE_KEY_OPT);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn("Error reading saved opt stocks:", e);
+            }
+            // Sensible defaults for Options if nothing configured
+            return ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'RELIANCE', 'TATASTEEL'];
+        }
+
+        async function fetchOptionsUnderlyingsList() {
+            if (cachedOptionsUnderlyings && cachedOptionsUnderlyings.length > 0) {
+                return cachedOptionsUnderlyings;
+            }
+            try {
+                const res = await fetch('/api/instruments/options/underlyings');
+                if (res.ok) {
+                    cachedOptionsUnderlyings = await res.json();
+                }
+            } catch (e) {
+                console.warn("Error fetching options underlyings:", e);
+            }
+            return cachedOptionsUnderlyings || [];
+        }
+
+        function openRadarConfigModal(initialTab = null) {
+            currentRadarConfigState.intra = [...getSavedRadarStocks()];
+            currentRadarConfigState.opt = [...getSavedOptStocks()];
+            if (initialTab && (initialTab === 'INTRA' || initialTab === 'OPT')) {
+                currentRadarConfigTab = initialTab;
+            }
+            
+            // Prefetch options underlyings for instant search
+            fetchOptionsUnderlyingsList();
+
+            switchRadarConfigTab(currentRadarConfigTab);
             
             const modal = document.getElementById('m-radar-stocks');
             if (modal) modal.classList.add('open');
+            const searchInput = document.getElementById('radar-config-search-input');
             if (searchInput) setTimeout(() => searchInput.focus(), 150);
         }
 
@@ -7910,78 +7970,209 @@
             if (drop) drop.style.display = 'none';
         }
 
+        function switchRadarConfigTab(tab) {
+            currentRadarConfigTab = tab;
+            const btnIntra = document.getElementById('tab-radar-intra');
+            const btnOpt = document.getElementById('tab-radar-opt');
+            const countIntra = document.getElementById('tab-count-intra');
+            const countOpt = document.getElementById('tab-count-opt');
+            const searchLabel = document.getElementById('radar-config-search-label');
+            const searchMeta = document.getElementById('radar-config-search-meta');
+            const searchInput = document.getElementById('radar-config-search-input');
+            const listHeading = document.getElementById('radar-config-list-heading');
+            const presetsContainer = document.getElementById('radar-config-presets');
+            const hint = document.getElementById('radar-config-hint');
+            const drop = document.getElementById('radar-config-suggestions');
+
+            if (countIntra) countIntra.textContent = currentRadarConfigState.intra.length;
+            if (countOpt) countOpt.textContent = currentRadarConfigState.opt.length;
+            if (drop) { drop.innerHTML = ''; drop.style.display = 'none'; }
+            if (searchInput) searchInput.value = '';
+
+            if (tab === 'INTRA') {
+                if (btnIntra) {
+                    btnIntra.style.border = '1px solid rgba(2, 132, 199, 0.5)';
+                    btnIntra.style.background = 'rgba(2, 132, 199, 0.2)';
+                    btnIntra.style.color = '#38bdf8';
+                }
+                if (btnOpt) {
+                    btnOpt.style.border = '1px solid transparent';
+                    btnOpt.style.background = 'transparent';
+                    btnOpt.style.color = 'var(--muted)';
+                }
+                if (searchLabel) searchLabel.textContent = 'Search & Add NSE Stocks (Intraday)';
+                if (searchMeta) {
+                    searchMeta.textContent = '2,381 Equities';
+                    searchMeta.style.color = '#38bdf8';
+                }
+                if (searchInput) searchInput.placeholder = '🔎 Search by symbol or company name (e.g. RELIANCE, TCS)...';
+                if (listHeading) {
+                    listHeading.innerHTML = `Active Monitored Stocks (<span id="radar-config-active-count">${currentRadarConfigState.intra.length}</span>)`;
+                }
+                if (presetsContainer) {
+                    presetsContainer.innerHTML = `
+                        <button type="button" onclick="loadNiftyTopPreset()" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; padding: 3px 8px; cursor: pointer;">+ Nifty Top 10</button>
+                        <button type="button" onclick="clearRadarConfigCurrentTab()" style="font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 3px 8px; cursor: pointer;">Clear All</button>
+                    `;
+                }
+                if (hint) {
+                    hint.textContent = '💡 Configured stocks will be prioritized and displayed across the Live Intelligence Radar and PrimeRadar Intraday.';
+                }
+            } else {
+                if (btnIntra) {
+                    btnIntra.style.border = '1px solid transparent';
+                    btnIntra.style.background = 'transparent';
+                    btnIntra.style.color = 'var(--muted)';
+                }
+                if (btnOpt) {
+                    btnOpt.style.border = '1px solid rgba(139, 92, 246, 0.5)';
+                    btnOpt.style.background = 'rgba(139, 92, 246, 0.2)';
+                    btnOpt.style.color = '#c084fc';
+                }
+                if (searchLabel) searchLabel.textContent = 'Search & Add Options (F&O) Underlyings';
+                if (searchMeta) {
+                    searchMeta.textContent = `${cachedOptionsUnderlyings.length || 224} F&O Underlyings`;
+                    searchMeta.style.color = '#c084fc';
+                }
+                if (searchInput) searchInput.placeholder = '🔎 Search F&O underlyings (e.g. NIFTY, BANKNIFTY, RELIANCE, INFY)...';
+                if (listHeading) {
+                    listHeading.innerHTML = `Configured Options Underlyings (<span id="radar-config-active-count">${currentRadarConfigState.opt.length}</span>)`;
+                }
+                if (presetsContainer) {
+                    presetsContainer.innerHTML = `
+                        <button type="button" onclick="loadMajorIndicesPreset()" style="font-size: 10px; font-weight: 700; color: #c084fc; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 6px; padding: 3px 8px; cursor: pointer;">+ Major Indices</button>
+                        <button type="button" onclick="loadTopFnoEquitiesPreset()" style="font-size: 10px; font-weight: 700; color: #38bdf8; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; padding: 3px 8px; cursor: pointer;">+ Top F&O Equities</button>
+                        <button type="button" onclick="clearRadarConfigCurrentTab()" style="font-size: 10px; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 3px 8px; cursor: pointer;">Clear All</button>
+                    `;
+                }
+                if (hint) {
+                    hint.textContent = '💡 Configured underlyings will appear as priority quick-select options in PrimeRadar – Options.';
+                }
+            }
+
+            renderRadarConfigTags();
+        }
+
         function renderRadarConfigTags() {
             const container = document.getElementById('radar-config-tags-container');
-            const countEl = document.getElementById('radar-config-count');
-            if (countEl) countEl.textContent = currentRadarConfigList.length;
+            const activeCountEl = document.getElementById('radar-config-active-count');
+            const countIntra = document.getElementById('tab-count-intra');
+            const countOpt = document.getElementById('tab-count-opt');
 
+            if (countIntra) countIntra.textContent = currentRadarConfigState.intra.length;
+            if (countOpt) countOpt.textContent = currentRadarConfigState.opt.length;
+
+            const isIntra = (currentRadarConfigTab === 'INTRA');
+            const currentList = isIntra ? currentRadarConfigState.intra : currentRadarConfigState.opt;
+
+            if (activeCountEl) activeCountEl.textContent = currentList.length;
             if (!container) return;
 
-            if (currentRadarConfigList.length === 0) {
+            if (currentList.length === 0) {
                 container.innerHTML = `
                     <div style="width: 100%; text-align: center; color: var(--muted); font-size: 11px; padding: 24px 10px;">
-                        No custom stocks configured. Live Intelligence Radar will display the default momentum universe (9 constituents).
+                        ${isIntra 
+                            ? 'No custom stocks configured. Live Intelligence Radar monitors default momentum universe (9 constituents).' 
+                            : 'No custom underlyings configured. PrimeRadar Options uses default index universe.'}
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = currentRadarConfigList.map(sym => `
-                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.4); padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: #38bdf8; transition: all 0.2s ease;">
+            const themeColor = isIntra ? '#38bdf8' : '#c084fc';
+            const themeBg = isIntra ? 'rgba(2, 132, 199, 0.15)' : 'rgba(139, 92, 246, 0.15)';
+            const themeBorder = isIntra ? 'rgba(2, 132, 199, 0.4)' : 'rgba(139, 92, 246, 0.4)';
+
+            container.innerHTML = currentList.map(sym => `
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: ${themeBg}; border: 1px solid ${themeBorder}; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; color: ${themeColor}; transition: all 0.2s ease;">
                     <span>${sym}</span>
                     <button type="button" onclick="removeStockFromRadarConfig('${sym}')" style="background: none; border: none; color: #94a3b8; font-size: 13px; line-height: 1; cursor: pointer; padding: 0 2px; margin-left: 2px; border-radius: 4px;" title="Remove ${sym}" onmouseenter="this.style.color='#ef4444';" onmouseleave="this.style.color='#94a3b8';">✕</button>
                 </div>
             `).join('');
         }
 
-        function onRadarStockSearch(query) {
+        async function onRadarStockSearch(query) {
             clearTimeout(radarStockSearchTimeout);
             const drop = document.getElementById('radar-config-suggestions');
             if (!drop) return;
 
-            const q = query ? query.trim() : '';
+            const q = query ? query.trim().toUpperCase() : '';
             if (q.length < 1) {
                 drop.innerHTML = '';
                 drop.style.display = 'none';
                 return;
             }
 
-            radarStockSearchTimeout = setTimeout(async () => {
-                try {
-                    const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(q)}&limit=12`);
-                    if (!res.ok) return;
-                    const stocks = await res.json();
-                    if (!stocks || stocks.length === 0) {
-                        drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching stocks found</div>';
-                        drop.style.display = 'block';
-                        return;
-                    }
+            const isIntra = (currentRadarConfigTab === 'INTRA');
+            const currentList = isIntra ? currentRadarConfigState.intra : currentRadarConfigState.opt;
 
-                    drop.innerHTML = stocks.map(s => {
-                        const isAlreadyAdded = currentRadarConfigList.includes(s.symbol);
-                        return `
-                            <div class="prime-suggestion-item" onclick="addStockToRadarConfig('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')" style="${isAlreadyAdded ? 'opacity: 0.5;' : ''}">
-                                <div>
-                                    <span style="font-weight: 800; color: #38bdf8;">${s.symbol}</span>
-                                    <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${s.name || ''}</div>
+            if (isIntra) {
+                radarStockSearchTimeout = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(q)}&limit=12`);
+                        if (!res.ok) return;
+                        const stocks = await res.json();
+                        if (!stocks || stocks.length === 0) {
+                            drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching stocks found</div>';
+                            drop.style.display = 'block';
+                            return;
+                        }
+
+                        drop.innerHTML = stocks.map(s => {
+                            const isAlreadyAdded = currentList.includes(s.symbol);
+                            return `
+                                <div class="prime-suggestion-item" onclick="addStockToRadarConfig('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')" style="${isAlreadyAdded ? 'opacity: 0.5;' : ''}">
+                                    <div>
+                                        <span style="font-weight: 800; color: #38bdf8;">${s.symbol}</span>
+                                        <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${s.name || ''}</div>
+                                    </div>
+                                    <span style="font-size: 9px; color: ${isAlreadyAdded ? '#10b981' : 'var(--tag-neutral-color)'}; background: ${isAlreadyAdded ? 'rgba(16,185,129,0.15)' : 'var(--tag-neutral-bg)'}; padding: 1px 6px; border-radius: 4px;">
+                                        ${isAlreadyAdded ? '✓ Added' : 'NSE EQ'}
+                                    </span>
                                 </div>
-                                <span style="font-size: 9px; color: ${isAlreadyAdded ? '#10b981' : 'var(--tag-neutral-color)'}; background: ${isAlreadyAdded ? 'rgba(16,185,129,0.15)' : 'var(--tag-neutral-bg)'}; padding: 1px 6px; border-radius: 4px;">
-                                    ${isAlreadyAdded ? '✓ Added' : 'NSE EQ'}
-                                </span>
-                            </div>
-                        `;
-                    }).join('');
+                            `;
+                        }).join('');
+                        drop.style.display = 'block';
+                    } catch (e) {
+                        console.warn("Radar stock search error:", e);
+                    }
+                }, 250);
+            } else {
+                // OPTIONS UNDERLYINGS SEARCH
+                const underlyings = await fetchOptionsUnderlyingsList();
+                const matched = underlyings.filter(u => u.toUpperCase().includes(q)).slice(0, 15);
+                if (matched.length === 0) {
+                    drop.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--muted); font-size: 11px;">No matching F&O underlyings found</div>';
                     drop.style.display = 'block';
-                } catch (e) {
-                    console.warn("Radar stock search error:", e);
+                    return;
                 }
-            }, 250);
+
+                drop.innerHTML = matched.map(sym => {
+                    const isAlreadyAdded = currentList.includes(sym);
+                    const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'].includes(sym);
+                    return `
+                        <div class="prime-suggestion-item" onclick="addStockToRadarConfig('${sym}', '${sym}')" style="${isAlreadyAdded ? 'opacity: 0.5;' : ''}">
+                            <div>
+                                <span style="font-weight: 800; color: #c084fc;">${sym}</span>
+                                <div style="font-size: 9px; color: var(--muted); margin-top: 1px;">${isIndex ? 'NSE Index Derivative' : 'NSE Equity Derivative'}</div>
+                            </div>
+                            <span style="font-size: 9px; color: ${isAlreadyAdded ? '#10b981' : '#c084fc'}; background: ${isAlreadyAdded ? 'rgba(16,185,129,0.15)' : 'rgba(139, 92, 246, 0.15)'}; padding: 1px 6px; border-radius: 4px;">
+                                ${isAlreadyAdded ? '✓ Added' : (isIndex ? 'INDEX F&O' : 'STOCK F&O')}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+                drop.style.display = 'block';
+            }
         }
 
         function addStockToRadarConfig(sym, name) {
             const cleanSym = sym.trim().toUpperCase();
-            if (!currentRadarConfigList.includes(cleanSym)) {
-                currentRadarConfigList.push(cleanSym);
+            const isIntra = (currentRadarConfigTab === 'INTRA');
+            const targetList = isIntra ? currentRadarConfigState.intra : currentRadarConfigState.opt;
+
+            if (!targetList.includes(cleanSym)) {
+                targetList.push(cleanSym);
                 renderRadarConfigTags();
             }
             const searchInput = document.getElementById('radar-config-search-input');
@@ -7991,50 +8182,198 @@
         }
 
         function removeStockFromRadarConfig(sym) {
-            currentRadarConfigList = currentRadarConfigList.filter(s => s !== sym);
+            if (currentRadarConfigTab === 'INTRA') {
+                currentRadarConfigState.intra = currentRadarConfigState.intra.filter(s => s !== sym);
+            } else {
+                currentRadarConfigState.opt = currentRadarConfigState.opt.filter(s => s !== sym);
+            }
             renderRadarConfigTags();
         }
 
         function loadNiftyTopPreset() {
             const top10 = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'TCS', 'ITC', 'LT', 'SBIN', 'BHARTIARTL', 'AXISBANK'];
             top10.forEach(sym => {
-                if (!currentRadarConfigList.includes(sym)) {
-                    currentRadarConfigList.push(sym);
+                if (!currentRadarConfigState.intra.includes(sym)) {
+                    currentRadarConfigState.intra.push(sym);
                 }
             });
             renderRadarConfigTags();
         }
 
-        function clearRadarConfigStocks() {
-            currentRadarConfigList = [];
+        function loadMajorIndicesPreset() {
+            const majorIndices = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'];
+            majorIndices.forEach(sym => {
+                if (!currentRadarConfigState.opt.includes(sym)) {
+                    currentRadarConfigState.opt.push(sym);
+                }
+            });
             renderRadarConfigTags();
         }
 
-        function resetRadarConfigToDefault() {
-            localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY);
-            currentRadarConfigList = [];
+        function loadTopFnoEquitiesPreset() {
+            const topEquities = ['RELIANCE', 'TATASTEEL', 'HDFCBANK', 'ICICIBANK', 'INFY', 'SBIN', 'TCS', 'BHARTIARTL'];
+            topEquities.forEach(sym => {
+                if (!currentRadarConfigState.opt.includes(sym)) {
+                    currentRadarConfigState.opt.push(sym);
+                }
+            });
             renderRadarConfigTags();
-            closeRadarConfigModal();
-            toast('↺ Radar reset to default universe', 'info');
-            pushAlert('Radar constituent universe reset to default 9 momentum stocks', 'info');
-            fetchSignals();
+        }
+
+        function clearRadarConfigCurrentTab() {
+            if (currentRadarConfigTab === 'INTRA') {
+                currentRadarConfigState.intra = [];
+            } else {
+                currentRadarConfigState.opt = [];
+            }
+            renderRadarConfigTags();
+        }
+
+        function resetRadarConfigCurrentTab() {
+            if (currentRadarConfigTab === 'INTRA') {
+                localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY_INTRA);
+                currentRadarConfigState.intra = [];
+                renderRadarConfigTags();
+                toast('↺ Intraday radar reset to default universe', 'info');
+                pushAlert('Radar Intraday universe reset to default 9 momentum stocks', 'info');
+                fetchSignals();
+                renderPrimeQuickChips();
+            } else {
+                localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY_OPT);
+                currentRadarConfigState.opt = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'RELIANCE', 'TATASTEEL'];
+                renderRadarConfigTags();
+                toast('↺ Options underlyings reset to default indices & top equities', 'info');
+                updatePrimeOptUnderlyingsDropdown();
+                renderPrimeQuickChips();
+            }
         }
 
         function saveRadarConfig() {
             try {
-                if (currentRadarConfigList.length > 0) {
-                    localStorage.setItem(RADAR_CONFIG_STORAGE_KEY, JSON.stringify(currentRadarConfigList));
-                    toast(`✅ Radar configured: ${currentRadarConfigList.length} custom stock${currentRadarConfigList.length > 1 ? 's' : ''} active`, 'success');
-                    pushAlert(`🎯 Radar stocks updated (${currentRadarConfigList.length} constituents monitored)`, 'trade');
+                // 1. Save Intraday stocks
+                if (currentRadarConfigState.intra.length > 0) {
+                    localStorage.setItem(RADAR_CONFIG_STORAGE_KEY_INTRA, JSON.stringify(currentRadarConfigState.intra));
                 } else {
-                    localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY);
-                    toast('Radar reset to default constituents', 'info');
+                    localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY_INTRA);
                 }
+
+                // 2. Save Options underlyings
+                if (currentRadarConfigState.opt.length > 0) {
+                    localStorage.setItem(RADAR_CONFIG_STORAGE_KEY_OPT, JSON.stringify(currentRadarConfigState.opt));
+                } else {
+                    localStorage.removeItem(RADAR_CONFIG_STORAGE_KEY_OPT);
+                }
+
+                toast(`✅ Radar configured: ${currentRadarConfigState.intra.length} Intraday & ${currentRadarConfigState.opt.length} Options active`, 'success');
+                pushAlert(`🎯 Radar configurations updated (${currentRadarConfigState.intra.length} Intraday, ${currentRadarConfigState.opt.length} Options)`, 'trade');
             } catch (e) {
                 console.error("Error saving radar config:", e);
             }
             closeRadarConfigModal();
             fetchSignals();
+            updatePrimeOptUnderlyingsDropdown();
+            renderPrimeQuickChips();
+        }
+
+        // ─── QUICK CHIPS & OPTIONS DROPDOWN SYNC ─────────────────────────────────────────
+        function renderPrimeQuickChips() {
+            // Intraday Quick Chips
+            const intraChipsContainer = document.getElementById('prime-intra-quick-chips');
+            if (intraChipsContainer) {
+                const intraStocks = getSavedRadarStocks();
+                const displayStocks = (intraStocks && intraStocks.length > 0) 
+                    ? intraStocks.slice(0, 8) 
+                    : ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'TATASTEEL'];
+
+                intraChipsContainer.innerHTML = displayStocks.map(sym => `
+                    <button type="button" onclick="selectQuickIntraStock('${sym}')" style="font-size: 9px; font-weight: 700; color: #38bdf8; background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 6px; padding: 2px 7px; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;" onmouseenter="this.style.background='rgba(2, 132, 199, 0.25)';" onmouseleave="this.style.background='rgba(2, 132, 199, 0.12)';">
+                        ${sym}
+                    </button>
+                `).join('') + `
+                    <button type="button" onclick="openRadarConfigModal('INTRA')" style="font-size: 9px; font-weight: 700; color: var(--muted); background: var(--sub-box-bg); border: 1px dashed var(--sub-box-border); border-radius: 6px; padding: 2px 6px; cursor: pointer; white-space: nowrap;" title="Configure Intraday Stocks">
+                        + Edit
+                    </button>
+                `;
+            }
+
+            // Options Quick Chips
+            const optChipsContainer = document.getElementById('prime-opt-quick-chips');
+            if (optChipsContainer) {
+                const optStocks = getSavedOptStocks();
+                const displayOpts = (optStocks && optStocks.length > 0)
+                    ? optStocks.slice(0, 8)
+                    : ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'RELIANCE'];
+
+                optChipsContainer.innerHTML = displayOpts.map(sym => `
+                    <button type="button" onclick="selectQuickOptUnderlying('${sym}')" style="font-size: 9px; font-weight: 700; color: #c084fc; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 6px; padding: 2px 7px; cursor: pointer; white-space: nowrap; transition: all 0.15s ease;" onmouseenter="this.style.background='rgba(139, 92, 246, 0.25)';" onmouseleave="this.style.background='rgba(139, 92, 246, 0.12)';">
+                        ${sym}
+                    </button>
+                `).join('') + `
+                    <button type="button" onclick="openRadarConfigModal('OPT')" style="font-size: 9px; font-weight: 700; color: var(--muted); background: var(--sub-box-bg); border: 1px dashed var(--sub-box-border); border-radius: 6px; padding: 2px 6px; cursor: pointer; white-space: nowrap;" title="Configure Options Underlyings">
+                        + Edit
+                    </button>
+                `;
+            }
+        }
+
+        async function selectQuickIntraStock(sym) {
+            try {
+                const res = await fetch(`/api/instruments/stocks/search?q=${encodeURIComponent(sym)}&limit=1`);
+                if (res.ok) {
+                    const stocks = await res.json();
+                    if (stocks && stocks.length > 0) {
+                        selectPrimeIntraStock(stocks[0]);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("selectQuickIntraStock error:", e);
+            }
+            selectPrimeIntraStock({ symbol: sym, name: sym });
+        }
+
+        function selectQuickOptUnderlying(sym) {
+            const sel = document.getElementById('prime-opt-underlying');
+            if (sel) {
+                sel.value = sym;
+                onPrimeOptUnderlyingChange(sym);
+            }
+        }
+
+        async function updatePrimeOptUnderlyingsDropdown() {
+            const sel = document.getElementById('prime-opt-underlying');
+            if (!sel) return;
+
+            const underlyings = await fetchOptionsUnderlyingsList();
+            if (!underlyings || underlyings.length === 0) return;
+
+            const configuredOpts = getSavedOptStocks();
+            const currVal = sel.value || primeOptState.underlying || (configuredOpts[0] || underlyings[0]);
+
+            let html = '';
+            if (configuredOpts.length > 0) {
+                html += `<optgroup label="⭐ Configured Options">`;
+                configuredOpts.forEach(u => {
+                    html += `<option value="${u}" ${u === currVal ? 'selected' : ''}>${u}</option>`;
+                });
+                html += `</optgroup>`;
+
+                const remaining = underlyings.filter(u => !configuredOpts.includes(u));
+                if (remaining.length > 0) {
+                    html += `<optgroup label="All F&O Underlyings">`;
+                    remaining.forEach(u => {
+                        html += `<option value="${u}" ${u === currVal ? 'selected' : ''}>${u}</option>`;
+                    });
+                    html += `</optgroup>`;
+                }
+            } else {
+                html = underlyings.map(u => `<option value="${u}" ${u === currVal ? 'selected' : ''}>${u}</option>`).join('');
+            }
+
+            sel.innerHTML = html;
+            if (sel.value !== currVal) {
+                sel.value = currVal;
+            }
         }
 
         // Global initialization entry point for PrimeRadars
@@ -8058,7 +8397,10 @@
             refreshPrimeIntraLTP();
 
             // Initialize Options dropdowns and contracts
-            initPrimeOptions();
+            await initPrimeOptions();
+
+            // Render quick chips for Intraday and Options
+            renderPrimeQuickChips();
         }
 
         // ─── POLLING ENGINE ───────────────────────────────────────────────────────────
