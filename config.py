@@ -237,6 +237,32 @@ class Config:
         "OLAELEC": "NSE_EQ|INE0LXG01040"
     }
 
+    INDICES_MAPPING = {
+        "NIFTY 50": "NSE_INDEX|Nifty 50",
+        "SENSEX": "BSE_INDEX|SENSEX",
+        "NIFTY BANK": "NSE_INDEX|Nifty Bank",
+        "FINNIFTY": "NSE_INDEX|Nifty Fin Service",
+        "MIDCPNIFTY": "NSE_INDEX|NIFTY MID SELECT",
+        "INDIA VIX": "NSE_INDEX|India VIX",
+        "NIFTY NEXT 50": "NSE_INDEX|Nifty Next 50",
+        "NIFTY 100": "NSE_INDEX|Nifty 100",
+        "NIFTY 200": "NSE_INDEX|Nifty 200",
+        "NIFTY 500": "NSE_INDEX|Nifty 500",
+        "NIFTY IT": "NSE_INDEX|Nifty IT",
+        "NIFTY AUTO": "NSE_INDEX|Nifty Auto",
+        "NIFTY METAL": "NSE_INDEX|Nifty Metal",
+        "NIFTY PHARMA": "NSE_INDEX|Nifty Pharma",
+        "NIFTY FMCG": "NSE_INDEX|Nifty FMCG",
+        "NIFTY ENERGY": "NSE_INDEX|Nifty Energy",
+        "NIFTY REALTY": "NSE_INDEX|Nifty Realty",
+        "NIFTY INFRA": "NSE_INDEX|Nifty Infra",
+        "BANKEX": "BSE_INDEX|BANKEX",
+        "NIFTY PSU BANK": "NSE_INDEX|Nifty PSU Bank",
+        "NIFTY COMMODITIES": "NSE_INDEX|Nifty Commodities",
+        "NIFTY PSE": "NSE_INDEX|Nifty PSE",
+    }
+    ALL_INDEX_KEYS = list(INDICES_MAPPING.values())
+
     @classmethod
     def load(cls):
         if os.path.exists("config.json"):

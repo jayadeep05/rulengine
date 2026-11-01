@@ -23,15 +23,17 @@ logger = logging.getLogger(__name__)
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 EQUITY_KEYS = list(Config.SYMBOLS_MAPPING.values())
-INDEX_KEYS = [
-    "NSE_INDEX:Nifty 50", "BSE_INDEX:SENSEX", "NSE_INDEX:Nifty Bank",
-    "NSE_INDEX:Nifty Fin Service", "NSE_INDEX:NIFTY MID SELECT", "NSE_INDEX:India VIX",
-    "NSE_INDEX:NIFTY FIN SERVICE", "NSE_INDEX:NIFTY BANK", "BSE_INDEX:SENSEX50",
-    "NSE_INDEX:NIFTY MIDCAP 50", "NSE_INDEX:NIFTY 50"
+# Comprehensive index keys from Config
+_raw_indices = getattr(Config, 'ALL_INDEX_KEYS', [
+    "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
+    "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
+])
+INDEX_KEYS = [k.replace("|", ":") for k in _raw_indices] + [
+    "NSE_INDEX:NIFTY FIN SERVICE", "NSE_INDEX:NIFTY BANK", "NSE_INDEX:NIFTY MIDCAP 50", "NSE_INDEX:NIFTY 50"
 ]
 # Subscriptions for indices: Use BOTH formats for maximum compatibility
-ALL_INSTRUMENT_KEYS = EQUITY_KEYS + INDEX_KEYS + [k.replace(":", "|") for k in INDEX_KEYS]
-# Add pipe versions for matching just in case
+ALL_INSTRUMENT_KEYS = EQUITY_KEYS + list(set(INDEX_KEYS + [k.replace(":", "|") for k in INDEX_KEYS]))
+# Add pipe versions for matching
 INDEX_SET = set(INDEX_KEYS) | {k.replace(":", "|") for k in INDEX_KEYS}
 
 _REVERSE_MAP: Dict[str, str] = {v: k for k, v in Config.SYMBOLS_MAPPING.items()}
@@ -191,7 +193,9 @@ def _on_market_message(message):
                     normalized_key = instrument_key.replace(":", "|")
                     # Special handling for NIFTY 50 capitalization mismatch
                     if "NIFTY 50" in upper_key: normalized_key = "NSE_INDEX|Nifty 50"
-                    if "SENSEX" in upper_key and "BSE" in upper_key: normalized_key = "BSE_INDEX|SENSEX"
+                    if "SENSEX" in upper_key and "BSE" in upper_key:
+                        if not any(sub in upper_key for sub in ("50", "60", "NEXT", "EQUAL", "SNSX", "SS6535", "SENEQW")):
+                            normalized_key = "BSE_INDEX|SENSEX"
                     if "NIFTY BANK" in upper_key: normalized_key = "NSE_INDEX|Nifty Bank"
 
                     _indices_cache[normalized_key] = ltp
