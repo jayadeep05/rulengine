@@ -705,7 +705,11 @@
             border-collapse: collapse;
             font-size: 12.5px;
             text-align: left;
-            table-layout: auto;
+        }
+
+        .users-table {
+            table-layout: fixed;
+            width: 100%;
         }
 
         .admin-table th {
@@ -783,14 +787,14 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
             color: var(--text);
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             border-radius: 6px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.15s ease;
             margin-left: 2px;
         }
@@ -1301,19 +1305,19 @@
 
             <div class="table-card">
                 <div class="table-wrap-fit">
-                    <table class="admin-table">
+                    <table class="admin-table users-table">
                         <thead>
                             <tr>
-                                <th style="width: 45px;">ID</th>
-                                <th>User / Email</th>
-                                <th style="width: 105px;">Role</th>
-                                <th style="width: 75px;">Status</th>
-                                <th style="width: 85px;">Upstox API</th>
-                                <th style="width: 90px;">Trades (Today/All)</th>
-                                <th style="width: 110px;">P&amp;L (Today/All)</th>
-                                <th style="width: 55px; text-align: center;">Linked</th>
-                                <th style="width: 125px;">Last Active (IST)</th>
-                                <th style="width: 130px; text-align: right;">Actions</th>
+                                <th style="width: 3.5%; text-align: center;">ID</th>
+                                <th style="width: 20%; text-align: left; padding-left: 12px;">User / Email</th>
+                                <th style="width: 10.5%; text-align: center;">Role</th>
+                                <th style="width: 7.5%; text-align: center;">Status</th>
+                                <th style="width: 10.5%; text-align: center;">Upstox API</th>
+                                <th style="width: 10%; text-align: left;">Trades (Today/All)</th>
+                                <th style="width: 10.5%; text-align: right; padding-right: 14px;">P&amp;L (Today/All)</th>
+                                <th style="width: 5%; text-align: center;">Linked</th>
+                                <th style="width: 10%; text-align: left;">Last Active (IST)</th>
+                                <th style="width: 12.5%; text-align: right; padding-right: 14px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="users-table-body">
@@ -2249,10 +2253,10 @@
                 // Detailed Upstox credentials status
                 const credCount = u.credentials_count != null ? u.credentials_count : (u.upstox_connected ? 2 : 0);
                 const credBadge = credCount === 4
-                    ? `<span style="color:var(--green-light); font-size:11.5px; font-weight:700; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">● 4/4 Set</span>`
+                    ? `<span style="color:var(--green-light); font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">● 4/4 Set</span>`
                     : credCount > 0
-                        ? `<span style="color:var(--gold-light); font-size:11.5px; font-weight:700; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">⚠️ ${credCount}/4 Set</span>`
-                        : `<span style="color:var(--muted); font-size:11.5px; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">○ Not Linked</span>`;
+                        ? `<span style="color:var(--gold-light); font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">⚠️ ${credCount}/4 Set</span>`
+                        : `<span style="color:var(--muted); font-size:11.5px; cursor:pointer; white-space:nowrap;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">○ Not Linked</span>`;
 
                 const tradesToday = u.trades_today != null ? u.trades_today : 0;
                 const tradesAll = u.lifetime_trades != null ? u.lifetime_trades : tradesToday;
@@ -2268,34 +2272,34 @@
 
                 return `
                     <tr class="${isSelected ? 'row-selected' : ''}">
-                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted);">${u.id}</td>
-                        <td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted); text-align:center;">${u.id}</td>
+                        <td style="text-align:left; padding-left:12px;">
                             <div class="user-cell">
                                 <div class="user-avatar">${initial}</div>
-                                <div>
-                                    <div style="font-weight:700; color:#ffffff; font-size:12.5px;">${escapeHtml(u.username)}</div>
-                                    <div style="font-size:11px; color:var(--muted);">${escapeHtml(u.email)}</div>
+                                <div style="min-width:0; overflow:hidden;">
+                                    <div style="font-weight:700; color:#ffffff; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.username)}</div>
+                                    <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.email)}</div>
                                 </div>
                             </div>
                         </td>
-                        <td>${roleBadge}</td>
-                        <td>
+                        <td style="text-align:center;">${roleBadge}</td>
+                        <td style="text-align:center;">
                             <button onclick="toggleUserStatus(${u.id})" style="background:none; border:none; cursor:pointer; padding:0;">
                                 ${statusBadge}
                             </button>
                         </td>
-                        <td>${credBadge}</td>
-                        <td style="font-family:'JetBrains Mono';">
+                        <td style="text-align:center; white-space:nowrap;">${credBadge}</td>
+                        <td style="font-family:'JetBrains Mono'; text-align:left; white-space:nowrap;">
                             <div style="font-weight:700;">${tradesToday} today</div>
                             <div style="font-size:10.5px; color:var(--muted);">${tradesAll} all-time</div>
                         </td>
-                        <td style="font-family:'JetBrains Mono';">
+                        <td style="font-family:'JetBrains Mono'; text-align:right; padding-right:14px; white-space:nowrap;">
                             <div style="font-weight:700; color:${todayColor};">${(todayPnl >= 0 ? '+' : '')}₹${todayPnl.toFixed(2)}</div>
                             <div style="font-size:10.5px; color:${lifetimeColor};">${(lifetimePnl >= 0 ? '+' : '')}₹${lifetimePnl.toFixed(2)}</div>
                         </td>
                         <td style="font-family:'JetBrains Mono'; font-weight:700; text-align:center;">${u.linked_accounts_count || 0}</td>
-                        <td style="font-size:11px; color:var(--muted); white-space:nowrap; font-family:'JetBrains Mono';">${lastActiveStr}</td>
-                        <td style="text-align: right; white-space: nowrap;">
+                        <td style="font-size:11px; color:var(--muted); white-space:nowrap; font-family:'JetBrains Mono'; text-align:left;">${lastActiveStr}</td>
+                        <td style="text-align:right; padding-right:14px; white-space:nowrap;">
                             <button class="btn-icon key" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')" title="Configure 4 API Credentials">🔑</button>
                             <button class="btn-icon config" onclick="switchToUserConfig(${u.id})" title="Configure Risk &amp; Permissions">⚙️</button>
                             <button class="btn-icon" onclick="viewUserDetails(${u.id})" title="View Complete Profile &amp; Trades">👁️</button>
