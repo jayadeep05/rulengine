@@ -1336,15 +1336,43 @@
         <div class="tab-panel" id="panel-config">
             <div class="toolbar" style="margin-bottom: 16px;">
                 <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;" id="config-panel-heading">
-                    ⚙️ Trading Configuration &amp; Risk Parameters
+                    ⚙️ Trading Configuration &amp; Risk Parameters (All Users)
                 </div>
-                <div id="config-actions-bar" style="display: none;">
+                <div id="config-actions-bar" style="display: none; align-items: center; gap: 8px;">
+                    <button class="btn-secondary" onclick="clearCentralScope()">
+                        ← View All Users
+                    </button>
                     <button class="btn-action" onclick="saveUserConfiguration()">
                         💾 Save Configuration &amp; Risk Limits
                     </button>
                 </div>
             </div>
 
+            <!-- View 1: ALL USERS CONFIGURATION TABLE (Shown by default when no user is selected) -->
+            <div id="config-all-users-container" class="table-card" style="margin-bottom: 16px;">
+                <div class="table-wrap-fit">
+                    <table class="admin-table" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 4%; text-align: center;">ID</th>
+                                <th style="width: 22%; text-align: left; padding-left: 12px;">User / Email</th>
+                                <th style="width: 10%; text-align: center;">Role</th>
+                                <th style="width: 10%; text-align: center;">Trading Mode</th>
+                                <th style="width: 10%; text-align: center;">Bot Engine</th>
+                                <th style="width: 11%; text-align: right; padding-right: 14px;">Capital Limit</th>
+                                <th style="width: 10%; text-align: center;">Max Trades</th>
+                                <th style="width: 11%; text-align: right; padding-right: 14px;">Daily Loss Cap</th>
+                                <th style="width: 12%; text-align: right; padding-right: 14px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="config-all-users-tbody">
+                            <tr><td colspan="9" style="text-align: center; color: var(--muted); padding: 30px;">Loading configurations...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 2: SINGLE USER GRANULAR CONFIGURATION EDITOR (Shown when user is selected) -->
             <div id="config-container" style="display: none;">
                 <div class="config-grid">
                     <!-- Card 1: Trading & Risk Limits -->
@@ -1486,26 +1514,48 @@
                 </div>
             </div>
 
-            <div id="config-empty-state" style="text-align: center; padding: 60px 20px; color: var(--muted); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;">
-                <div style="font-size: 38px; margin-bottom: 12px;">🔍</div>
-                <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">No Target User Selected</div>
-                <div style="font-size: 12.5px;">Use the <strong>Centralized User Search</strong> at the top of the panel to select a user to view and edit their configuration.</div>
-            </div>
         </div>
 
         <!-- ══════════════ TAB 3: INDIVIDUAL API CREDENTIALS ══════════════ -->
         <div class="tab-panel" id="panel-credentials">
             <div class="toolbar" style="margin-bottom: 16px;">
                 <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;" id="cred-panel-heading">
-                    🔑 Individual API Credentials Management
+                    🔑 Individual API Credentials Management (All Users)
                 </div>
-                <div id="cred-actions-bar" style="display: none;">
+                <div id="cred-actions-bar" style="display: none; align-items: center; gap: 8px;">
+                    <button class="btn-secondary" onclick="clearCentralScope()">
+                        ← View All Users
+                    </button>
                     <button class="btn-action" onclick="saveUserCredentialsFromTab()">
                         🔐 Save API Credentials
                     </button>
                 </div>
             </div>
 
+            <!-- View 1: ALL USERS CREDENTIALS TABLE (Shown by default when no user is selected) -->
+            <div id="cred-all-users-container" class="table-card" style="margin-bottom: 16px;">
+                <div class="table-wrap-fit">
+                    <table class="admin-table" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 4%; text-align: center;">ID</th>
+                                <th style="width: 22%; text-align: left; padding-left: 12px;">User / Email</th>
+                                <th style="width: 10%; text-align: center;">Role</th>
+                                <th style="width: 12%; text-align: center;">API Key</th>
+                                <th style="width: 12%; text-align: center;">API Secret</th>
+                                <th style="width: 12%; text-align: center;">Access Token</th>
+                                <th style="width: 13%; text-align: center;">Security Status</th>
+                                <th style="width: 15%; text-align: right; padding-right: 14px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cred-all-users-tbody">
+                            <tr><td colspan="8" style="text-align: center; color: var(--muted); padding: 30px;">Loading credentials status...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 2: SINGLE USER DIRECT CREDENTIALS EDITOR (Shown when user is selected) -->
             <div id="cred-tab-container" style="display: none;">
                 <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--green-border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 12.5px; color: var(--green-light); display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 18px;">🛡️</span>
@@ -1567,12 +1617,6 @@
                         <div class="form-hint">Secondary market feed / analytics streaming authorization token.</div>
                     </div>
                 </div>
-            </div>
-
-            <div id="cred-empty-state" style="text-align: center; padding: 60px 20px; color: var(--muted); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;">
-                <div style="font-size: 38px; margin-bottom: 12px;">🔑</div>
-                <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">No Target User Selected</div>
-                <div style="font-size: 12.5px;">Use the <strong>Centralized User Search</strong> at the top of the panel to select a user to view and update their individual API credentials.</div>
             </div>
         </div>
 
@@ -1853,9 +1897,11 @@
                 renderCentralDropdown(query);
                 dropdown.style.display = 'block';
 
-                // Real-time bidirectional search: filter users table as user types
+                // Real-time bidirectional search: filter users table, config table, and creds table as user types
                 if (selectedUserId === null) {
                     renderUsersTable();
+                    renderAllUsersConfigTable();
+                    renderAllUsersCredTable();
                 }
             });
 
@@ -2125,17 +2171,23 @@
             // 2. Reset Users Table
             renderUsersTable();
 
-            // 3. Reset Config Tab to Empty/Prompt state
-            document.getElementById('config-container').style.display = 'none';
-            document.getElementById('config-empty-state').style.display = 'block';
+            // 3. Reset Config Tab to All Users Overview
+            const configAllUsers = document.getElementById('config-all-users-container');
+            const configSingleUser = document.getElementById('config-container');
+            if (configAllUsers) configAllUsers.style.display = 'block';
+            if (configSingleUser) configSingleUser.style.display = 'none';
             document.getElementById('config-actions-bar').style.display = 'none';
-            document.getElementById('config-panel-heading').innerText = "⚙️ Trading Configuration & Risk Parameters";
+            document.getElementById('config-panel-heading').innerText = "⚙️ Trading Configuration & Risk Parameters (All Users)";
+            renderAllUsersConfigTable();
 
-            // 4. Reset Credentials Tab to Empty/Prompt state
-            document.getElementById('cred-tab-container').style.display = 'none';
-            document.getElementById('cred-empty-state').style.display = 'block';
+            // 4. Reset Credentials Tab to All Users Overview
+            const credAllUsers = document.getElementById('cred-all-users-container');
+            const credSingleUser = document.getElementById('cred-tab-container');
+            if (credAllUsers) credAllUsers.style.display = 'block';
+            if (credSingleUser) credSingleUser.style.display = 'none';
             document.getElementById('cred-actions-bar').style.display = 'none';
-            document.getElementById('cred-panel-heading').innerText = "🔑 Individual API Credentials Management";
+            document.getElementById('cred-panel-heading').innerText = "🔑 Individual API Credentials Management (All Users)";
+            renderAllUsersCredTable();
 
             // 5. Reset Roles
             highlightRoleCard(null);
@@ -2200,6 +2252,8 @@
                 }
                 allUsers = await res.json();
                 renderUsersTable();
+                renderAllUsersConfigTable();
+                renderAllUsersCredTable();
                 renderCentralDropdown();
             } catch (e) {
                 console.error("Users list error:", e);
@@ -2357,25 +2411,91 @@
             switchTab('config');
         }
 
+        function renderAllUsersConfigTable() {
+            const tbody = document.getElementById('config-all-users-tbody');
+            if (!tbody) return;
+
+            const q = activeSearchQuery;
+            const filtered = allUsers.filter(u => {
+                if (selectedUserId !== null && u.id !== selectedUserId) return false;
+                if (!q) return true;
+                return u.username.toLowerCase().includes(q) ||
+                       u.email.toLowerCase().includes(q) ||
+                       (u.role && u.role.toLowerCase().includes(q)) ||
+                       String(u.id) === q;
+            });
+
+            if (!filtered || filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:30px;">No user configurations found for current search.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const initial = (u.username || 'U').substring(0, 1).toUpperCase();
+                const roleBadge = u.role === 'super_admin' ? `<span class="badge badge-super">👑 Super Admin</span>`
+                               : u.role === 'master_admin' ? `<span class="badge badge-master">🛡️ Master</span>`
+                               : `<span class="badge badge-user">👤 Trader</span>`;
+
+                const modeBadge = u.trading_mode === 'LIVE'
+                    ? `<span class="badge badge-active">🟢 LIVE</span>`
+                    : `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--gold-light); border:1px solid var(--gold-border);">🟡 TEST</span>`;
+
+                const botBadge = u.is_running
+                    ? `<span class="badge badge-active">● RUNNING</span>`
+                    : `<span class="badge badge-inactive">○ STOPPED</span>`;
+
+                const capStr = '₹' + Number(u.capital || 10000).toLocaleString('en-IN');
+                const maxTr = u.max_trades_per_day || 5;
+                const lossCap = '₹' + Number(u.daily_loss_limit || 2500).toLocaleString('en-IN');
+
+                return `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted); text-align:center;">${u.id}</td>
+                        <td style="text-align:left; padding-left:12px;">
+                            <div class="user-cell">
+                                <div class="user-avatar">${initial}</div>
+                                <div style="min-width:0; overflow:hidden;">
+                                    <div style="font-weight:700; color:#ffffff; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.username)}</div>
+                                    <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.email)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align:center;">${roleBadge}</td>
+                        <td style="text-align:center;">${modeBadge}</td>
+                        <td style="text-align:center;">${botBadge}</td>
+                        <td style="font-family:'JetBrains Mono'; text-align:right; padding-right:14px; font-weight:700; color:var(--green-light);">${capStr}</td>
+                        <td style="font-family:'JetBrains Mono'; text-align:center; font-weight:700;">${maxTr} / day</td>
+                        <td style="font-family:'JetBrains Mono'; text-align:right; padding-right:14px; font-weight:700; color:var(--red-light);">${lossCap}</td>
+                        <td style="text-align:right; padding-right:14px; white-space:nowrap;">
+                            <button class="btn-action" style="padding:4px 10px; font-size:11.5px;" onclick="switchToUserConfig(${u.id})">
+                                ⚙️ Configure
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function loadUserForConfig(userId) {
             const user = allUsers.find(u => u.id === userId);
             const container = document.getElementById('config-container');
-            const emptyState = document.getElementById('config-empty-state');
+            const allUsersContainer = document.getElementById('config-all-users-container');
             const actionsBar = document.getElementById('config-actions-bar');
             const heading = document.getElementById('config-panel-heading');
 
             if (!userId || !user) {
-                container.style.display = 'none';
-                emptyState.style.display = 'block';
-                actionsBar.style.display = 'none';
-                heading.innerText = "⚙️ Trading Configuration & Risk Parameters";
+                if (container) container.style.display = 'none';
+                if (allUsersContainer) allUsersContainer.style.display = 'block';
+                if (actionsBar) actionsBar.style.display = 'none';
+                if (heading) heading.innerText = "⚙️ Trading Configuration & Risk Parameters (All Users)";
+                renderAllUsersConfigTable();
                 return;
             }
 
-            emptyState.style.display = 'none';
-            container.style.display = 'block';
-            actionsBar.style.display = 'block';
-            heading.innerText = `⚙️ Configuration: ${user.username} (#${user.id}) — ${user.role}`;
+            if (allUsersContainer) allUsersContainer.style.display = 'none';
+            if (container) container.style.display = 'block';
+            if (actionsBar) actionsBar.style.display = 'flex';
+            if (heading) heading.innerText = `⚙️ Configuration: ${user.username} (#${user.id}) — ${user.role}`;
 
             try {
                 const res = await fetch(`/api/super-admin/users/${userId}`);
@@ -2461,25 +2581,90 @@
         }
 
         // ══════════════ MODULE 3: INDIVIDUAL API CREDENTIALS ══════════════
+        function renderAllUsersCredTable() {
+            const tbody = document.getElementById('cred-all-users-tbody');
+            if (!tbody) return;
+
+            const q = activeSearchQuery;
+            const filtered = allUsers.filter(u => {
+                if (selectedUserId !== null && u.id !== selectedUserId) return false;
+                if (!q) return true;
+                return u.username.toLowerCase().includes(q) ||
+                       u.email.toLowerCase().includes(q) ||
+                       (u.role && u.role.toLowerCase().includes(q)) ||
+                       String(u.id) === q;
+            });
+
+            if (!filtered || filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:30px;">No user credentials found for current search.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const initial = (u.username || 'U').substring(0, 1).toUpperCase();
+                const roleBadge = u.role === 'super_admin' ? `<span class="badge badge-super">👑 Super Admin</span>`
+                               : u.role === 'master_admin' ? `<span class="badge badge-master">🛡️ Master</span>`
+                               : `<span class="badge badge-user">👤 Trader</span>`;
+
+                const cs = u.credentials_status || {};
+                const k1 = cs.upstox_client_id ? `<span style="color:var(--green-light); font-weight:700;">● Set</span>` : `<span style="color:var(--muted);">○ Not Set</span>`;
+                const k2 = cs.upstox_client_secret ? `<span style="color:var(--green-light); font-weight:700;">● Set</span>` : `<span style="color:var(--muted);">○ Not Set</span>`;
+                const k3 = cs.upstox_access_token ? `<span style="color:var(--green-light); font-weight:700;">● Set</span>` : `<span style="color:var(--muted);">○ Not Set</span>`;
+
+                const credCount = u.credentials_count != null ? u.credentials_count : (u.upstox_connected ? 2 : 0);
+                const credBadge = credCount === 4
+                    ? `<span class="badge badge-active">● 4/4 Ready</span>`
+                    : credCount > 0
+                        ? `<span class="badge" style="background:rgba(245,158,11,0.15); color:var(--gold-light); border:1px solid var(--gold-border);">⚠️ ${credCount}/4 Partial</span>`
+                        : `<span class="badge badge-inactive">○ Not Linked</span>`;
+
+                return `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted); text-align:center;">${u.id}</td>
+                        <td style="text-align:left; padding-left:12px;">
+                            <div class="user-cell">
+                                <div class="user-avatar">${initial}</div>
+                                <div style="min-width:0; overflow:hidden;">
+                                    <div style="font-weight:700; color:#ffffff; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.username)}</div>
+                                    <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(u.email)}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align:center;">${roleBadge}</td>
+                        <td style="text-align:center; font-size:11.5px; font-family:'JetBrains Mono';">${k1}</td>
+                        <td style="text-align:center; font-size:11.5px; font-family:'JetBrains Mono';">${k2}</td>
+                        <td style="text-align:center; font-size:11.5px; font-family:'JetBrains Mono';">${k3}</td>
+                        <td style="text-align:center;">${credBadge}</td>
+                        <td style="text-align:right; padding-right:14px; white-space:nowrap;">
+                            <button class="btn-action" style="padding:4px 10px; font-size:11.5px;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">
+                                🔑 Set Keys
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         async function loadUserCredentials(userId) {
             const user = allUsers.find(u => u.id === userId);
             const container = document.getElementById('cred-tab-container');
-            const emptyState = document.getElementById('cred-empty-state');
+            const allUsersContainer = document.getElementById('cred-all-users-container');
             const actionsBar = document.getElementById('cred-actions-bar');
             const heading = document.getElementById('cred-panel-heading');
 
             if (!userId || !user) {
-                container.style.display = 'none';
-                emptyState.style.display = 'block';
-                actionsBar.style.display = 'none';
-                heading.innerText = "🔑 Individual API Credentials Management";
+                if (container) container.style.display = 'none';
+                if (allUsersContainer) allUsersContainer.style.display = 'block';
+                if (actionsBar) actionsBar.style.display = 'none';
+                if (heading) heading.innerText = "🔑 Individual API Credentials Management (All Users)";
+                renderAllUsersCredTable();
                 return;
             }
 
-            emptyState.style.display = 'none';
-            container.style.display = 'block';
-            actionsBar.style.display = 'block';
-            heading.innerText = `🔑 API Credentials: ${user.username} (#${user.id}) — ${user.role}`;
+            if (allUsersContainer) allUsersContainer.style.display = 'none';
+            if (container) container.style.display = 'block';
+            if (actionsBar) actionsBar.style.display = 'flex';
+            if (heading) heading.innerText = `🔑 API Credentials: ${user.username} (#${user.id}) — ${user.role}`;
 
             document.getElementById('tab-upstox-client-id').value = "";
             document.getElementById('tab-upstox-client-secret').value = "";
@@ -2996,7 +3181,19 @@
             if (targetBtn) targetBtn.classList.add('active');
             if (targetPanel) targetPanel.classList.add('active');
 
-            if (tabName === 'audit') {
+            if (tabName === 'config') {
+                if (selectedUserId === null) {
+                    renderAllUsersConfigTable();
+                } else {
+                    loadUserForConfig(selectedUserId);
+                }
+            } else if (tabName === 'credentials') {
+                if (selectedUserId === null) {
+                    renderAllUsersCredTable();
+                } else {
+                    loadUserCredentials(selectedUserId);
+                }
+            } else if (tabName === 'audit') {
                 loadAuditLogs();
             }
         }

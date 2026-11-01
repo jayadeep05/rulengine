@@ -87,9 +87,12 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
 
         # Config status
         cfg = u.config
-        mode = cfg.trading_mode if cfg else "TEST"
-        is_running = bool(cfg.is_running) if cfg else False
-        capital = float(cfg.manual_capital or 0.0) if cfg else 10000.0
+        mode = getattr(cfg, "trading_mode", "TEST") if cfg else "TEST"
+        is_running = bool(getattr(cfg, "is_running", False)) if cfg else False
+        capital = float(getattr(cfg, "manual_capital", 10000.0) or 0.0) if cfg else 10000.0
+        max_trades = int(getattr(cfg, "max_trades_per_day", 5) or 5) if cfg else 5
+        daily_loss = float(getattr(cfg, "daily_loss_limit", 2500.0) or 2500.0) if cfg else 2500.0
+        sl_mode = str(getattr(cfg, "trailing_sl_mode", "POINTS") or "POINTS") if cfg else "POINTS"
 
         # Trade stats for today
         trades_today = db.query(Trade).filter(Trade.user_id == u.id, Trade.trade_date == today).all()
@@ -129,6 +132,9 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
             "trading_mode": mode,
             "is_running": is_running,
             "capital": capital,
+            "max_trades_per_day": max_trades,
+            "daily_loss_limit": daily_loss,
+            "trailing_sl_mode": sl_mode,
             "today_trades": len(trades_today),
             "trades_today_count": len(trades_today),
             "trades_today": len(trades_today),
