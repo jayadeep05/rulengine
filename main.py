@@ -34,7 +34,7 @@ from database import (
     SessionLocal, Trade, get_db,
     get_global_trading_enabled, set_global_trading_enabled,
     is_symbol_blacklisted, add_to_daily_blacklist, get_daily_blacklist,
-    get_trades_count_today, get_ist_now
+    get_trades_count_today, get_ist_now, to_ist_iso, to_ist_datetime_str
 )
 from sqlalchemy import desc
 from dual_strategy_engine import DualStrategyEngine
@@ -2279,7 +2279,7 @@ def api_get_trade_history(user: dict = Depends(require_auth), db=Depends(get_db)
     for t in db_trades:
         result.append({
             'id': t.id,
-            'timestamp': t.entry_time.isoformat() if t.entry_time else now.isoformat(),
+            'timestamp': to_ist_iso(t.entry_time) if t.entry_time else now.isoformat(),
             'symbol': t.symbol,
             'side': t.side,
             'entry_price': t.entry_price,
@@ -2293,7 +2293,7 @@ def api_get_trade_history(user: dict = Depends(require_auth), db=Depends(get_db)
             'pnl': t.realized_pnl or 0.0,
             'status': t.status,
             'exit_reason': t.exit_reason,
-            'exit_time': t.exit_time.isoformat() if t.exit_time else None,
+            'exit_time': to_ist_iso(t.exit_time) if t.exit_time else None,
             'sl_order_id': t.sl_order_id
         })
         
@@ -2317,8 +2317,8 @@ def api_get_all_history(
     for t in trades:
         result.append({
             'id': t.id, 'date': t.trade_date.isoformat() if t.trade_date else None,
-            'entry_time': t.entry_time.isoformat() if t.entry_time else None,
-            'exit_time':  t.exit_time.isoformat()  if t.exit_time  else None,
+            'entry_time': to_ist_iso(t.entry_time) if t.entry_time else None,
+            'exit_time':  to_ist_iso(t.exit_time)  if t.exit_time  else None,
             'symbol': t.symbol, 'side': t.side, 'qty': t.quantity or 1,
             'entry_price': t.entry_price, 'exit_price': t.exit_price,
             'sl': t.sl_price, 'pnl': t.realized_pnl or 0.0,
@@ -2846,7 +2846,7 @@ def api_get_logs(limit: int = 100, user: dict = Depends(require_auth), db=Depend
     uid = user["uid"]
     logs = db.query(SystemLog).filter(SystemLog.user_id == uid).order_by(desc(SystemLog.timestamp)).limit(limit).all()
     return [{
-        "id": l.id, "timestamp": l.timestamp.isoformat() if l.timestamp else None,
+        "id": l.id, "timestamp": to_ist_iso(l.timestamp) if l.timestamp else None,
         "level": l.log_level, "event": l.event_type, "message": l.message,
     } for l in logs]
 

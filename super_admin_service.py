@@ -14,10 +14,9 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
-
 from database import (
     User, UserCredential, UserConfig, Trade, SystemLog, MasterLinkedAccount,
-    get_ist_now, get_ist_date, log_system_event
+    get_ist_now, get_ist_date, log_system_event, to_ist_datetime_str
 )
 from auth import hash_password
 from credential_service import credential_field_status
@@ -112,14 +111,9 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
             MasterLinkedAccount.is_active == 1
         ).scalar() or 0
 
-        # Format last_login safely
-        last_login_str = None
-        if getattr(u, "last_login", None):
-            last_login_str = u.last_login.strftime("%Y-%m-%d %H:%M:%S")
-
-        created_at_str = None
-        if u.created_at:
-            created_at_str = u.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        # Format last_login and created_at safely in Asia/Kolkata (IST)
+        last_login_str = to_ist_datetime_str(u.last_login)
+        created_at_str = to_ist_datetime_str(u.created_at)
 
         results.append({
             "id": u.id,
@@ -190,7 +184,7 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
         "hybrid_virtual_mode": bool(cfg.hybrid_virtual_mode),
         "trading_mode": cfg.trading_mode or "TEST",
         "is_running": bool(cfg.is_running),
-        "updated_at": cfg.updated_at.strftime("%Y-%m-%d %H:%M:%S") if cfg.updated_at else "--"
+        "updated_at": to_ist_datetime_str(cfg.updated_at) or "--"
     }
 
     # Linked accounts (as master)
@@ -241,9 +235,9 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
 
     trades_list = []
     for t in all_user_trades:
-        # Full date & time formatting
-        entry_dt_str = t.entry_time.strftime("%Y-%m-%d %H:%M:%S") if t.entry_time else (str(t.trade_date) if t.trade_date else "--")
-        exit_dt_str = t.exit_time.strftime("%Y-%m-%d %H:%M:%S") if t.exit_time else "--"
+        # Full date & time formatting in IST
+        entry_dt_str = to_ist_datetime_str(t.entry_time) or (str(t.trade_date) if t.trade_date else "--")
+        exit_dt_str = to_ist_datetime_str(t.exit_time) or "--"
         pnl_val = round(t.realized_pnl, 2) if t.realized_pnl is not None else 0.0
 
         trades_list.append({
@@ -273,7 +267,7 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
     for l in recent_logs:
         logs_list.append({
             "id": l.id,
-            "timestamp": l.timestamp.strftime("%Y-%m-%d %H:%M:%S") if l.timestamp else "--",
+            "timestamp": to_ist_datetime_str(l.timestamp) or "--",
             "level": l.log_level,
             "event": l.event_type,
             "message": l.message
@@ -285,8 +279,8 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
         "email": u.email,
         "role": u.role,
         "is_active": getattr(u, "is_active", True),
-        "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else "--",
-        "last_login": u.last_login.strftime("%Y-%m-%d %H:%M:%S") if getattr(u, "last_login", None) else "--",
+        "created_at": to_ist_datetime_str(u.created_at) or "--",
+        "last_login": to_ist_datetime_str(u.last_login) or "--",
     }
     effective_perms = get_user_effective_permissions(u)
 
@@ -610,7 +604,7 @@ def get_system_audit_logs(db: Session, limit: int = 100) -> List[Dict[str, Any]]
             "id": l.id,
             "user_id": l.user_id,
             "username": uname or "SYSTEM",
-            "timestamp": l.timestamp.strftime("%Y-%m-%d %H:%M:%S") if l.timestamp else "--",
+            "timestamp": to_ist_datetime_str(l.timestamp) or "--",
             "level": l.log_level,
             "event": l.event_type,
             "message": l.message

@@ -10,12 +10,46 @@ import pytz
 from config import Config
 
 IST = pytz.timezone('Asia/Kolkata')
+UTC_TZ = pytz.UTC
 
 def get_ist_now():
     return datetime.now(IST)
 
 def get_ist_date():
     return datetime.now(IST).date()
+
+def to_ist_datetime(dt):
+    """Converts a database datetime (stored in UTC) to an aware Asia/Kolkata (IST) datetime."""
+    if not dt:
+        return None
+    try:
+        if dt.tzinfo is None:
+            dt_utc = UTC_TZ.localize(dt)
+        else:
+            dt_utc = dt.astimezone(UTC_TZ)
+        return dt_utc.astimezone(IST)
+    except Exception:
+        return dt
+
+def to_ist_datetime_str(dt, fmt="%Y-%m-%d %H:%M:%S"):
+    """Converts a database datetime (stored in UTC) to Asia/Kolkata (IST) formatted string."""
+    ist_dt = to_ist_datetime(dt)
+    if not ist_dt:
+        return None
+    try:
+        return ist_dt.strftime(fmt)
+    except Exception:
+        return str(dt)
+
+def to_ist_iso(dt):
+    """Converts a database datetime (stored in UTC) to Asia/Kolkata (IST) ISO format string."""
+    ist_dt = to_ist_datetime(dt)
+    if not ist_dt:
+        return None
+    try:
+        return ist_dt.isoformat()
+    except Exception:
+        return str(dt)
 
 def get_database_engine():
     """Connects to Supabase / PostgreSQL, MySQL, or falls back gracefully to SQLite."""

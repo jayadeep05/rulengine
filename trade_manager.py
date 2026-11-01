@@ -2,7 +2,7 @@ import logging
 import datetime
 import uuid
 from config import Config
-from database import SessionLocal, Trade, DailyStats, SystemLog, get_ist_now, get_ist_date
+from database import SessionLocal, Trade, DailyStats, SystemLog, get_ist_now, get_ist_date, to_ist_iso
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
@@ -56,7 +56,7 @@ class TradeManager:
 
                     self.active_trades.append({
                         'id': t.id,
-                        'timestamp': t.entry_time.isoformat() if t.entry_time else get_ist_now().isoformat(),
+                        'timestamp': to_ist_iso(t.entry_time) if t.entry_time else get_ist_now().isoformat(),
                         'symbol': t.symbol,
                         'side': t.side,
                         'entry_price': t.entry_price,
@@ -84,7 +84,7 @@ class TradeManager:
             for t in closed_db_trades:
                 self.trade_history.append({
                     'id': t.id,
-                    'timestamp': t.entry_time.isoformat() if t.entry_time else get_ist_now().isoformat(),
+                    'timestamp': to_ist_iso(t.entry_time) if t.entry_time else get_ist_now().isoformat(),
                     'symbol': t.symbol,
                     'side': t.side,
                     'entry_price': t.entry_price,
@@ -97,7 +97,7 @@ class TradeManager:
                     'pnl': t.realized_pnl or 0.0,
                     'status': 'CLOSED',
                     'exit_reason': t.exit_reason,
-                    'exit_time': t.exit_time.isoformat() if t.exit_time else None,
+                    'exit_time': to_ist_iso(t.exit_time) if t.exit_time else None,
                     'sl_order_id': None
                 })
 
