@@ -2520,8 +2520,8 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     bot = get_or_create_bot(uid, db)
     global_halt = not get_global_trading_enabled()
     # Merge live Indian indices and International/Global indices
-    all_indices = dict(_shared_state.live_indices)
-    all_prev_close = dict(_shared_state.index_prev_close)
+    all_indices = {}
+    all_prev_close = {}
     try:
         from global_indices_service import get_global_indices_data
         g_prices, g_prev = get_global_indices_data()
@@ -2529,6 +2529,26 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
         all_prev_close.update(g_prev)
     except Exception as e:
         logger.debug(f"Error merging global indices: {e}")
+
+    # Prioritize active Upstox stream/quotes if available
+    for k, v in _shared_state.live_indices.items():
+        if v and v > 0:
+            all_indices[k] = v
+            all_indices[k.replace('|', ':')] = v
+            all_indices[k.replace(':', '|')] = v
+    for k, v in _shared_state.index_prev_close.items():
+        if v and v > 0:
+            all_prev_close[k] = v
+            all_prev_close[k.replace('|', ':')] = v
+            all_prev_close[k.replace(':', '|')] = v
+
+    # Backfill shared state live_indices if empty so trading bots don't encounter 0 VIX/NIFTY
+    for k, v in all_indices.items():
+        if k not in _shared_state.live_indices or not _shared_state.live_indices[k]:
+            _shared_state.live_indices[k] = v
+    for k, v in all_prev_close.items():
+        if k not in _shared_state.index_prev_close or not _shared_state.index_prev_close[k]:
+            _shared_state.index_prev_close[k] = v
 
     if not bot:
         return {

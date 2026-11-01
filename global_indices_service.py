@@ -16,6 +16,27 @@ from typing import Dict, Tuple, List, Optional
 logger = logging.getLogger(__name__)
 
 GLOBAL_INDICES_CATALOG: List[Dict[str, str]] = [
+    # Indian Benchmark & Major Indices (Live Sync & Universal Fallback)
+    {"name": "NIFTY 50", "key": "NSE_INDEX|Nifty 50", "symbol": "^NSEI", "category": "Benchmark"},
+    {"name": "SENSEX", "key": "BSE_INDEX|SENSEX", "symbol": "^BSESN", "category": "Benchmark"},
+    {"name": "NIFTY BANK", "key": "NSE_INDEX|Nifty Bank", "symbol": "^NSEBANK", "category": "Sectoral"},
+    {"name": "INDIA VIX", "key": "NSE_INDEX|India VIX", "symbol": "^INDIAVIX", "category": "Volatility"},
+    {"name": "FINNIFTY", "key": "NSE_INDEX|Nifty Fin Service", "symbol": "NIFTY_FIN_SERVICE.NS", "category": "Sectoral"},
+    {"name": "MIDCPNIFTY", "key": "NSE_INDEX|NIFTY MID SELECT", "symbol": "NIFTY_MID_SELECT.NS", "category": "Broad Market"},
+    {"name": "NIFTY NEXT 50", "key": "NSE_INDEX|Nifty Next 50", "symbol": "^NSMIDCP", "category": "Broad Market"},
+    {"name": "NIFTY 100", "key": "NSE_INDEX|Nifty 100", "symbol": "^CNX100", "category": "Broad Market"},
+    {"name": "NIFTY 500", "key": "NSE_INDEX|Nifty 500", "symbol": "^CRSLDX", "category": "Broad Market"},
+    {"name": "NIFTY IT", "key": "NSE_INDEX|Nifty IT", "symbol": "^CNXIT", "category": "Sectoral"},
+    {"name": "NIFTY AUTO", "key": "NSE_INDEX|Nifty Auto", "symbol": "^CNXAUTO", "category": "Sectoral"},
+    {"name": "NIFTY PHARMA", "key": "NSE_INDEX|Nifty Pharma", "symbol": "^CNXPHARMA", "category": "Sectoral"},
+    {"name": "NIFTY FMCG", "key": "NSE_INDEX|Nifty FMCG", "symbol": "^CNXFMCG", "category": "Sectoral"},
+    {"name": "NIFTY METAL", "key": "NSE_INDEX|Nifty Metal", "symbol": "^CNXMETAL", "category": "Sectoral"},
+    {"name": "NIFTY ENERGY", "key": "NSE_INDEX|Nifty Energy", "symbol": "^CNXENERGY", "category": "Sectoral"},
+    {"name": "NIFTY REALTY", "key": "NSE_INDEX|Nifty Realty", "symbol": "^CNXREALTY", "category": "Sectoral"},
+    {"name": "NIFTY INFRA", "key": "NSE_INDEX|Nifty Infra", "symbol": "^CNXINFRA", "category": "Sectoral"},
+    {"name": "BANKEX", "key": "BSE_INDEX|BANKEX", "symbol": "BSE-BANK.BO", "category": "Sectoral"},
+    {"name": "NIFTY PSU BANK", "key": "NSE_INDEX|Nifty PSU Bank", "symbol": "^CNXPSUBANK", "category": "Sectoral"},
+
     # US Markets
     {"name": "S&P 500", "key": "GLOBAL_INDEX|^GSPC", "symbol": "^GSPC", "category": "US Markets"},
     {"name": "NASDAQ", "key": "GLOBAL_INDEX|^IXIC", "symbol": "^IXIC", "category": "US Markets"},
@@ -56,9 +77,10 @@ _is_polling = False
 _thread: Optional[threading.Thread] = None
 
 
-def _fetch_single_symbol(item: Dict[str, str]) -> Tuple[str, Optional[float], Optional[float]]:
+def _fetch_single_symbol(item: Dict[str, str]) -> Tuple[str, str, Optional[float], Optional[float]]:
     sym = item["symbol"]
     key = item["key"]
+    name = item.get("name", "")
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}?interval=1d&range=1d"
     try:
         req = urllib.request.Request(
@@ -71,32 +93,45 @@ def _fetch_single_symbol(item: Dict[str, str]) -> Tuple[str, Optional[float], Op
             price = meta.get("regularMarketPrice")
             prev = meta.get("chartPreviousClose") or meta.get("previousClose")
             if price is not None:
-                return key, float(price), float(prev) if prev else 0.0
+                return key, name, float(price), float(prev) if prev else 0.0
     except Exception as e:
         logger.debug(f"[GlobalIndices] Error fetching {sym}: {e}")
-    return key, None, None
+    return key, name, None, None
 
 
 def refresh_global_indices() -> None:
-    """Fetches all international indices concurrently and updates cache."""
+    """Fetches all international and benchmark indices concurrently and updates cache."""
     global _global_prices, _global_prev_close
     new_prices: Dict[str, float] = {}
     new_prev: Dict[str, float] = {}
 
     try:
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             results = list(executor.map(_fetch_single_symbol, GLOBAL_INDICES_CATALOG))
 
-        for key, price, prev in results:
+        for key, name, price, prev in results:
             if price is not None:
-                new_prices[key] = price
-                new_prev[key] = prev or 0.0
+                p = float(price)
+                pr = float(prev or 0.0)
+                # Store primary key
+                new_prices[key] = p
+                new_prev[key] = pr
+
+                # Store colon / pipe alternate keys
+                alt_key = key.replace("|", ":") if "|" in key else key.replace(":", "|")
+                new_prices[alt_key] = p
+                new_prev[alt_key] = pr
+
+                # Store friendly name alias
+                if name:
+                    new_prices[name] = p
+                    new_prev[name] = pr
 
         if new_prices:
             with _lock:
                 _global_prices.update(new_prices)
                 _global_prev_close.update(new_prev)
-            logger.info(f"[GlobalIndices] Refreshed {len(new_prices)} international index quotes.")
+            logger.info(f"[GlobalIndices] Refreshed {len(new_prices)} index quote entries (including Indian benchmarks).")
     except Exception as e:
         logger.error(f"[GlobalIndices] refresh failed: {e}")
 
