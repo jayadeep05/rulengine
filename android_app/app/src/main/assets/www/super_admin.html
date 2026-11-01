@@ -4,24 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Super Admin Terminal — QuantEdge</title>
+    <title>Super Admin Terminal — QuantEdge Pro</title>
     <!-- Auth Client: ensures valid session and handles 401/403 -->
     <script src="/static/auth-client.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
         :root {
             --bg-base: #060913;
-            --bg-panel: rgba(13, 20, 36, 0.85);
-            --bg-panel-solid: #0d1424;
-            --bg-panel-hover: rgba(20, 30, 52, 0.95);
+            --bg-panel: rgba(13, 20, 36, 0.78);
+            --bg-panel-solid: #0d1526;
+            --bg-panel-hover: rgba(22, 34, 58, 0.9);
+            --bg-card: rgba(15, 23, 42, 0.65);
+            
             --border: rgba(255, 255, 255, 0.08);
-            --border-light: rgba(255, 255, 255, 0.15);
+            --border-light: rgba(255, 255, 255, 0.16);
             --border-gold: rgba(245, 158, 11, 0.4);
+            --border-cyan: rgba(56, 189, 248, 0.35);
 
-            --text: #f8fafc;
+            --text: #f1f5f9;
             --text-heading: #ffffff;
             --muted: #94a3b8;
             --muted-dark: #64748b;
@@ -31,13 +35,15 @@
             --gold-bg: rgba(245, 158, 11, 0.12);
             --gold-border: rgba(245, 158, 11, 0.35);
 
-            --green: #00e676;
-            --green-bg: rgba(0, 230, 118, 0.12);
-            --green-border: rgba(0, 230, 118, 0.3);
+            --green: #10b981;
+            --green-light: #34d399;
+            --green-bg: rgba(16, 185, 129, 0.12);
+            --green-border: rgba(16, 185, 129, 0.3);
 
-            --red: #ff4d4d;
-            --red-bg: rgba(255, 77, 77, 0.14);
-            --red-border: rgba(255, 77, 77, 0.35);
+            --red: #f43f5e;
+            --red-light: #fb7185;
+            --red-bg: rgba(244, 63, 94, 0.12);
+            --red-border: rgba(244, 63, 94, 0.3);
 
             --purple: #a855f7;
             --purple-bg: rgba(168, 85, 247, 0.12);
@@ -47,11 +53,14 @@
             --blue-bg: rgba(56, 189, 248, 0.12);
             --blue-border: rgba(56, 189, 248, 0.3);
 
-            --input-bg: rgba(10, 15, 28, 0.9);
-            --input-border: rgba(255, 255, 255, 0.12);
+            --input-bg: rgba(8, 13, 24, 0.85);
+            --input-border: rgba(255, 255, 255, 0.14);
             --input-text: #f8fafc;
 
-            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --glow-gold: 0 0 20px rgba(245, 158, 11, 0.18);
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.18);
+            --glow-cyan: 0 0 20px rgba(56, 189, 248, 0.18);
         }
 
         * {
@@ -70,8 +79,10 @@
             flex-direction: column;
             overflow-x: hidden;
             background-image: 
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.08), transparent),
-                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.05), transparent);
+                radial-gradient(ellipse 90% 45% at 50% -10%, rgba(245, 158, 11, 0.08), transparent),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.06), transparent),
+                radial-gradient(circle at 0% 50%, rgba(56, 189, 248, 0.04), transparent);
+            background-attachment: fixed;
         }
 
         /* ══════════════ HEADER ══════════════ */
@@ -79,11 +90,11 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(10, 15, 28, 0.9);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(8, 13, 26, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border-gold);
-            padding: 12px 24px;
+            padding: 12px 28px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -93,64 +104,121 @@
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             text-decoration: none;
         }
 
-        .brand-badge-super {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: #060913;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 6px;
-            letter-spacing: 0.8px;
-            display: inline-flex;
+        .brand-icon-box {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.4));
+            border: 1px solid var(--gold-border);
+            display: flex;
             align-items: center;
-            gap: 5px;
-            text-transform: uppercase;
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+            justify-content: center;
+            font-size: 19px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
         }
 
-        .brand-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #ffffff;
+        .brand-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title-wrap {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
+        .brand-title {
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: #ffffff;
+        }
+
+        .brand-badge-super {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #050811;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 5px;
+            letter-spacing: 0.8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
+        }
+
         .brand-subtitle {
-            font-size: 12px;
+            font-size: 11.5px;
             color: var(--muted);
             font-weight: 500;
+            margin-top: 1px;
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .system-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--green-border);
+            color: var(--green-light);
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .system-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: pulseDot 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
         }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .btn-header {
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 8px 14px;
+            padding: 7px 14px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             text-decoration: none;
         }
 
         .btn-header:hover {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.1);
             border-color: var(--border-light);
             transform: translateY(-1px);
         }
@@ -162,21 +230,21 @@
         }
 
         .btn-header.primary:hover {
-            background: rgba(245, 158, 11, 0.22);
+            background: rgba(245, 158, 11, 0.2);
             border-color: var(--gold);
         }
 
         /* ══════════════ OVERVIEW KPI CARDS ══════════════ */
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 24px 20px;
+            padding: 24px 24px 48px;
             width: 100%;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 16px;
             margin-bottom: 24px;
         }
@@ -188,61 +256,124 @@
             padding: 16px 20px;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             box-shadow: var(--card-shadow);
-            transition: border-color 0.2s ease;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .stat-card:hover {
             border-color: var(--border-light);
+            transform: translateY(-2px);
         }
 
-        .stat-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: var(--muted);
-            font-weight: 600;
-            margin-bottom: 6px;
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+
+        .stat-card.card-users::after { background: linear-gradient(90deg, #38bdf8, transparent); }
+        .stat-card.card-bots::after { background: linear-gradient(90deg, #a855f7, transparent); }
+        .stat-card.card-trades::after { background: linear-gradient(90deg, #f59e0b, transparent); }
+        .stat-card.card-pnl::after { background: linear-gradient(90deg, #10b981, transparent); }
+        .stat-card.card-rate::after { background: linear-gradient(90deg, #ec4899, transparent); }
+
+        .stat-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .stat-icon {
+            font-size: 16px;
+            opacity: 0.85;
+        }
+
+        .stat-val-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 6px;
         }
 
         .stat-val {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 800;
             color: #ffffff;
             font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.5px;
         }
+
+        .stat-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+
+        .pill-green { background: var(--green-bg); color: var(--green-light); border: 1px solid var(--green-border); }
+        .pill-red { background: var(--red-bg); color: var(--red-light); border: 1px solid var(--red-border); }
+        .pill-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+        .pill-gold { background: var(--gold-bg); color: var(--gold-light); border: 1px solid var(--gold-border); }
+        .pill-purple { background: var(--purple-bg); color: #d8b4fe; border: 1px solid var(--purple-border); }
 
         .stat-sub {
             font-size: 12px;
             color: var(--muted-dark);
-            margin-top: 4px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: space-between;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+
+        .stat-sub-val {
+            font-weight: 600;
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
         }
 
         /* ══════════════ NAVIGATION TABS ══════════════ */
         .admin-tabs {
             display: flex;
             align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--border);
+            gap: 6px;
+            background: rgba(10, 16, 30, 0.6);
+            border: 1px solid var(--border);
+            padding: 6px;
+            border-radius: 12px;
             margin-bottom: 24px;
             overflow-x: auto;
-            padding-bottom: 4px;
         }
 
         .tab-btn {
             background: transparent;
             border: none;
             color: var(--muted);
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
-            padding: 10px 18px;
+            padding: 9px 18px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -253,21 +384,26 @@
         }
 
         .tab-btn:hover {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.04);
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .tab-btn.active {
+            background: var(--bg-panel-solid);
             color: #ffffff;
-            background: var(--gold-bg);
-            border: 1px solid var(--gold-border);
-            font-weight: 700;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        /* ══════════════ TAB CONTENT PANELS ══════════════ */
+        .tab-btn.active#tab-btn-users { border-color: var(--blue-border); color: #e0f2fe; }
+        .tab-btn.active#tab-btn-config { border-color: var(--gold-border); color: #fef3c7; }
+        .tab-btn.active#tab-btn-credentials { border-color: var(--green-border); color: #d1fae5; }
+        .tab-btn.active#tab-btn-roles { border-color: var(--purple-border); color: #f3e8ff; }
+        .tab-btn.active#tab-btn-audit { border-color: rgba(255, 255, 255, 0.25); }
+
         .tab-panel {
             display: none;
-            animation: fadeIn 0.2s ease-in-out;
+            animation: fadeIn 0.25s ease-in-out;
         }
 
         .tab-panel.active {
@@ -279,13 +415,13 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ══════════════ CONTROLS / TOOLBAR ══════════════ */
+        /* ══════════════ TOOLBAR & CONTROLS ══════════════ */
         .toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
         }
 
@@ -294,72 +430,84 @@
             align-items: center;
             gap: 10px;
             flex: 1;
-            min-width: 280px;
+            max-width: 650px;
+        }
+
+        .admin-input, .admin-select {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--input-text);
+            padding: 9px 14px;
+            border-radius: 9px;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .admin-input:focus, .admin-select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
         }
 
         .admin-input {
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            padding: 9px 14px;
-            color: var(--input-text);
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s ease;
-            width: 100%;
-        }
-
-        .admin-input:focus {
-            border-color: var(--gold);
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+            flex: 1;
         }
 
         .admin-select {
-            background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            padding: 9px 12px;
-            color: var(--input-text);
-            font-size: 13px;
-            font-family: inherit;
-            outline: none;
             cursor: pointer;
-            transition: border-color 0.2s ease;
-        }
-
-        .admin-select:focus {
-            border-color: var(--gold);
         }
 
         .btn-action {
             background: linear-gradient(135deg, #f59e0b, #d97706);
             color: #060913;
             border: none;
-            border-radius: 8px;
-            padding: 9px 18px;
+            padding: 9px 16px;
+            border-radius: 9px;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
-            transition: all 0.2s ease;
+            gap: 7px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
         }
 
         .btn-action:hover {
             transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
         }
 
-        /* ══════════════ DATA TABLES ══════════════ */
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--border-light);
+        }
+
+        /* ══════════════ TABLE STYLING ══════════════ */
         .table-card {
             background: var(--bg-panel);
             border: 1px solid var(--border);
             border-radius: 14px;
             overflow: hidden;
             box-shadow: var(--card-shadow);
+            backdrop-filter: blur(12px);
         }
 
         .table-responsive {
@@ -375,70 +523,69 @@
         }
 
         .admin-table th {
-            background: rgba(10, 15, 28, 0.95);
+            background: rgba(10, 16, 32, 0.95);
             color: var(--muted);
-            font-weight: 600;
             font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            padding: 12px 16px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
 
         .admin-table td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text);
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             vertical-align: middle;
+            color: var(--text);
         }
 
-        .admin-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+        .admin-table tbody tr {
+            transition: background 0.15s ease;
         }
 
-        /* ══════════════ BADGES & PILLS ══════════════ */
-        .badge {
-            display: inline-flex;
+        .admin-table tbody tr:hover {
+            background: var(--bg-panel-hover);
+        }
+
+        .user-cell {
+            display: flex;
             align-items: center;
-            gap: 5px;
-            padding: 4px 9px;
-            border-radius: 6px;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.3));
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .badge {
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
         }
 
-        .badge-super {
-            background: var(--gold-bg);
-            border: 1px solid var(--gold-border);
-            color: var(--gold-light);
-        }
-
-        .badge-master {
-            background: var(--purple-bg);
-            border: 1px solid var(--purple-border);
-            color: #d8b4fe;
-        }
-
-        .badge-user {
-            background: var(--blue-bg);
-            border: 1px solid var(--blue-border);
-            color: var(--blue);
-        }
-
-        .badge-active {
-            background: var(--green-bg);
-            border: 1px solid var(--green-border);
-            color: var(--green);
-        }
-
-        .badge-inactive {
-            background: var(--red-bg);
-            border: 1px solid var(--red-border);
-            color: var(--red);
-        }
+        .badge-super { background: var(--gold-bg); color: var(--gold-light); border: 1px solid var(--gold-border); }
+        .badge-master { background: var(--purple-bg); color: #d8b4fe; border: 1px solid var(--purple-border); }
+        .badge-user { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+        .badge-active { background: var(--green-bg); color: var(--green-light); border: 1px solid var(--green-border); cursor: pointer; }
+        .badge-inactive { background: var(--red-bg); color: var(--red-light); border: 1px solid var(--red-border); cursor: pointer; }
 
         .btn-icon {
             background: rgba(255, 255, 255, 0.05);
@@ -446,37 +593,30 @@
             color: var(--text);
             width: 32px;
             height: 32px;
-            border-radius: 6px;
+            border-radius: 7px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 13px;
+            font-size: 14px;
+            transition: all 0.15s ease;
+            margin-left: 4px;
         }
 
         .btn-icon:hover {
             background: rgba(255, 255, 255, 0.12);
             border-color: var(--border-light);
-            transform: scale(1.05);
+            transform: translateY(-1px);
         }
 
-        .btn-icon.delete:hover {
-            background: var(--red-bg);
-            border-color: var(--red);
-            color: var(--red);
-        }
+        .btn-icon.key:hover { border-color: var(--green); color: var(--green); }
+        .btn-icon.config:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-icon.delete:hover { border-color: var(--red); color: var(--red); }
 
-        .btn-icon.config:hover {
-            background: var(--gold-bg);
-            border-color: var(--gold);
-            color: var(--gold-light);
-        }
-
-        /* ══════════════ CONFIGURATION FORM ══════════════ */
+        /* ══════════════ CONFIGURATION CARDS ══════════════ */
         .config-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
             gap: 20px;
         }
 
@@ -485,6 +625,7 @@
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 22px;
+            backdrop-filter: blur(12px);
             box-shadow: var(--card-shadow);
         }
 
@@ -492,17 +633,17 @@
             font-size: 15px;
             font-weight: 700;
             color: #ffffff;
-            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 6px;
         }
 
         .config-card-desc {
             font-size: 12px;
             color: var(--muted);
             margin-bottom: 18px;
-            line-height: 1.4;
+            line-height: 1.45;
         }
 
         .form-row {
@@ -511,12 +652,12 @@
 
         .form-label {
             display: block;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11.5px;
+            font-weight: 700;
             color: var(--muted);
             margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.5px;
         }
 
         .form-hint {
@@ -530,10 +671,15 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 14px;
-            background: rgba(10, 15, 28, 0.6);
+            background: rgba(8, 14, 26, 0.65);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 9px;
             margin-bottom: 10px;
+            transition: border-color 0.2s;
+        }
+
+        .toggle-switch:hover {
+            border-color: rgba(255, 255, 255, 0.12);
         }
 
         .toggle-switch-label {
@@ -545,18 +691,20 @@
         .toggle-switch-desc {
             font-size: 11px;
             color: var(--muted);
+            margin-top: 2px;
         }
 
         .switch-input {
             appearance: none;
             width: 44px;
             height: 24px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.12);
             border-radius: 12px;
             position: relative;
             outline: none;
             cursor: pointer;
             transition: background 0.2s ease;
+            flex-shrink: 0;
         }
 
         .switch-input:checked {
@@ -580,6 +728,71 @@
             background: #060913;
         }
 
+        /* ══════════════ CREDENTIAL INPUT BOX ══════════════ */
+        .cred-field-box {
+            background: rgba(8, 14, 26, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .cred-field-box:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .cred-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .cred-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cred-status-pill {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .input-group-pass {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group-pass input {
+            width: 100%;
+            padding-right: 42px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .btn-toggle-vis {
+            position: absolute;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 4px;
+        }
+
+        .btn-toggle-vis:hover {
+            color: #ffffff;
+        }
+
         /* ══════════════ MODALS ══════════════ */
         .modal-overlay {
             position: fixed;
@@ -587,7 +800,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.78);
             backdrop-filter: blur(8px);
             z-index: 1000;
             display: none;
@@ -601,30 +814,31 @@
             border: 1px solid var(--border-gold);
             border-radius: 16px;
             width: 100%;
-            max-width: 650px;
+            max-width: 680px;
             max-height: 90vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
             animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.95); }
+            from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
         }
 
         .modal-header {
-            padding: 18px 24px;
+            padding: 16px 24px;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            background: rgba(10, 16, 32, 0.85);
         }
 
         .modal-title {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 700;
             color: #ffffff;
             display: flex;
@@ -639,39 +853,29 @@
             font-size: 20px;
             cursor: pointer;
             line-height: 1;
-            padding: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .modal-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .modal-body {
-            padding: 24px;
+            padding: 22px 24px;
             overflow-y: auto;
             flex: 1;
         }
 
         .modal-footer {
-            padding: 16px 24px;
+            padding: 14px 24px;
             border-top: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 12px;
-            background: rgba(10, 15, 28, 0.5);
-        }
-
-        .btn-cancel {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            border-radius: 8px;
-            padding: 9px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .btn-cancel:hover {
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.05);
+            gap: 10px;
+            background: rgba(10, 16, 32, 0.85);
         }
 
         /* ══════════════ TOAST NOTIFICATION ══════════════ */
@@ -680,51 +884,36 @@
             bottom: 24px;
             right: 24px;
             z-index: 2000;
+            background: #111827;
+            border: 1px solid var(--border);
+            color: #ffffff;
             padding: 12px 20px;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
             display: none;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            gap: 8px;
             animation: slideIn 0.25s ease;
         }
 
+        #toast.success { border-color: var(--green); color: var(--green-light); }
+        #toast.error { border-color: var(--red); color: var(--red-light); }
+        #toast.info { border-color: var(--blue); color: var(--blue); }
+
         @keyframes slideIn {
-            from { transform: translateY(20px); opacity: 0; }
+            from { transform: translateY(16px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
 
-        #toast.success {
-            background: rgba(6, 95, 70, 0.95);
-            border: 1px solid var(--green);
-            color: #ecfdf5;
-        }
-
-        #toast.error {
-            background: rgba(153, 27, 27, 0.95);
-            border: 1px solid var(--red);
-            color: #fef2f2;
-        }
-
         @media (max-width: 768px) {
-            .admin-header {
-                padding: 10px 14px;
-            }
-            .container {
-                padding: 14px 10px;
-            }
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .stat-val {
-                font-size: 19px;
-            }
-            .toolbar {
-                flex-direction: column;
-                align-items: stretch;
-            }
+            .admin-header { padding: 12px 16px; }
+            .container { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .search-group { max-width: 100%; flex-direction: column; }
+            .config-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -732,71 +921,118 @@
 <body>
     <!-- ══════════════ HEADER ══════════════ -->
     <header class="admin-header">
-        <div class="header-brand">
-            <a href="/" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
-                <img src="/static/logo.svg" alt="QuantEdge Logo" style="width: 26px; height: 26px;" />
-            </a>
-            <div>
-                <div class="brand-title">
-                    Quant<span style="color:var(--gold);">Edge</span>
+        <a href="/super-admin" class="header-brand">
+            <div class="brand-icon-box">🚀</div>
+            <div class="brand-meta">
+                <div class="brand-title-wrap">
+                    <span class="brand-title">QuantEdge</span>
                     <span class="brand-badge-super">👑 Super Admin</span>
                 </div>
-                <div class="brand-subtitle">Centralized Control Panel &amp; User Engine</div>
+                <span class="brand-subtitle">Centralized Control Panel &amp; User Engine</span>
+            </div>
+        </a>
+
+        <div class="header-center">
+            <div class="system-pill" id="db-status-pill">
+                <span class="system-dot"></span>
+                <span id="db-status-text">Cloud Database Healthy</span>
             </div>
         </div>
 
         <div class="header-actions">
-            <a href="/" class="btn-header" title="Return to Main Trading Terminal">
-                ← Trading Terminal
+            <a href="/" class="btn-header" title="Go to Personal Trading Terminal">
+                📈 <span>Trading Terminal</span>
             </a>
-            <button class="btn-header primary" onclick="refreshAdminData()" title="Refresh All Data">
-                🔄 Refresh
+            <button class="btn-header" onclick="refreshAdminData()" id="btn-refresh" title="Refresh all statistics and tables">
+                🔄 <span id="refresh-text">Refresh</span>
             </button>
-            <button class="btn-header" onclick="authClient.logout()" title="Sign Out">
-                🚪 Logout
+            <button class="btn-header primary" onclick="handleLogout()" title="Sign Out">
+                🚪 <span>Logout</span>
             </button>
         </div>
     </header>
 
-    <!-- ══════════════ MAIN CONTENT CONTAINER ══════════════ -->
     <div class="container">
-
-        <!-- ══════════════ STATS KPI BANNER ══════════════ -->
+        <!-- ══════════════ KPI STATISTICS OVERVIEW ══════════════ -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span>Total Registered Users</span>
-                    <span>👥</span>
+            <!-- 1. Registered Users -->
+            <div class="stat-card card-users">
+                <div class="stat-header">
+                    <span class="stat-label">Total Registered Users</span>
+                    <span class="stat-icon">👥</span>
                 </div>
-                <div class="stat-val" id="kpi-total-users">--</div>
-                <div class="stat-sub" id="kpi-users-sub">-- Active / -- Inactive</div>
+                <div class="stat-val-row">
+                    <span class="stat-val" id="kpi-total-users">--</span>
+                    <span class="stat-pill pill-blue" id="kpi-users-badge">100% Active</span>
+                </div>
+                <div class="stat-sub">
+                    <span id="kpi-users-sub">Loading users...</span>
+                    <span class="stat-sub-val" id="kpi-users-ratio">--</span>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span>Autonomous Bots Active</span>
-                    <span>🤖</span>
+            <!-- 2. Active Trading Bots -->
+            <div class="stat-card card-bots">
+                <div class="stat-header">
+                    <span class="stat-label">Autonomous Bots Active</span>
+                    <span class="stat-icon">🤖</span>
                 </div>
-                <div class="stat-val" id="kpi-active-bots" style="color: var(--green);">--</div>
-                <div class="stat-sub">Trading Engine Running</div>
+                <div class="stat-val-row">
+                    <span class="stat-val" id="kpi-active-bots">--</span>
+                    <span class="stat-pill pill-purple" id="kpi-live-bots-badge">Live Bots</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Execution Engines</span>
+                    <span class="stat-sub-val" id="kpi-bots-sub">0 Live / 0 Paper</span>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span>Trades Today (All Users)</span>
-                    <span>⚡</span>
+            <!-- 3. Trade Executions (Today & Total) -->
+            <div class="stat-card card-trades">
+                <div class="stat-header">
+                    <span class="stat-label">Executions (Today / Lifetime)</span>
+                    <span class="stat-icon">⚡</span>
                 </div>
-                <div class="stat-val" id="kpi-today-trades">--</div>
-                <div class="stat-sub">Total Executions Today</div>
+                <div class="stat-val-row">
+                    <span class="stat-val" id="kpi-today-trades">--</span>
+                    <span class="stat-pill pill-gold" id="kpi-lifetime-trades-pill">-- Total</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Lifetime Trade Volume</span>
+                    <span class="stat-sub-val" id="kpi-lifetime-trades">-- trades</span>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-label">
-                    <span>Aggregate P&amp;L Today</span>
-                    <span>💰</span>
+            <!-- 4. Realized P&L (Today & Aggregate) -->
+            <div class="stat-card card-pnl">
+                <div class="stat-header">
+                    <span class="stat-label">Aggregate P&amp;L (Realized)</span>
+                    <span class="stat-icon">💰</span>
                 </div>
-                <div class="stat-val" id="kpi-today-pnl">₹0.00</div>
-                <div class="stat-sub">Across All User Accounts</div>
+                <div class="stat-val-row">
+                    <span class="stat-val" id="kpi-aggregate-pnl">₹0.00</span>
+                    <span class="stat-pill pill-green" id="kpi-pnl-badge">Net Profit</span>
+                </div>
+                <div class="stat-sub">
+                    <span id="kpi-pnl-today-sub">Today: ₹0.00</span>
+                    <span class="stat-sub-val" id="kpi-pnl-lifetime-sub">All-Time: ₹0.00</span>
+                </div>
+            </div>
+
+            <!-- 5. Win Rate & Accuracy -->
+            <div class="stat-card card-rate">
+                <div class="stat-header">
+                    <span class="stat-label">System Win Rate</span>
+                    <span class="stat-icon">🎯</span>
+                </div>
+                <div class="stat-val-row">
+                    <span class="stat-val" id="kpi-win-rate">--%</span>
+                    <span class="stat-pill pill-blue" id="kpi-win-count">-- W / -- L</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Closed Trades Outcome</span>
+                    <span class="stat-sub-val" id="kpi-win-ratio">--</span>
+                </div>
             </div>
         </div>
 
@@ -806,13 +1042,16 @@
                 👥 Users Management
             </button>
             <button class="tab-btn" onclick="switchTab('config')" id="tab-btn-config">
-                ⚙️ User Configuration
+                ⚙️ Trading &amp; Risk Configuration
+            </button>
+            <button class="tab-btn" onclick="switchTab('credentials')" id="tab-btn-credentials">
+                🔑 Individual API Credentials
             </button>
             <button class="tab-btn" onclick="switchTab('roles')" id="tab-btn-roles">
-                🔐 Roles &amp; Permissions
+                🔐 Roles &amp; Permissions Matrix
             </button>
             <button class="tab-btn" onclick="switchTab('audit')" id="tab-btn-audit">
-                📊 Activity &amp; Audit Logs
+                📜 Activity &amp; Audit Logs
             </button>
         </div>
 
@@ -849,10 +1088,10 @@
                                 <th>User ID</th>
                                 <th>Username / Email</th>
                                 <th>Assigned Role</th>
-                                <th>Account Status</th>
+                                <th>Status</th>
                                 <th>Upstox API</th>
-                                <th>Trades Today</th>
-                                <th>P&amp;L Today</th>
+                                <th>Trades (Today / All)</th>
+                                <th>P&amp;L (Today / Lifetime)</th>
                                 <th>Linked Accts</th>
                                 <th>Last Active</th>
                                 <th style="text-align: right;">Actions</th>
@@ -860,8 +1099,8 @@
                         </thead>
                         <tbody id="users-table-body">
                             <tr>
-                                <td colspan="10" style="text-align: center; color: var(--muted); padding: 30px;">
-                                    Loading registered users...
+                                <td colspan="10" style="text-align: center; color: var(--muted); padding: 36px;">
+                                    Loading registered users and statistics...
                                 </td>
                             </tr>
                         </tbody>
@@ -874,14 +1113,14 @@
         <div class="tab-panel" id="panel-config">
             <div class="toolbar" style="margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                    <label class="form-label" style="margin: 0; white-space: nowrap;">Selected User:</label>
-                    <select id="config-user-select" class="admin-select" style="min-width: 260px; font-weight: 700;" onchange="loadUserForConfig(this.value)">
+                    <label class="form-label" style="margin: 0; white-space: nowrap;">Target User:</label>
+                    <select id="config-user-select" class="admin-select" style="min-width: 280px; font-weight: 700;" onchange="loadUserForConfig(this.value)">
                         <option value="">Select a user to configure...</option>
                     </select>
                 </div>
                 <div>
                     <button class="btn-action" onclick="saveUserConfiguration()">
-                        💾 Save User Configuration
+                        💾 Save Configuration &amp; Risk Limits
                     </button>
                 </div>
             </div>
@@ -907,7 +1146,7 @@
 
                         <div class="form-row">
                             <label class="form-label">Capital Allocation (₹)</label>
-                            <input type="number" id="cfg-capital" class="admin-input" step="1000" min="5000" />
+                            <input type="number" id="cfg-capital" class="admin-input" step="1000" min="1000" />
                             <div class="form-hint">Maximum capital deployed for this user's strategy execution.</div>
                         </div>
 
@@ -1019,7 +1258,7 @@
 
                         <div style="margin-top: 16px;">
                             <label class="form-label">Linked Trading Accounts</label>
-                            <div id="cfg-linked-accounts-list" style="max-height: 200px; overflow-y: auto; background: rgba(10,15,28,0.5); border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+                            <div id="cfg-linked-accounts-list" style="max-height: 200px; overflow-y: auto; background: rgba(8,14,26,0.6); border: 1px solid var(--border); border-radius: 9px; padding: 10px;">
                                 <div style="color: var(--muted); font-size: 12px;">No linked accounts for this user.</div>
                             </div>
                         </div>
@@ -1028,13 +1267,99 @@
             </div>
 
             <div id="config-empty-state" style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <div style="font-size: 40px; margin-bottom: 12px;">👤</div>
+                <div style="font-size: 42px; margin-bottom: 12px;">👤</div>
                 <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">No User Selected</div>
                 <div>Please select a user from the dropdown above to view and edit their isolated configuration.</div>
             </div>
         </div>
 
-        <!-- ══════════════ TAB 3: ROLES & PERMISSIONS ══════════════ -->
+        <!-- ══════════════ TAB 3: INDIVIDUAL API CREDENTIALS ══════════════ -->
+        <div class="tab-panel" id="panel-credentials">
+            <div class="toolbar" style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <label class="form-label" style="margin: 0; white-space: nowrap;">Target User:</label>
+                    <select id="cred-user-select" class="admin-select" style="min-width: 280px; font-weight: 700;" onchange="loadUserCredentials(this.value)">
+                        <option value="">Select a user to configure API credentials...</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-action" onclick="saveUserCredentialsFromTab()">
+                        🔐 Save API Credentials
+                    </button>
+                </div>
+            </div>
+
+            <div id="cred-tab-container" style="display: none;">
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid var(--green-border); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: var(--green-light); display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">🛡️</span>
+                    <div>
+                        <strong>AES-256-GCM Write-Only Security:</strong> All API credentials are encrypted with hardware-grade AES-256 before database storage. Leave any field blank to preserve its existing configured value.
+                    </div>
+                </div>
+
+                <div class="config-grid">
+                    <!-- Credential 1: API Key / Client ID -->
+                    <div class="cred-field-box">
+                        <div class="cred-header">
+                            <span class="cred-title">🔑 1. API Key (Upstox Client ID)</span>
+                            <span id="tab-st-client-id" class="cred-status-pill pill-red">○ Not Set</span>
+                        </div>
+                        <div class="input-group-pass">
+                            <input type="password" id="tab-upstox-client-id" class="admin-input" placeholder="Leave blank to keep existing value" autocomplete="off" />
+                            <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('tab-upstox-client-id', this)">👁️</button>
+                        </div>
+                        <div class="form-hint">Your Upstox developer API app Client ID.</div>
+                    </div>
+
+                    <!-- Credential 2: API Secret -->
+                    <div class="cred-field-box">
+                        <div class="cred-header">
+                            <span class="cred-title">🔒 2. API Secret</span>
+                            <span id="tab-st-client-secret" class="cred-status-pill pill-red">○ Not Set</span>
+                        </div>
+                        <div class="input-group-pass">
+                            <input type="password" id="tab-upstox-client-secret" class="admin-input" placeholder="Leave blank to keep existing value" autocomplete="off" />
+                            <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('tab-upstox-client-secret', this)">👁️</button>
+                        </div>
+                        <div class="form-hint">Your Upstox developer app secret key for authentication.</div>
+                    </div>
+
+                    <!-- Credential 3: Access Token -->
+                    <div class="cred-field-box">
+                        <div class="cred-header">
+                            <span class="cred-title">⚡ 3. Access Token</span>
+                            <span id="tab-st-access-token" class="cred-status-pill pill-red">○ Not Set</span>
+                        </div>
+                        <div class="input-group-pass">
+                            <input type="password" id="tab-upstox-access-token" class="admin-input" placeholder="Leave blank to keep existing value" autocomplete="off" />
+                            <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('tab-upstox-access-token', this)">👁️</button>
+                        </div>
+                        <div class="form-hint">Generated daily via Upstox OAuth login session.</div>
+                    </div>
+
+                    <!-- Credential 4: Analytics Token -->
+                    <div class="cred-field-box">
+                        <div class="cred-header">
+                            <span class="cred-title">📊 4. Analytics Token</span>
+                            <span id="tab-st-analytics" class="cred-status-pill pill-red">○ Not Set</span>
+                        </div>
+                        <div class="input-group-pass">
+                            <input type="password" id="tab-analytics-token" class="admin-input" placeholder="Leave blank to keep existing value" autocomplete="off" />
+                            <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('tab-analytics-token', this)">👁️</button>
+                        </div>
+                        <div class="form-hint">Secondary market feed / analytics streaming authorization token.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cred-empty-state" style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <div style="font-size: 42px; margin-bottom: 12px;">🔑</div>
+                <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">No User Selected</div>
+                <div>Please select a user from the dropdown above to view credential status and configure API keys.</div>
+            </div>
+        </div>
+
+        <!-- ══════════════ TAB 4: ROLES & PERMISSIONS MATRIX ══════════════ -->
         <div class="tab-panel" id="panel-roles">
             <div class="config-grid">
                 <!-- Role 1: Super Admin -->
@@ -1043,13 +1368,13 @@
                         👑 Super Admin
                     </div>
                     <div class="config-card-desc">
-                        Master-level administrative supremacy with unrestricted authority across all users and systems.
+                        Master-level administrative supremacy with unrestricted authority across all users and trading systems.
                     </div>
                     <ul style="list-style: none; font-size: 13px; color: var(--text); line-height: 2;">
                         <li>✅ Dedicated Super Admin Control Panel</li>
                         <li>✅ Add, modify, deactivate, or delete any user</li>
                         <li>✅ Configure individual user risk parameters &amp; limits</li>
-                        <li>✅ Control feature permissions per user</li>
+                        <li>✅ Individually manage all 4 API credentials per user</li>
                         <li>✅ Multi-account trade replication management</li>
                         <li>✅ Real-time audit trails &amp; activity monitoring</li>
                         <li>✅ Emergency global kill switch</li>
@@ -1095,17 +1420,15 @@
             </div>
         </div>
 
-        <!-- ══════════════ TAB 4: ACTIVITY & AUDIT LOGS ══════════════ -->
+        <!-- ══════════════ TAB 5: ACTIVITY & AUDIT LOGS ══════════════ -->
         <div class="tab-panel" id="panel-audit">
             <div class="toolbar">
                 <div style="font-size: 14px; font-weight: 700; color: #ffffff;">
-                    Live System &amp; User Activity Stream
+                    Real-time Audit Trail &amp; System Events
                 </div>
-                <div>
-                    <button class="btn-header" onclick="loadAuditLogs()">
-                        🔄 Refresh Logs
-                    </button>
-                </div>
+                <button class="btn-secondary" onclick="loadAuditLogs()">
+                    🔄 Refresh Logs
+                </button>
             </div>
 
             <div class="table-card">
@@ -1114,15 +1437,15 @@
                         <thead>
                             <tr>
                                 <th>Timestamp</th>
-                                <th>Level</th>
-                                <th>User Attribution</th>
-                                <th>Event Description</th>
+                                <th>Event Level</th>
+                                <th>Attributed User</th>
+                                <th>Action / Message</th>
                             </tr>
                         </thead>
                         <tbody id="audit-logs-body">
                             <tr>
                                 <td colspan="4" style="text-align: center; color: var(--muted); padding: 30px;">
-                                    Loading audit trail...
+                                    Loading system audit logs...
                                 </td>
                             </tr>
                         </tbody>
@@ -1130,10 +1453,9 @@
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- ══════════════ MODAL: CREATE / EDIT USER ══════════════ -->
+    <!-- ══════════════ MODAL: ADD / EDIT USER ══════════════ -->
     <div class="modal-overlay" id="modal-user-form">
         <div class="modal-card">
             <div class="modal-header">
@@ -1179,18 +1501,89 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeUserModal()">Cancel</button>
+                <button class="btn-secondary" onclick="closeUserModal()">Cancel</button>
                 <button class="btn-action" onclick="submitUserForm()">Save User</button>
             </div>
         </div>
     </div>
 
-    <!-- ══════════════ MODAL: USER FULL DETAILS DRAWER ══════════════ -->
-    <div class="modal-overlay" id="modal-user-details">
-        <div class="modal-card" style="max-width: 850px;">
+    <!-- ══════════════ MODAL: CONFIGURE INDIVIDUAL API CREDENTIALS ══════════════ -->
+    <div class="modal-overlay" id="modal-api-credentials">
+        <div class="modal-card" style="max-width: 620px;">
             <div class="modal-header">
                 <div class="modal-title">
-                    👁️ User Profile &amp; Audit Inspector
+                    🔑 Configure API Credentials — <span id="modal-cred-username" style="color: var(--gold-light);">User</span>
+                </div>
+                <button class="modal-close" onclick="closeApiModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modal-cred-user-id" value="" />
+                
+                <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.45;">
+                    Configure all 4 API credentials individually. Values are encrypted with AES-256-GCM. Leave any field blank to preserve the currently stored value.
+                </div>
+
+                <!-- Credential 1 -->
+                <div class="cred-field-box">
+                    <div class="cred-header">
+                        <span class="cred-title">🔑 1. API Key (Upstox Client ID)</span>
+                        <span id="modal-st-client-id" class="cred-status-pill pill-red">○ Not Set</span>
+                    </div>
+                    <div class="input-group-pass">
+                        <input type="password" id="modal-upstox-client-id" class="admin-input" placeholder="Leave blank to keep existing" autocomplete="off" />
+                        <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('modal-upstox-client-id', this)">👁️</button>
+                    </div>
+                </div>
+
+                <!-- Credential 2 -->
+                <div class="cred-field-box">
+                    <div class="cred-header">
+                        <span class="cred-title">🔒 2. API Secret</span>
+                        <span id="modal-st-client-secret" class="cred-status-pill pill-red">○ Not Set</span>
+                    </div>
+                    <div class="input-group-pass">
+                        <input type="password" id="modal-upstox-client-secret" class="admin-input" placeholder="Leave blank to keep existing" autocomplete="off" />
+                        <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('modal-upstox-client-secret', this)">👁️</button>
+                    </div>
+                </div>
+
+                <!-- Credential 3 -->
+                <div class="cred-field-box">
+                    <div class="cred-header">
+                        <span class="cred-title">⚡ 3. Access Token</span>
+                        <span id="modal-st-access-token" class="cred-status-pill pill-red">○ Not Set</span>
+                    </div>
+                    <div class="input-group-pass">
+                        <input type="password" id="modal-upstox-access-token" class="admin-input" placeholder="Leave blank to keep existing" autocomplete="off" />
+                        <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('modal-upstox-access-token', this)">👁️</button>
+                    </div>
+                </div>
+
+                <!-- Credential 4 -->
+                <div class="cred-field-box">
+                    <div class="cred-header">
+                        <span class="cred-title">📊 4. Analytics Token</span>
+                        <span id="modal-st-analytics" class="cred-status-pill pill-red">○ Not Set</span>
+                    </div>
+                    <div class="input-group-pass">
+                        <input type="password" id="modal-analytics-token" class="admin-input" placeholder="Leave blank to keep existing" autocomplete="off" />
+                        <button type="button" class="btn-toggle-vis" onclick="togglePassVisibility('modal-analytics-token', this)">👁️</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeApiModal()">Cancel</button>
+                <button class="btn-action" onclick="saveUserCredentialsFromModal()">Save Credentials</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ MODAL: USER FULL DETAILS & TRADE HISTORY ══════════════ -->
+    <div class="modal-overlay" id="modal-user-details">
+        <div class="modal-card" style="max-width: 950px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    👁️ User Profile, Performance &amp; Trade History
                 </div>
                 <button class="modal-close" onclick="closeUserDetailsModal()">✕</button>
             </div>
@@ -1198,7 +1591,7 @@
                 Loading user profile...
             </div>
             <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeUserDetailsModal()">Close</button>
+                <button class="btn-secondary" onclick="closeUserDetailsModal()">Close</button>
             </div>
         </div>
     </div>
@@ -1206,28 +1599,40 @@
     <!-- ══════════════ TOAST NOTIFICATION ══════════════ -->
     <div id="toast"></div>
 
-    <!-- ══════════════ JAVASCRIPT LOGIC ══════════════ -->
+    <!-- ══════════════ JAVASCRIPT ENGINE ══════════════ -->
     <script>
         // Global state store
         let allUsers = [];
         let currentEditingUserId = null;
         let selectedConfigUserId = null;
+        let selectedCredUserId = null;
+        let cachedModalTrades = [];
 
         // Initialize on DOM load
         document.addEventListener('DOMContentLoaded', async () => {
             await refreshAdminData();
         });
 
-        // ══════════════ DATA FETCHING ══════════════
+        // ══════════════ DATA FETCHING & KPI ══════════════
         async function refreshAdminData() {
+            const btn = document.getElementById('btn-refresh');
+            const txt = document.getElementById('refresh-text');
+            if (btn) btn.disabled = true;
+            if (txt) txt.innerText = "Loading...";
+
             try {
                 await Promise.all([
                     loadOverviewStats(),
                     loadUsersList(),
                     loadAuditLogs()
                 ]);
+                showToast("System overview updated successfully", "success");
             } catch (e) {
                 console.error("Refresh error:", e);
+                showToast("Failed to refresh: " + e.message, "error");
+            } finally {
+                if (btn) btn.disabled = false;
+                if (txt) txt.innerText = "Refresh";
             }
         }
 
@@ -1237,15 +1642,57 @@
                 if (!res.ok) throw new Error("Failed to load overview");
                 const d = await res.json();
 
-                document.getElementById('kpi-total-users').innerText = d.total_users || 0;
-                document.getElementById('kpi-users-sub').innerText = `${d.active_users || 0} Active / ${d.inactive_users || 0} Inactive`;
-                document.getElementById('kpi-active-bots').innerText = d.active_bots || 0;
-                document.getElementById('kpi-today-trades').innerText = d.total_trades_today || 0;
+                // 1. Registered Users
+                const totalUsers = d.total_users || 0;
+                const activeUsers = d.active_users || 0;
+                const inactiveUsers = d.inactive_users || 0;
+                document.getElementById('kpi-total-users').innerText = totalUsers;
+                document.getElementById('kpi-users-sub').innerText = `${activeUsers} Active • ${inactiveUsers} Inactive`;
+                const activePct = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 100;
+                document.getElementById('kpi-users-badge').innerText = `${activePct}% Active`;
 
-                const pnl = d.total_pnl_today || 0;
-                const pnlEl = document.getElementById('kpi-today-pnl');
-                pnlEl.innerText = (pnl >= 0 ? '+' : '') + '₹' + pnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+                // 2. Autonomous Bots
+                const runningBots = d.running_bots != null ? d.running_bots : (d.active_bots || 0);
+                const liveBots = d.live_trading_bots || 0;
+                document.getElementById('kpi-active-bots').innerText = runningBots;
+                document.getElementById('kpi-bots-sub').innerText = `${liveBots} Live • ${Math.max(0, runningBots - liveBots)} Paper`;
+                document.getElementById('kpi-live-bots-badge').innerText = liveBots > 0 ? `${liveBots} Live Online` : 'Paper Mode';
+
+                // 3. Trade Executions
+                const todayTrades = d.trades_today_count != null ? d.trades_today_count : (d.total_trades_today || 0);
+                const lifetimeTrades = d.total_lifetime_trades != null ? d.total_lifetime_trades : (d.lifetime_trades || todayTrades);
+                document.getElementById('kpi-today-trades').innerText = `${todayTrades} Today`;
+                document.getElementById('kpi-lifetime-trades-pill').innerText = `${lifetimeTrades} All-Time`;
+                document.getElementById('kpi-lifetime-trades').innerText = `${lifetimeTrades} executions`;
+
+                // 4. Realized P&L
+                const todayPnl = d.trades_today_pnl != null ? d.trades_today_pnl : (d.total_pnl_today || 0);
+                const lifetimePnl = d.total_lifetime_pnl != null ? d.total_lifetime_pnl : (d.lifetime_pnl || todayPnl);
+                
+                const pnlEl = document.getElementById('kpi-aggregate-pnl');
+                pnlEl.innerText = (lifetimePnl >= 0 ? '+' : '') + '₹' + lifetimePnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                pnlEl.style.color = lifetimePnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
+
+                const pnlBadge = document.getElementById('kpi-pnl-badge');
+                if (lifetimePnl >= 0) {
+                    pnlBadge.className = "stat-pill pill-green";
+                    pnlBadge.innerText = "+ Net Profit";
+                } else {
+                    pnlBadge.className = "stat-pill pill-red";
+                    pnlBadge.innerText = "- Net Loss";
+                }
+
+                document.getElementById('kpi-pnl-today-sub').innerText = `Today: ${(todayPnl >= 0 ? '+' : '')}₹${todayPnl.toFixed(2)}`;
+                document.getElementById('kpi-pnl-lifetime-sub').innerText = `All-Time: ${(lifetimePnl >= 0 ? '+' : '')}₹${lifetimePnl.toFixed(2)}`;
+
+                // 5. Win Rate
+                const winRate = d.win_rate != null ? d.win_rate : 0;
+                const wins = d.winning_trades || 0;
+                const losses = d.losing_trades || 0;
+                document.getElementById('kpi-win-rate').innerText = `${winRate.toFixed(1)}%`;
+                document.getElementById('kpi-win-count').innerText = `${wins}W / ${losses}L`;
+                document.getElementById('kpi-win-ratio').innerText = `${wins + losses} Total Evaluated`;
+
             } catch (e) {
                 console.error("Overview stats error:", e);
             }
@@ -1265,6 +1712,7 @@
                 allUsers = await res.json();
                 renderUsersTable(allUsers);
                 populateConfigUserDropdown(allUsers);
+                populateCredUserDropdown(allUsers);
             } catch (e) {
                 console.error("Users list error:", e);
                 showToast("Failed to load users: " + e.message, "error");
@@ -1274,7 +1722,7 @@
         function renderUsersTable(users) {
             const tbody = document.getElementById('users-table-body');
             if (!users || users.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--muted); padding: 30px;">No users found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--muted); padding: 36px;">No users found matching query.</td></tr>`;
                 return;
             }
 
@@ -1283,46 +1731,74 @@
                     ? `<span class="badge badge-super">👑 Super Admin</span>`
                     : u.role === 'master_admin'
                         ? `<span class="badge badge-master">🛡️ Master Admin</span>`
-                        : `<span class="badge badge-user">👤 User</span>`;
+                        : `<span class="badge badge-user">👤 Trader</span>`;
 
                 const statusBadge = u.is_active
-                    ? `<span class="badge badge-active">Active</span>`
-                    : `<span class="badge badge-inactive">Inactive</span>`;
+                    ? `<span class="badge badge-active" title="Click to Deactivate">● Active</span>`
+                    : `<span class="badge badge-inactive" title="Click to Activate">○ Inactive</span>`;
 
-                const upstoxBadge = u.upstox_connected
-                    ? `<span style="color:var(--green); font-size:12px; font-weight:600;">● Connected</span>`
-                    : `<span style="color:var(--muted); font-size:12px;">○ Not Linked</span>`;
+                // Detailed Upstox credentials status
+                const credCount = u.credentials_count != null ? u.credentials_count : (u.upstox_connected ? 2 : 0);
+                const credBadge = credCount === 4
+                    ? `<span style="color:var(--green-light); font-size:12px; font-weight:700; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">● 4/4 Set</span>`
+                    : credCount > 0
+                        ? `<span style="color:var(--gold-light); font-size:12px; font-weight:700; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">⚠️ Partial (${credCount}/4)</span>`
+                        : `<span style="color:var(--muted); font-size:12px; cursor:pointer;" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')">○ Not Linked</span>`;
 
-                const pnl = u.today_pnl || 0;
-                const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';
-                const pnlFormatted = (pnl >= 0 ? '+' : '') + '₹' + pnl.toFixed(2);
+                // Trades: Today and Lifetime
+                const tradesToday = u.trades_today != null ? u.trades_today : (u.today_trades != null ? u.today_trades : 0);
+                const tradesAll = u.lifetime_trades != null ? u.lifetime_trades : tradesToday;
 
-                const lastActive = u.last_login
-                    ? new Date(u.last_login).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                    : 'Never';
+                // P&L: Today and Lifetime
+                const todayPnl = u.today_pnl != null ? u.today_pnl : 0.0;
+                const lifetimePnl = u.total_pnl != null ? u.total_pnl : (u.lifetime_pnl != null ? u.lifetime_pnl : 0.0);
+
+                const todayColor = todayPnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
+                const lifetimeColor = lifetimePnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
+
+                const todayFormatted = (todayPnl >= 0 ? '+' : '') + '₹' + todayPnl.toFixed(2);
+                const lifetimeFormatted = (lifetimePnl >= 0 ? '+' : '') + '₹' + lifetimePnl.toFixed(2);
+
+                // Last Active date formatting
+                const lastActiveStr = formatDateTime(u.last_login);
+
+                // Initial letter for avatar
+                const initial = (u.username || 'U').substring(0, 1).toUpperCase();
 
                 return `
                     <tr>
                         <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--muted);">${u.id}</td>
                         <td>
-                            <div style="font-weight:700; color:#ffffff;">${escapeHtml(u.username)}</div>
-                            <div style="font-size:11px; color:var(--muted);">${escapeHtml(u.email)}</div>
+                            <div class="user-cell">
+                                <div class="user-avatar">${initial}</div>
+                                <div>
+                                    <div style="font-weight:700; color:#ffffff;">${escapeHtml(u.username)}</div>
+                                    <div style="font-size:11.5px; color:var(--muted);">${escapeHtml(u.email)}</div>
+                                </div>
+                            </div>
                         </td>
                         <td>${roleBadge}</td>
                         <td>
-                            <button onclick="toggleUserStatus(${u.id})" style="background:none; border:none; cursor:pointer;" title="Click to toggle status">
+                            <button onclick="toggleUserStatus(${u.id})" style="background:none; border:none; cursor:pointer; padding:0;" title="Click to toggle status">
                                 ${statusBadge}
                             </button>
                         </td>
-                        <td>${upstoxBadge}</td>
-                        <td style="font-family:'JetBrains Mono';">${u.today_trades}</td>
-                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:${pnlColor};">${pnlFormatted}</td>
-                        <td style="font-family:'JetBrains Mono';">${u.linked_accounts_count}</td>
-                        <td style="font-size:12px; color:var(--muted);">${lastActive}</td>
+                        <td>${credBadge}</td>
+                        <td>
+                            <div style="font-family:'JetBrains Mono'; font-weight:700;">${tradesToday} today</div>
+                            <div style="font-size:11px; color:var(--muted); font-family:'JetBrains Mono';">${tradesAll} all-time</div>
+                        </td>
+                        <td>
+                            <div style="font-family:'JetBrains Mono'; font-weight:700; color:${todayColor};">${todayFormatted} <span style="font-size:10px; color:var(--muted); font-weight:400;">today</span></div>
+                            <div style="font-size:11.5px; font-family:'JetBrains Mono'; color:${lifetimeColor};">${lifetimeFormatted} <span style="font-size:10px; color:var(--muted); font-weight:400;">all-time</span></div>
+                        </td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:600; text-align:center;">${u.linked_accounts_count || 0}</td>
+                        <td style="font-size:12px; color:var(--muted); white-space:nowrap;">${lastActiveStr}</td>
                         <td style="text-align: right; white-space: nowrap;">
-                            <button class="btn-icon config" onclick="switchToUserConfig(${u.id})" title="Configure User Limits &amp; Permissions">⚙️</button>
-                            <button class="btn-icon" onclick="viewUserDetails(${u.id})" title="View Full Profile &amp; Trades">👁️</button>
-                            <button class="btn-icon" onclick="openEditUserModal(${u.id})" title="Edit User">✏️</button>
+                            <button class="btn-icon key" onclick="openApiCredentialsModal(${u.id}, '${escapeHtml(u.username)}')" title="Configure 4 API Credentials">🔑</button>
+                            <button class="btn-icon config" onclick="switchToUserConfig(${u.id})" title="Configure Risk &amp; Permissions">⚙️</button>
+                            <button class="btn-icon" onclick="viewUserDetails(${u.id})" title="View Complete Profile &amp; Trades">👁️</button>
+                            <button class="btn-icon" onclick="openEditUserModal(${u.id})" title="Edit User Account">✏️</button>
                             <button class="btn-icon delete" onclick="confirmDeleteUser(${u.id}, '${escapeHtml(u.username)}')" title="Delete User">🗑️</button>
                         </td>
                     </tr>
@@ -1331,7 +1807,7 @@
         }
 
         function filterUsersTable() {
-            const query = (document.getElementById('user-search-input').value || '').toLowerCase();
+            const query = (document.getElementById('user-search-input').value || '').toLowerCase().trim();
             const roleFilter = document.getElementById('user-role-filter').value;
             const statusFilter = document.getElementById('user-status-filter').value;
 
@@ -1339,7 +1815,8 @@
                 const matchesQuery = !query || 
                     u.username.toLowerCase().includes(query) || 
                     u.email.toLowerCase().includes(query) || 
-                    u.role.toLowerCase().includes(query);
+                    (u.role && u.role.toLowerCase().includes(query)) ||
+                    String(u.id) === query;
 
                 const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
                 const matchesStatus = statusFilter === 'ALL' || 
@@ -1361,7 +1838,7 @@
                     throw new Error(err.detail || "Failed to toggle status");
                 }
                 const data = await res.json();
-                showToast(`User status set to ${data.is_active ? 'Active' : 'Inactive'}`, 'success');
+                showToast(`User #${userId} status set to ${data.is_active ? 'Active' : 'Inactive'}`, 'success');
                 await loadUsersList();
                 await loadOverviewStats();
             } catch (e) {
@@ -1370,7 +1847,7 @@
         }
 
         async function confirmDeleteUser(userId, username) {
-            if (!confirm(`⚠️ Are you sure you want to permanently delete user "${username}" (ID: ${userId})?\n\nThis will remove their isolated configuration, credentials, and unlink their accounts.`)) {
+            if (!confirm(`⚠️ Are you sure you want to permanently delete user "${username}" (ID: ${userId})?\n\nThis will remove their isolated configuration, encrypted credentials, and unlink their accounts.`)) {
                 return;
             }
             try {
@@ -1379,7 +1856,7 @@
                     const err = await res.json();
                     throw new Error(err.detail || "Failed to delete user");
                 }
-                showToast(`User ${username} deleted successfully`, 'success');
+                showToast(`User "${username}" was permanently deleted.`, 'success');
                 await loadUsersList();
                 await loadOverviewStats();
             } catch (e) {
@@ -1387,66 +1864,63 @@
             }
         }
 
-        // ══════════════ USER MODAL (CREATE / EDIT) ══════════════
+        // ══════════════ USER CREATE / EDIT MODAL ══════════════
         function openCreateUserModal() {
             currentEditingUserId = null;
             document.getElementById('modal-user-title').innerText = "➕ Add New User";
             document.getElementById('form-user-id').value = "";
             document.getElementById('form-username').value = "";
-            document.getElementById('form-username').disabled = false;
             document.getElementById('form-email').value = "";
             document.getElementById('form-password').value = "";
             document.getElementById('form-password').required = true;
-            document.getElementById('form-password-label').innerText = "Password";
-            document.getElementById('form-password-hint').style.display = "none";
+            document.getElementById('form-password-hint').innerText = "Required for new users (minimum 6 characters).";
             document.getElementById('form-role').value = "user";
             document.getElementById('form-status').value = "1";
-            document.getElementById('modal-user-form').style.display = "flex";
+            document.getElementById('modal-user-form').style.display = 'flex';
         }
 
-        function openEditUserModal(userId) {
+        async function openEditUserModal(userId) {
+            currentEditingUserId = userId;
             const u = allUsers.find(x => x.id === userId);
             if (!u) return;
 
-            currentEditingUserId = userId;
-            document.getElementById('modal-user-title').innerText = `✏️ Edit User (${u.username})`;
+            document.getElementById('modal-user-title').innerText = `✏️ Edit User #${userId} (${u.username})`;
             document.getElementById('form-user-id').value = u.id;
             document.getElementById('form-username').value = u.username;
-            document.getElementById('form-username').disabled = false;
             document.getElementById('form-email').value = u.email;
             document.getElementById('form-password').value = "";
             document.getElementById('form-password').required = false;
-            document.getElementById('form-password-label').innerText = "New Password (Optional)";
-            document.getElementById('form-password-hint').style.display = "block";
-            document.getElementById('form-role').value = u.role;
+            document.getElementById('form-password-hint').innerText = "Leave blank if you do not want to change the password.";
+            document.getElementById('form-role').value = u.role || 'user';
             document.getElementById('form-status').value = u.is_active ? "1" : "0";
-            document.getElementById('modal-user-form').style.display = "flex";
+            document.getElementById('modal-user-form').style.display = 'flex';
         }
 
         function closeUserModal() {
-            document.getElementById('modal-user-form').style.display = "none";
+            document.getElementById('modal-user-form').style.display = 'none';
         }
 
         async function submitUserForm() {
             const userId = document.getElementById('form-user-id').value;
             const username = document.getElementById('form-username').value.trim();
             const email = document.getElementById('form-email').value.trim();
-            const password = document.getElementById('form-password').value;
+            const password = document.getElementById('form-password').value.trim();
             const role = document.getElementById('form-role').value;
             const isActive = document.getElementById('form-status').value === "1";
 
             if (!username || !email) {
-                showToast("Username and email are required", "error");
+                showToast("Username and Email are required", "error");
+                return;
+            }
+
+            if (!userId && (!password || password.length < 6)) {
+                showToast("Password must be at least 6 characters for new users", "error");
                 return;
             }
 
             try {
                 if (!userId) {
                     // Create
-                    if (!password || password.length < 6) {
-                        showToast("Password must be at least 6 characters", "error");
-                        return;
-                    }
                     const res = await fetch('/api/super-admin/users', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1456,13 +1930,12 @@
                         const err = await res.json();
                         throw new Error(err.detail || "Failed to create user");
                     }
-                    showToast("User created successfully!", "success");
+                    showToast(`User "${username}" created successfully!`, 'success');
                 } else {
                     // Update
                     const payload = { username, email, role, is_active: isActive };
-                    if (password && password.trim().length >= 6) {
-                        payload.password = password.trim();
-                    }
+                    if (password) payload.password = password;
+
                     const res = await fetch(`/api/super-admin/users/${userId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -1472,99 +1945,199 @@
                         const err = await res.json();
                         throw new Error(err.detail || "Failed to update user");
                     }
-                    showToast("User updated successfully!", "success");
+                    showToast(`User "${username}" updated successfully!`, 'success');
                 }
+
                 closeUserModal();
                 await loadUsersList();
                 await loadOverviewStats();
             } catch (e) {
-                showToast(e.message, "error");
+                showToast(e.message, 'error');
             }
         }
 
-        // ══════════════ USER DETAILS MODAL ══════════════
+        // ══════════════ USER FULL DETAILS & TRADE HISTORY DRAWER ══════════════
         async function viewUserDetails(userId) {
             const modal = document.getElementById('modal-user-details');
             const content = document.getElementById('user-details-content');
             modal.style.display = 'flex';
-            content.innerHTML = `<div style="text-align:center; padding:30px; color:var(--muted);">Loading details for user #${userId}...</div>`;
+            content.innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted);"><span style="font-size:24px;">⏳</span><br><br>Loading complete trade history &amp; profile for User #${userId}...</div>`;
 
             try {
                 const res = await fetch(`/api/super-admin/users/${userId}`);
                 if (!res.ok) throw new Error("Failed to load user details");
                 const d = await res.json();
 
-                const p = d.profile;
-                const c = d.trading_config || {};
-                const perms = d.effective_permissions || {};
+                const p = d.profile || {};
+                const c = d.trading_config || d.config || {};
+                const s = d.user_stats || d.stats || {};
+                const trades = d.all_trades || d.recent_trades || [];
+                cachedModalTrades = trades;
+
+                const lifetimePnl = s.lifetime_pnl != null ? s.lifetime_pnl : 0.0;
+                const todayPnl = s.today_pnl != null ? s.today_pnl : 0.0;
+                const pnlLifetimeColor = lifetimePnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
+                const pnlTodayColor = todayPnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
 
                 content.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:16px; flex-wrap:wrap; gap:12px;">
                         <div>
-                            <div style="font-size:18px; font-weight:800; color:#fff;">${escapeHtml(p.username)} <span style="font-size:12px; color:var(--muted); font-weight:400;">(#${p.id})</span></div>
-                            <div style="font-size:13px; color:var(--muted);">${escapeHtml(p.email)}</div>
-                            <div style="font-size:11px; color:var(--muted-dark); margin-top:4px;">Joined: ${p.created_at || 'N/A'} • Last Login: ${p.last_login || 'Never'}</div>
+                            <div style="font-size:20px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+                                ${escapeHtml(p.username)} 
+                                <span style="font-size:12px; color:var(--muted); font-family:'JetBrains Mono'; font-weight:600;">(#${p.id})</span>
+                            </div>
+                            <div style="font-size:13px; color:var(--muted); margin-top:2px;">${escapeHtml(p.email)}</div>
+                            <div style="font-size:11.5px; color:var(--muted-dark); margin-top:4px;">
+                                Joined: ${formatDateTime(p.created_at)} • Last Login: ${formatDateTime(p.last_login)}
+                            </div>
                         </div>
                         <div style="text-align:right;">
-                            <span class="badge ${p.role === 'super_admin' ? 'badge-super' : p.role === 'master_admin' ? 'badge-master' : 'badge-user'}">${p.role}</span>
-                            <div style="margin-top:6px;"><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></div>
+                            <span class="badge ${p.role === 'super_admin' ? 'badge-super' : p.role === 'master_admin' ? 'badge-master' : 'badge-user'}">${p.role || 'user'}</span>
+                            <div style="margin-top:6px;"><span class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}">${p.is_active ? 'Active Account' : 'Deactivated'}</span></div>
                         </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:20px;">
-                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
-                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Capital Deployed</div>
-                            <div style="font-size:16px; font-weight:800; font-family:'JetBrains Mono';">₹${(c.capital || 0).toLocaleString()}</div>
+                    <!-- User Performance Stat Strip -->
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:22px;">
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Total Trades</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono';">${s.total_trades || trades.length}</div>
                         </div>
-                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
-                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Daily Loss Cap</div>
-                            <div style="font-size:16px; font-weight:800; font-family:'JetBrains Mono'; color:var(--red);">₹${(c.daily_loss_cap || 0).toLocaleString()}</div>
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Realized P&amp;L</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono'; color:${pnlLifetimeColor};">
+                                ${(lifetimePnl >= 0 ? '+' : '')}₹${lifetimePnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
                         </div>
-                        <div style="background:rgba(10,15,28,0.7); border:1px solid var(--border); border-radius:8px; padding:12px;">
-                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase;">Trading Mode</div>
-                            <div style="font-size:16px; font-weight:800; color:${c.trading_mode === 'LIVE' ? 'var(--red)' : 'var(--blue)'};">${c.trading_mode || 'TEST'}</div>
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Today's P&amp;L</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono'; color:${pnlTodayColor};">
+                                ${(todayPnl >= 0 ? '+' : '')}₹${todayPnl.toFixed(2)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Win Rate</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono'; color:var(--blue);">${s.win_rate || 0}%</div>
+                        </div>
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Best Trade</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono'; color:var(--green-light);">+₹${(s.best_trade || 0).toFixed(2)}</div>
+                        </div>
+                        <div style="background:rgba(8,14,26,0.7); border:1px solid var(--border); border-radius:10px; padding:12px;">
+                            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Worst Trade</div>
+                            <div style="font-size:18px; font-weight:800; font-family:'JetBrains Mono'; color:var(--red-light);">₹${(s.worst_trade || 0).toFixed(2)}</div>
                         </div>
                     </div>
 
-                    <div style="margin-bottom:20px;">
-                        <div style="font-size:13px; font-weight:700; color:#ffffff; margin-bottom:8px;">Recent Trade Executions (${(d.recent_trades || []).length})</div>
-                        <div style="max-height: 220px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
-                            <table class="admin-table" style="font-size:12px;">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Symbol</th>
-                                        <th>Side</th>
-                                        <th>Strategy</th>
-                                        <th>Entry</th>
-                                        <th>Exit</th>
-                                        <th>P&amp;L</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${(d.recent_trades || []).length === 0 ? `<tr><td colspan="7" style="text-align:center; color:var(--muted);">No trades recorded for this user</td></tr>` : 
-                                    (d.recent_trades || []).map(t => {
-                                        const pnlColor = t.pnl >= 0 ? 'var(--green)' : 'var(--red)';
-                                        return `
-                                            <tr>
-                                                <td style="font-size:11px;">${t.entry_time || t.created_at || ''}</td>
-                                                <td style="font-weight:700;">${t.symbol}</td>
-                                                <td>${t.side}</td>
-                                                <td>${t.strategy || '-'}</td>
-                                                <td>₹${t.entry_price}</td>
-                                                <td>${t.exit_price ? '₹'+t.exit_price : '-'}</td>
-                                                <td style="font-weight:700; color:${pnlColor};">${t.pnl != null ? '₹'+t.pnl.toFixed(2) : '-'}</td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
+                    <!-- Filter Bar for Trade History -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+                        <div style="font-size:14px; font-weight:700; color:#ffffff;">
+                            Executed Trade History (${trades.length})
                         </div>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="modal-trade-search" class="admin-input" placeholder="Search symbol..." style="padding:6px 10px; font-size:12px; width:150px;" oninput="filterModalTrades()" />
+                            <select id="modal-trade-filter-side" class="admin-select" style="padding:6px 10px; font-size:12px;" onchange="filterModalTrades()">
+                                <option value="ALL">All Sides</option>
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                            <select id="modal-trade-filter-status" class="admin-select" style="padding:6px 10px; font-size:12px;" onchange="filterModalTrades()">
+                                <option value="ALL">All Status</option>
+                                <option value="CLOSED">CLOSED</option>
+                                <option value="OPEN">OPEN</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Trade History Table -->
+                    <div style="max-height: 380px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; background:rgba(8,14,26,0.6);">
+                        <table class="admin-table" style="font-size:12px;">
+                            <thead>
+                                <tr>
+                                    <th>Trade Date &amp; Execution Time</th>
+                                    <th>Symbol</th>
+                                    <th>Side</th>
+                                    <th>Qty</th>
+                                    <th>Entry / Exit Price</th>
+                                    <th>Realized P&amp;L</th>
+                                    <th>Status</th>
+                                    <th>Strategy &amp; Exit Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-trades-tbody">
+                                ${renderModalTradesRows(trades)}
+                            </tbody>
+                        </table>
                     </div>
                 `;
             } catch (e) {
-                content.innerHTML = `<div style="color:var(--red); padding:20px;">Error: ${e.message}</div>`;
+                content.innerHTML = `<div style="color:var(--red); padding:30px; text-align:center;">Failed to load user details: ${e.message}</div>`;
             }
+        }
+
+        function renderModalTradesRows(trades) {
+            if (!trades || trades.length === 0) {
+                return `<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:30px;">No executed trades recorded for this user.</td></tr>`;
+            }
+
+            return trades.map(t => {
+                const pnl = t.pnl != null ? t.pnl : (t.realized_pnl != null ? t.realized_pnl : 0.0);
+                const pnlColor = pnl >= 0 ? 'var(--green-light)' : 'var(--red-light)';
+                const sideColor = t.side === 'BUY' ? 'var(--green-light)' : 'var(--red-light)';
+                const sideBg = t.side === 'BUY' ? 'var(--green-bg)' : 'var(--red-bg)';
+
+                const entryTimeStr = formatDateTime(t.entry_time);
+                const exitTimeStr = t.exit_time && t.exit_time !== '--' ? formatDateTime(t.exit_time) : '--';
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:#fff; font-family:'JetBrains Mono'; font-size:11.5px;">${entryTimeStr}</div>
+                            <div style="font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono';">Exit: ${exitTimeStr}</div>
+                        </td>
+                        <td>
+                            <span style="font-weight:800; color:#ffffff; font-family:'JetBrains Mono'; font-size:13px;">${escapeHtml(t.symbol)}</span>
+                        </td>
+                        <td>
+                            <span style="background:${sideBg}; color:${sideColor}; font-weight:800; font-size:10.5px; padding:2px 7px; border-radius:4px; font-family:'JetBrains Mono';">
+                                ${t.side}
+                            </span>
+                        </td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700;">${t.quantity || 1}</td>
+                        <td style="font-family:'JetBrains Mono';">
+                            <div>₹${(t.entry_price || 0).toFixed(2)}</div>
+                            <div style="color:var(--muted); font-size:11px;">${t.exit_price ? '₹'+t.exit_price.toFixed(2) : '--'}</div>
+                        </td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:800; font-size:13px; color:${pnlColor};">
+                            ${(pnl >= 0 ? '+' : '')}₹${pnl.toFixed(2)}
+                        </td>
+                        <td>
+                            <span class="badge ${t.status === 'CLOSED' ? 'badge-super' : 'badge-active'}" style="font-size:10px;">
+                                ${t.status || 'CLOSED'}
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-weight:600; color:var(--text); font-size:11px;">${escapeHtml(t.strategy || 'MOMENTUM')}</div>
+                            <div style="font-size:10.5px; color:var(--muted);">${escapeHtml(t.exit_reason || '--')}</div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterModalTrades() {
+            const query = (document.getElementById('modal-trade-search').value || '').toUpperCase().trim();
+            const side = document.getElementById('modal-trade-filter-side').value;
+            const status = document.getElementById('modal-trade-filter-status').value;
+
+            const filtered = cachedModalTrades.filter(t => {
+                const matchesSym = !query || (t.symbol && t.symbol.toUpperCase().includes(query));
+                const matchesSide = side === 'ALL' || t.side === side;
+                const matchesStatus = status === 'ALL' || t.status === status;
+                return matchesSym && matchesSide && matchesStatus;
+            });
+
+            document.getElementById('modal-trades-tbody').innerHTML = renderModalTradesRows(filtered);
         }
 
         function closeUserDetailsModal() {
@@ -1605,13 +2178,13 @@
                 if (!res.ok) throw new Error("Failed to load user config");
                 const d = await res.json();
 
-                const c = d.trading_config || {};
-                const p = d.effective_permissions || {};
+                const c = d.trading_config || d.config || {};
+                const p = d.effective_permissions || d.permissions || {};
 
                 document.getElementById('cfg-trading-mode').value = c.trading_mode || 'TEST';
-                document.getElementById('cfg-capital').value = c.capital || 100000;
-                document.getElementById('cfg-max-trades').value = c.max_trades || 3;
-                document.getElementById('cfg-daily-loss').value = c.daily_loss_cap || 5000;
+                document.getElementById('cfg-capital').value = c.capital || c.manual_capital || 10000;
+                document.getElementById('cfg-max-trades').value = c.max_trades || c.max_trades_per_day || 5;
+                document.getElementById('cfg-daily-loss').value = c.daily_loss_cap || c.daily_loss_limit || 2000;
                 document.getElementById('cfg-sl-mode').value = c.trailing_sl_mode || 'POINTS';
                 document.getElementById('cfg-bot-running').value = c.is_running ? "1" : "0";
 
@@ -1625,13 +2198,13 @@
 
                 // Linked accounts list
                 const lList = document.getElementById('cfg-linked-accounts-list');
-                const linked = d.linked_accounts || [];
+                const linked = d.linked_accounts || d.linked_accounts_as_master || [];
                 if (linked.length === 0) {
-                    lList.innerHTML = `<div style="color:var(--muted); font-size:12px;">No accounts linked to this user.</div>`;
+                    lList.innerHTML = `<div style="color:var(--muted); font-size:12px;">No accounts linked to this master user.</div>`;
                 } else {
                     lList.innerHTML = linked.map(la => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px;">
-                            <span>${escapeHtml(la.target_username)} (${escapeHtml(la.target_email)})</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px;">
+                            <span>${escapeHtml(la.username || la.target_username)} (${escapeHtml(la.email || la.target_email)})</span>
                             <span class="badge ${la.is_active ? 'badge-active' : 'badge-inactive'}">${la.is_active ? 'Active' : 'Muted'}</span>
                         </div>
                     `).join('');
@@ -1649,12 +2222,13 @@
 
             const payload = {
                 trading_mode: document.getElementById('cfg-trading-mode').value,
-                capital: parseFloat(document.getElementById('cfg-capital').value) || 100000,
-                max_trades: parseInt(document.getElementById('cfg-max-trades').value) || 3,
-                daily_loss_cap: parseFloat(document.getElementById('cfg-daily-loss').value) || 5000,
+                capital: parseFloat(document.getElementById('cfg-capital').value) || 10000,
+                max_trades: parseInt(document.getElementById('cfg-max-trades').value) || 5,
+                daily_loss_cap: parseFloat(document.getElementById('cfg-daily-loss').value) || 2000,
                 trailing_sl_mode: document.getElementById('cfg-sl-mode').value,
                 is_running: parseInt(document.getElementById('cfg-bot-running').value),
                 permissions: {
+                    allow_super_admin_panel: false,
                     allow_automatic_engine: document.getElementById('perm-auto-engine').checked,
                     allow_primeradar_intra: document.getElementById('perm-radar-intra').checked,
                     allow_primeradar_options: document.getElementById('perm-radar-options').checked,
@@ -1675,7 +2249,7 @@
                     const err = await res.json();
                     throw new Error(err.detail || "Failed to save configuration");
                 }
-                showToast("Configuration saved successfully!", "success");
+                showToast("Configuration and risk parameters saved successfully!", "success");
                 await loadUsersList();
                 await loadOverviewStats();
             } catch (e) {
@@ -1683,7 +2257,189 @@
             }
         }
 
-        // ══════════════ TAB 4: AUDIT LOGS ══════════════
+        // ══════════════ TAB 3: INDIVIDUAL API CREDENTIALS ══════════════
+        function populateCredUserDropdown(users) {
+            const sel = document.getElementById('cred-user-select');
+            sel.innerHTML = `<option value="">Select a user to configure API credentials...</option>` +
+                users.map(u => `<option value="${u.id}">${escapeHtml(u.username)} (${u.email}) — ${u.role}</option>`).join('');
+
+            if (selectedCredUserId) {
+                sel.value = selectedCredUserId;
+            }
+        }
+
+        async function loadUserCredentials(userId) {
+            if (!userId) {
+                document.getElementById('cred-tab-container').style.display = 'none';
+                document.getElementById('cred-empty-state').style.display = 'block';
+                selectedCredUserId = null;
+                return;
+            }
+
+            selectedCredUserId = parseInt(userId);
+            document.getElementById('cred-empty-state').style.display = 'none';
+            document.getElementById('cred-tab-container').style.display = 'block';
+
+            // Clear inputs
+            document.getElementById('tab-upstox-client-id').value = "";
+            document.getElementById('tab-upstox-client-secret').value = "";
+            document.getElementById('tab-upstox-access-token').value = "";
+            document.getElementById('tab-analytics-token').value = "";
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}/credentials`);
+                if (!res.ok) throw new Error("Failed to load credentials status");
+                const data = await res.json();
+                const creds = data.credentials || {};
+
+                updateCredStatusPill('tab-st-client-id', creds.upstox_client_id);
+                updateCredStatusPill('tab-st-client-secret', creds.upstox_client_secret);
+                updateCredStatusPill('tab-st-access-token', creds.upstox_access_token);
+                updateCredStatusPill('tab-st-analytics', creds.analytics_token);
+            } catch (e) {
+                showToast("Failed to fetch credential status: " + e.message, "error");
+            }
+        }
+
+        function updateCredStatusPill(elementId, isSet) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (isSet) {
+                el.className = "cred-status-pill pill-green";
+                el.innerText = "✓ Configured";
+            } else {
+                el.className = "cred-status-pill pill-red";
+                el.innerText = "○ Not Set";
+            }
+        }
+
+        async function saveUserCredentialsFromTab() {
+            if (!selectedCredUserId) {
+                showToast("Please select a user first", "error");
+                return;
+            }
+
+            const clientId = document.getElementById('tab-upstox-client-id').value.trim();
+            const clientSecret = document.getElementById('tab-upstox-client-secret').value.trim();
+            const accessToken = document.getElementById('tab-upstox-access-token').value.trim();
+            const analyticsToken = document.getElementById('tab-analytics-token').value.trim();
+
+            if (!clientId && !clientSecret && !accessToken && !analyticsToken) {
+                showToast("No credential fields were modified.", "info");
+                return;
+            }
+
+            const payload = {};
+            if (clientId) payload.upstox_client_id = clientId;
+            if (clientSecret) payload.upstox_client_secret = clientSecret;
+            if (accessToken) payload.upstox_access_token = accessToken;
+            if (analyticsToken) payload.analytics_token = analyticsToken;
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${selectedCredUserId}/credentials`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to update API credentials");
+                }
+                const data = await res.json();
+                showToast(`API credentials saved securely for user #${selectedCredUserId}!`, "success");
+                await loadUserCredentials(selectedCredUserId);
+                await loadUsersList();
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        // ══════════════ MODAL: INDIVIDUAL API CREDENTIALS ══════════════
+        async function openApiCredentialsModal(userId, username) {
+            document.getElementById('modal-cred-user-id').value = userId;
+            document.getElementById('modal-cred-username').innerText = `${username} (#${userId})`;
+            
+            // Clear inputs
+            document.getElementById('modal-upstox-client-id').value = "";
+            document.getElementById('modal-upstox-client-secret').value = "";
+            document.getElementById('modal-upstox-access-token').value = "";
+            document.getElementById('modal-analytics-token').value = "";
+
+            document.getElementById('modal-api-credentials').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}/credentials`);
+                if (!res.ok) throw new Error("Failed to load credential status");
+                const data = await res.json();
+                const creds = data.credentials || {};
+
+                updateCredStatusPill('modal-st-client-id', creds.upstox_client_id);
+                updateCredStatusPill('modal-st-client-secret', creds.upstox_client_secret);
+                updateCredStatusPill('modal-st-access-token', creds.upstox_access_token);
+                updateCredStatusPill('modal-st-analytics', creds.analytics_token);
+            } catch (e) {
+                console.error("Credentials modal error:", e);
+            }
+        }
+
+        function closeApiModal() {
+            document.getElementById('modal-api-credentials').style.display = 'none';
+        }
+
+        async function saveUserCredentialsFromModal() {
+            const userId = document.getElementById('modal-cred-user-id').value;
+            if (!userId) return;
+
+            const clientId = document.getElementById('modal-upstox-client-id').value.trim();
+            const clientSecret = document.getElementById('modal-upstox-client-secret').value.trim();
+            const accessToken = document.getElementById('modal-upstox-access-token').value.trim();
+            const analyticsToken = document.getElementById('modal-analytics-token').value.trim();
+
+            if (!clientId && !clientSecret && !accessToken && !analyticsToken) {
+                showToast("No fields changed (existing encrypted values kept).", "info");
+                closeApiModal();
+                return;
+            }
+
+            const payload = {};
+            if (clientId) payload.upstox_client_id = clientId;
+            if (clientSecret) payload.upstox_client_secret = clientSecret;
+            if (accessToken) payload.upstox_access_token = accessToken;
+            if (analyticsToken) payload.analytics_token = analyticsToken;
+
+            try {
+                const res = await fetch(`/api/super-admin/users/${userId}/credentials`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Failed to update credentials");
+                }
+                showToast("API credentials securely saved!", "success");
+                closeApiModal();
+                await loadUsersList();
+                if (selectedCredUserId === parseInt(userId)) {
+                    await loadUserCredentials(userId);
+                }
+            } catch (e) {
+                showToast(e.message, "error");
+            }
+        }
+
+        function togglePassVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                btn.innerText = '👁️';
+            }
+        }
+
+        // ══════════════ TAB 5: AUDIT LOGS ══════════════
         async function loadAuditLogs() {
             try {
                 const res = await fetch('/api/super-admin/audit-logs?limit=50');
@@ -1699,13 +2455,13 @@
                 tbody.innerHTML = logs.map(l => {
                     const userAttribution = l.username 
                         ? `<span style="font-weight:600; color:#ffffff;">${escapeHtml(l.username)}</span> <span style="font-size:11px; color:var(--muted);">(ID: ${l.user_id})</span>`
-                        : `<span style="color:var(--muted-dark);">System</span>`;
+                        : `<span style="color:var(--muted-dark);">System Engine</span>`;
 
-                    const lvlColor = l.level === 'ERROR' ? 'var(--red)' : l.level === 'WARNING' ? 'var(--gold)' : 'var(--blue)';
+                    const lvlColor = l.level === 'ERROR' ? 'var(--red-light)' : l.level === 'WARNING' ? 'var(--gold-light)' : 'var(--blue)';
 
                     return `
                         <tr>
-                            <td style="font-family:'JetBrains Mono'; font-size:11px; color:var(--muted); white-space:nowrap;">${l.timestamp}</td>
+                            <td style="font-family:'JetBrains Mono'; font-size:11.5px; color:var(--muted); white-space:nowrap;">${formatDateTime(l.timestamp)}</td>
                             <td><span style="color:${lvlColor}; font-weight:700; font-size:11px;">${l.level}</span></td>
                             <td>${userAttribution}</td>
                             <td style="font-family:'JetBrains Mono'; font-size:12px; color:var(--text);">${escapeHtml(l.message)}</td>
@@ -1733,7 +2489,37 @@
             }
         }
 
-        // ══════════════ UTILS ══════════════
+        // ══════════════ LOGOUT & UTILS ══════════════
+        function handleLogout() {
+            if (confirm("Are you sure you want to log out of Super Admin?")) {
+                document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                localStorage.removeItem("token");
+                window.location.href = '/login';
+            }
+        }
+
+        function formatDateTime(val) {
+            if (!val || val === '--' || val === 'Never' || val === 'null' || val === 'None') return 'Never';
+            try {
+                // If standard ISO or space-separated date
+                const normalized = val.replace(' ', 'T');
+                const d = new Date(normalized);
+                if (isNaN(d.getTime())) return val;
+                
+                return d.toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric',
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true 
+                });
+            } catch {
+                return val;
+            }
+        }
+
         function escapeHtml(text) {
             if (!text) return '';
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
@@ -1747,7 +2533,7 @@
             toast.style.display = 'flex';
             setTimeout(() => {
                 toast.style.display = 'none';
-            }, 3500);
+            }, 3800);
         }
     </script>
 </body>

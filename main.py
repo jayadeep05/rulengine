@@ -3452,6 +3452,12 @@ class SuperAdminUpdateConfigRequest(BaseModel):
     is_running: Optional[int] = None
     permissions: Optional[Dict[str, Any]] = None
 
+class SuperAdminUpdateCredentialsRequest(BaseModel):
+    upstox_client_id: Optional[str] = None
+    upstox_client_secret: Optional[str] = None
+    upstox_access_token: Optional[str] = None
+    analytics_token: Optional[str] = None
+
 @app.get("/api/super-admin/overview")
 def api_super_admin_overview(user: dict = Depends(require_super_admin), db=Depends(get_db)):
     """Summary overview stats across all users, bots, and executions."""
@@ -3555,6 +3561,48 @@ def api_super_admin_update_user_config(target_user_id: int, req: SuperAdminUpdat
         return {"status": "success", "config": res}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/super-admin/users/{target_user_id}/credentials")
+def api_super_admin_get_credentials(target_user_id: int, user: dict = Depends(require_super_admin), db=Depends(get_db)):
+    """Fetch status of all four individual API credentials for a user (safe: values are masked)."""
+    from credential_service import credential_field_status
+    status = credential_field_status(db, target_user_id)
+    return {
+        "status": "success",
+        "user_id": target_user_id,
+        "credentials": status,
+        "configured_count": sum(1 for v in status.values() if v),
+        "total_fields": 4
+    }
+
+@app.put("/api/super-admin/users/{target_user_id}/credentials")
+async def api_super_admin_update_credentials(
+    target_user_id: int,
+    req: SuperAdminUpdateCredentialsRequest,
+    user: dict = Depends(require_super_admin),
+    db=Depends(get_db)
+):
+    """Configure any of the 4 API credentials individually: API Key, API Secret, Access Token, Analytics Token."""
+    from super_admin_service import SuperAdminService
+    try:
+        res = SuperAdminService.update_user_credentials_admin(
+            db=db,
+            target_user_id=target_user_id,
+            upstox_client_id=req.upstox_client_id,
+            upstox_client_secret=req.upstox_client_secret,
+            upstox_access_token=req.upstox_access_token,
+            analytics_token=req.analytics_token,
+            admin_user_id=user["uid"]
+        )
+        try:
+            reload_bot_credentials(target_user_id, db)
+        except Exception:
+            pass
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update credentials: {str(e)}")
 
 @app.get("/api/super-admin/roles")
 def api_super_admin_roles(user: dict = Depends(require_super_admin)):

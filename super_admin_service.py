@@ -84,6 +84,7 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
         # Credential status
         cred = credential_field_status(db, u.id)
         has_creds = bool(cred.get("upstox_client_id") and cred.get("upstox_access_token"))
+        creds_count = sum(1 for v in cred.values() if v)
 
         # Config status
         cfg = u.config
@@ -93,11 +94,17 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
 
         # Trade stats for today
         trades_today = db.query(Trade).filter(Trade.user_id == u.id, Trade.trade_date == today).all()
-        total_pnl = sum(t.realized_pnl for t in trades_today if t.realized_pnl is not None)
+        today_pnl = sum(t.realized_pnl for t in trades_today if t.realized_pnl is not None)
         open_trades = sum(1 for t in trades_today if t.status == "OPEN")
 
-        # Total lifetime trades
-        lifetime_trades = db.query(func.count(Trade.id)).filter(Trade.user_id == u.id).scalar() or 0
+        # Total lifetime trades & PnL across all history
+        all_user_trades = db.query(Trade).filter(Trade.user_id == u.id).all()
+        lifetime_trades = len(all_user_trades)
+        lifetime_pnl = sum(t.realized_pnl for t in all_user_trades if t.realized_pnl is not None)
+        closed_trades = [t for t in all_user_trades if t.status == "CLOSED"]
+        win_trades = sum(1 for t in closed_trades if (t.realized_pnl or 0) > 0)
+        loss_trades = sum(1 for t in closed_trades if (t.realized_pnl or 0) < 0)
+        win_rate = round((win_trades / max(1, len(closed_trades))) * 100, 1) if closed_trades else 0.0
 
         # Linked accounts
         linked_count = db.query(func.count(MasterLinkedAccount.id)).filter(
@@ -105,22 +112,40 @@ def get_all_users_summary(db: Session) -> List[Dict[str, Any]]:
             MasterLinkedAccount.is_active == 1
         ).scalar() or 0
 
+        # Format last_login safely
+        last_login_str = None
+        if getattr(u, "last_login", None):
+            last_login_str = u.last_login.strftime("%Y-%m-%d %H:%M:%S")
+
+        created_at_str = None
+        if u.created_at:
+            created_at_str = u.created_at.strftime("%Y-%m-%d %H:%M:%S")
+
         results.append({
             "id": u.id,
             "username": u.username,
             "email": u.email,
             "role": u.role,
             "is_active": getattr(u, "is_active", True),
-            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else "--",
-            "last_login": u.last_login.strftime("%Y-%m-%d %H:%M") if getattr(u, "last_login", None) else "--",
+            "created_at": created_at_str,
+            "last_login": last_login_str,
             "upstox_connected": has_creds,
+            "credentials_status": cred,
+            "credentials_count": creds_count,
             "trading_mode": mode,
             "is_running": is_running,
             "capital": capital,
+            "today_trades": len(trades_today),
             "trades_today_count": len(trades_today),
+            "trades_today": len(trades_today),
             "open_trades_count": open_trades,
-            "today_pnl": round(total_pnl, 2),
+            "today_pnl": round(today_pnl, 2),
+            "total_pnl": round(lifetime_pnl, 2),
+            "lifetime_pnl": round(lifetime_pnl, 2),
             "lifetime_trades": lifetime_trades,
+            "win_trades": win_trades,
+            "loss_trades": loss_trades,
+            "win_rate": win_rate,
             "linked_accounts_count": linked_count,
             "permissions": get_user_effective_permissions(u)
         })
@@ -138,6 +163,7 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
 
     # Upstox credentials status
     creds_status = credential_field_status(db, u.id)
+    creds_count = sum(1 for v in creds_status.values() if v)
 
     # Trading config
     cfg = u.config
@@ -158,6 +184,9 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
         "min_stock_price": float(cfg.min_stock_price or 50.0),
         "max_stock_price": float(cfg.max_stock_price or 5000.0),
         "manual_capital": float(cfg.manual_capital or 10000.0),
+        "capital": float(cfg.manual_capital or 10000.0),
+        "daily_loss_cap": float(cfg.daily_loss_limit or 2000.0),
+        "max_trades": cfg.max_trades_per_day or 5,
         "hybrid_virtual_mode": bool(cfg.hybrid_virtual_mode),
         "trading_mode": cfg.trading_mode or "TEST",
         "is_running": bool(cfg.is_running),
@@ -194,24 +223,48 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
                 "allocation_pct": float(sl.allocation_pct or 1.0)
             })
 
-    # Recent trades (latest 30)
-    recent_trades = db.query(Trade).filter(Trade.user_id == u.id).order_by(Trade.entry_time.desc()).limit(30).all()
+    # All trades for this user (up to 100 recent)
+    all_user_trades = db.query(Trade).filter(Trade.user_id == u.id).order_by(Trade.entry_time.desc(), Trade.id.desc()).limit(100).all()
+    
+    total_trades_count = len(all_user_trades)
+    lifetime_pnl = sum(t.realized_pnl for t in all_user_trades if t.realized_pnl is not None)
+    today_trades = [t for t in all_user_trades if t.trade_date == today]
+    today_pnl = sum(t.realized_pnl for t in today_trades if t.realized_pnl is not None)
+    closed = [t for t in all_user_trades if t.status == "CLOSED"]
+    wins = sum(1 for t in closed if (t.realized_pnl or 0) > 0)
+    losses = sum(1 for t in closed if (t.realized_pnl or 0) < 0)
+    win_rate = round((wins / max(1, len(closed))) * 100, 1) if closed else 0.0
+
+    pnl_values = [t.realized_pnl for t in closed if t.realized_pnl is not None]
+    best_trade = max(pnl_values) if pnl_values else 0.0
+    worst_trade = min(pnl_values) if pnl_values else 0.0
+
     trades_list = []
-    for t in recent_trades:
+    for t in all_user_trades:
+        # Full date & time formatting
+        entry_dt_str = t.entry_time.strftime("%Y-%m-%d %H:%M:%S") if t.entry_time else (str(t.trade_date) if t.trade_date else "--")
+        exit_dt_str = t.exit_time.strftime("%Y-%m-%d %H:%M:%S") if t.exit_time else "--"
+        pnl_val = round(t.realized_pnl, 2) if t.realized_pnl is not None else 0.0
+
         trades_list.append({
             "id": t.id,
-            "trade_date": str(t.trade_date),
+            "trade_date": str(t.trade_date) if t.trade_date else "--",
             "symbol": t.symbol,
             "side": t.side,
-            "quantity": t.quantity,
+            "quantity": t.quantity or 1,
             "entry_price": round(t.entry_price, 2) if t.entry_price else 0.0,
             "exit_price": round(t.exit_price, 2) if t.exit_price else None,
-            "realized_pnl": round(t.realized_pnl, 2) if t.realized_pnl is not None else 0.0,
+            "sl_price": round(t.sl_price, 2) if t.sl_price else None,
+            "target_price": round(t.target_price, 2) if t.target_price else None,
+            "pnl": pnl_val,
+            "realized_pnl": pnl_val,
             "status": t.status,
             "strategy": t.strategy_type or "MOMENTUM",
-            "entry_time": t.entry_time.strftime("%H:%M:%S") if t.entry_time else "--",
-            "exit_time": t.exit_time.strftime("%H:%M:%S") if t.exit_time else "--",
-            "exit_reason": t.exit_reason or "--"
+            "entry_time": entry_dt_str,
+            "exit_time": exit_dt_str,
+            "exit_reason": t.exit_reason or "--",
+            "paper_trade": bool(t.paper_trade),
+            "ai_score": t.ai_score
         })
 
     # Recent activity logs (latest 30)
@@ -237,6 +290,18 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
     }
     effective_perms = get_user_effective_permissions(u)
 
+    user_stats = {
+        "total_trades": total_trades_count,
+        "lifetime_pnl": round(lifetime_pnl, 2),
+        "today_trades_count": len(today_trades),
+        "today_pnl": round(today_pnl, 2),
+        "winning_trades": wins,
+        "losing_trades": losses,
+        "win_rate": win_rate,
+        "best_trade": round(best_trade, 2),
+        "worst_trade": round(worst_trade, 2)
+    }
+
     return {
         "id": u.id,
         "username": u.username,
@@ -247,6 +312,8 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
         "last_login": profile_dict["last_login"],
         "profile": profile_dict,
         "credentials": creds_status,
+        "credentials_status": creds_status,
+        "credentials_count": creds_count,
         "config": config_dict,
         "trading_config": config_dict,
         "permissions": effective_perms,
@@ -255,6 +322,9 @@ def get_user_full_details(db: Session, target_user_id: int) -> Optional[Dict[str
         "linked_accounts_as_master": linked_as_master,
         "linked_under_masters": linked_under_masters,
         "recent_trades": trades_list,
+        "all_trades": trades_list,
+        "user_stats": user_stats,
+        "stats": user_stats,
         "recent_logs": logs_list
     }
 
@@ -548,6 +618,51 @@ def get_system_audit_logs(db: Session, limit: int = 100) -> List[Dict[str, Any]]
     return out
 
 
+def update_user_credentials_admin(
+    db: Session,
+    target_user_id: int,
+    upstox_client_id: Optional[str] = None,
+    upstox_client_secret: Optional[str] = None,
+    upstox_access_token: Optional[str] = None,
+    analytics_token: Optional[str] = None,
+    admin_user_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Updates one or more API credentials individually for target user."""
+    from credential_service import upsert_credentials, credential_field_status
+    user = db.query(User).filter(User.id == target_user_id).first()
+    if not user:
+        raise ValueError("User not found.")
+
+    upsert_credentials(
+        db=db,
+        user_id=target_user_id,
+        upstox_client_id=upstox_client_id,
+        upstox_client_secret=upstox_client_secret,
+        upstox_access_token=upstox_access_token,
+        analytics_token=analytics_token
+    )
+
+    updated_fields = [k for k, v in {
+        "API Key (Client ID)": upstox_client_id,
+        "API Secret": upstox_client_secret,
+        "Access Token": upstox_access_token,
+        "Analytics Token": analytics_token
+    }.items() if v and v.strip()]
+
+    log_system_event(
+        db, admin_user_id, "INFO", "CREDENTIALS_UPDATED",
+        f"Super Admin updated API credentials for user #{target_user_id} ({user.username}): {', '.join(updated_fields) or 'No values provided'}"
+    )
+
+    return {
+        "status": "success",
+        "user_id": target_user_id,
+        "username": user.username,
+        "updated_fields": updated_fields,
+        "credentials": credential_field_status(db, target_user_id)
+    }
+
+
 def get_system_overview_stats(db: Session) -> Dict[str, Any]:
     """Generates real-time statistics for the Super Admin overview banner."""
     total_users = db.query(func.count(User.id)).scalar() or 0
@@ -564,6 +679,15 @@ def get_system_overview_stats(db: Session) -> Dict[str, Any]:
     today_trades_count = len(today_trades)
     today_net_pnl = sum(t.realized_pnl for t in today_trades if t.realized_pnl is not None)
 
+    # All-time trade statistics across all accounts
+    all_trades = db.query(Trade).all()
+    total_lifetime_trades = len(all_trades)
+    total_lifetime_pnl = sum(t.realized_pnl for t in all_trades if t.realized_pnl is not None)
+    closed_trades = [t for t in all_trades if t.status == "CLOSED"]
+    winning_trades = sum(1 for t in closed_trades if (t.realized_pnl or 0) > 0)
+    losing_trades = sum(1 for t in closed_trades if (t.realized_pnl or 0) < 0)
+    win_rate = round((winning_trades / max(1, len(closed_trades))) * 100, 1) if closed_trades else 0.0
+
     return {
         "total_users": total_users,
         "active_users": active_users,
@@ -572,9 +696,19 @@ def get_system_overview_stats(db: Session) -> Dict[str, Any]:
         "master_admins": master_admins,
         "regular_users": regular_users,
         "running_bots": running_bots,
+        "active_bots": running_bots,
         "live_trading_bots": live_bots,
         "trades_today_count": today_trades_count,
+        "total_trades_today": today_trades_count,
         "trades_today_pnl": round(today_net_pnl, 2),
+        "total_pnl_today": round(today_net_pnl, 2),
+        "total_lifetime_trades": total_lifetime_trades,
+        "lifetime_trades": total_lifetime_trades,
+        "total_lifetime_pnl": round(total_lifetime_pnl, 2),
+        "lifetime_pnl": round(total_lifetime_pnl, 2),
+        "winning_trades": winning_trades,
+        "losing_trades": losing_trades,
+        "win_rate": win_rate,
         "db_status": "Connected (Healthy)"
     }
 
@@ -589,5 +723,6 @@ class SuperAdminService:
     delete_user_admin = staticmethod(delete_user_admin)
     toggle_user_active_status = staticmethod(toggle_user_active_status)
     update_user_trading_config_and_permissions = staticmethod(update_user_trading_config_and_permissions)
+    update_user_credentials_admin = staticmethod(update_user_credentials_admin)
     get_system_audit_logs = staticmethod(get_system_audit_logs)
 
