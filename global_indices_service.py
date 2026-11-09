@@ -106,11 +106,13 @@ def refresh_global_indices() -> None:
     new_prev: Dict[str, float] = {}
 
     try:
-        # Only poll international / global macro markets from Yahoo Finance.
-        # Indian indices (NSE/BSE) are streamed real-time directly via Upstox WebSocket/REST.
-        international_catalog = [item for item in GLOBAL_INDICES_CATALOG if item["key"].startswith("GLOBAL_INDEX|")]
+        # Poll international / global macro markets, plus core Indian benchmarks as universal fallback
+        target_catalog = [
+            item for item in GLOBAL_INDICES_CATALOG 
+            if item["key"].startswith("GLOBAL_INDEX|") or item["key"] in ("NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank")
+        ]
         with ThreadPoolExecutor(max_workers=10) as executor:
-            results = list(executor.map(_fetch_single_symbol, international_catalog))
+            results = list(executor.map(_fetch_single_symbol, target_catalog))
 
         for key, name, price, prev in results:
             if price is not None:
@@ -143,7 +145,7 @@ def _poller_worker():
     # Initial immediate refresh
     refresh_global_indices()
     while _is_polling:
-        time.sleep(25)  # Poll every 25 seconds
+        time.sleep(15)  # Poll every 15 seconds
         if not _is_polling:
             break
         refresh_global_indices()

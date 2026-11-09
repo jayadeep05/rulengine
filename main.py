@@ -92,6 +92,69 @@ _shared_prices    = {}                 # live LTP cache for all symbols
 _shared_timestamps = {}                # tick timestamps to track feed freshness
 _shared_engine    = UpstoxExecutionEngine()  # for shared market-feed + index fetching
 
+ALL_INDEX_KEY_TO_NAME: Dict[str, str] = {
+    "NSE_INDEX|Nifty 50": "NIFTY 50",
+    "BSE_INDEX|SENSEX": "SENSEX",
+    "NSE_INDEX|Nifty Bank": "NIFTY BANK",
+    "NSE_INDEX|India VIX": "INDIA VIX",
+    "NSE_INDEX|Nifty Fin Service": "FINNIFTY",
+    "NSE_INDEX|NIFTY MID SELECT": "MIDCPNIFTY",
+    "NSE_INDEX|Nifty Next 50": "NIFTY NEXT 50",
+    "NSE_INDEX|Nifty 100": "NIFTY 100",
+    "NSE_INDEX|Nifty 200": "NIFTY 200",
+    "NSE_INDEX|Nifty 500": "NIFTY 500",
+    "NSE_INDEX|Nifty IT": "NIFTY IT",
+    "NSE_INDEX|Nifty Auto": "NIFTY AUTO",
+    "NSE_INDEX|Nifty Metal": "NIFTY METAL",
+    "NSE_INDEX|Nifty Pharma": "NIFTY PHARMA",
+    "NSE_INDEX|Nifty FMCG": "NIFTY FMCG",
+    "NSE_INDEX|Nifty Energy": "NIFTY ENERGY",
+    "NSE_INDEX|Nifty Realty": "NIFTY REALTY",
+    "NSE_INDEX|Nifty Infra": "NIFTY INFRA",
+    "BSE_INDEX|BANKEX": "BANKEX",
+    "NSE_INDEX|Nifty PSU Bank": "NIFTY PSU BANK",
+    "NSE_INDEX|Nifty Commodities": "NIFTY COMMODITIES",
+    "NSE_INDEX|Nifty PSE": "NIFTY PSE",
+}
+
+def get_merged_indices() -> Tuple[Dict[str, float], Dict[str, float]]:
+    """
+    Returns a unified mapping of (prices, prev_close) covering:
+    - Global international indices (Yahoo Finance)
+    - Indian indices (Upstox WebSocket stream + REST polling fallback)
+    Both pipe (|), colon (:), and friendly names are mapped for seamless lookup.
+    """
+    all_indices: Dict[str, float] = {}
+    all_prev_close: Dict[str, float] = {}
+    try:
+        from global_indices_service import get_global_indices_data
+        g_prices, g_prev = get_global_indices_data()
+        all_indices.update(g_prices)
+        all_prev_close.update(g_prev)
+    except Exception as e:
+        logger.debug(f"Error merging global indices: {e}")
+
+    # Prioritize active Upstox stream/quotes if available
+    for k, v in _shared_state.live_indices.items():
+        if v and v > 0:
+            all_indices[k] = v
+            all_indices[k.replace('|', ':')] = v
+            all_indices[k.replace(':', '|')] = v
+            pipe_k = k.replace(':', '|')
+            if pipe_k in ALL_INDEX_KEY_TO_NAME:
+                all_indices[ALL_INDEX_KEY_TO_NAME[pipe_k]] = v
+
+    for k, v in _shared_state.index_prev_close.items():
+        if v and v > 0:
+            all_prev_close[k] = v
+            all_prev_close[k.replace('|', ':')] = v
+            all_prev_close[k.replace(':', '|')] = v
+            pipe_k = k.replace(':', '|')
+            if pipe_k in ALL_INDEX_KEY_TO_NAME:
+                all_prev_close[ALL_INDEX_KEY_TO_NAME[pipe_k]] = v
+
+    return all_indices, all_prev_close
+
 # ── v2 Pipeline state (per-user instances stored in UserBot, shared instances here) ──
 _signal_log: list = []   # Last 50 signal log entries for dashboard
 _signal_log_cleared_date = None  # Track date when signal log was cleared at 9:15 AM
@@ -157,11 +220,17 @@ async def startup_event():
             key_in_res = idx if idx in res else idx.replace("|", ":")
             if key_in_res in res:
                 quote = res[key_in_res]
-                _shared_state.live_indices[idx] = quote['last_price']
-                if 'net_change' in quote:
-                    _shared_state.index_prev_close[idx] = quote['last_price'] - quote['net_change']
-                elif 'ohlc' in quote and 'close' in quote['ohlc']:
-                    _shared_state.index_prev_close[idx] = quote['ohlc']['close']
+                lp = quote.get('last_price')
+                nc = quote.get('net_change')
+                if lp and lp > 0:
+                    _shared_state.live_indices[idx] = float(lp)
+                    _shared_state.live_indices[idx.replace('|', ':')] = float(lp)
+                    if nc is not None:
+                        _shared_state.index_prev_close[idx] = float(lp - nc)
+                        _shared_state.index_prev_close[idx.replace('|', ':')] = float(lp - nc)
+                    elif 'ohlc' in quote and 'close' in quote['ohlc']:
+                        _shared_state.index_prev_close[idx] = float(quote['ohlc']['close'])
+                        _shared_state.index_prev_close[idx.replace('|', ':')] = float(quote['ohlc']['close'])
         logger.info(f"Indices loaded: {len(_shared_state.live_indices)} fetched.")
     except Exception as e:
         logger.error(f"Error during initial fetch: {e}")
@@ -391,11 +460,17 @@ async def periodic_stat_sync():
                 key_in_res = idx if idx in res else idx.replace("|", ":")
                 if key_in_res in res:
                     quote = res[key_in_res]
-                    _shared_state.live_indices[idx] = quote['last_price']
-                    if 'net_change' in quote:
-                        _shared_state.index_prev_close[idx] = quote['last_price'] - quote['net_change']
-                    elif 'ohlc' in quote and 'close' in quote['ohlc']:
-                        _shared_state.index_prev_close[idx] = quote['ohlc']['close']
+                    lp = quote.get('last_price')
+                    nc = quote.get('net_change')
+                    if lp and lp > 0:
+                        _shared_state.live_indices[idx] = float(lp)
+                        _shared_state.live_indices[idx.replace('|', ':')] = float(lp)
+                        if nc is not None:
+                            _shared_state.index_prev_close[idx] = float(lp - nc)
+                            _shared_state.index_prev_close[idx.replace('|', ':')] = float(lp - nc)
+                        elif 'ohlc' in quote and 'close' in quote['ohlc']:
+                            _shared_state.index_prev_close[idx] = float(quote['ohlc']['close'])
+                            _shared_state.index_prev_close[idx.replace('|', ':')] = float(quote['ohlc']['close'])
             logger.info(f"[Sync] Indices updated: {len(_shared_state.live_indices)}")
         except Exception as e:
             logger.error(f"[Sync] Error: {e}")
@@ -403,40 +478,91 @@ async def periodic_stat_sync():
 
 async def ws_fallback_pump():
     """
-    Fallback REST polling for indices/equities when WebSocket is stale.
+    Continuous index & equity fallback pump.
+    - During market hours (09:15 - 15:30 IST):
+      Checks every 2-3 seconds. If WebSocket index feed is stale (>3.5s without tick)
+      or disconnected, immediately fetches quotes from Upstox REST API to guarantee
+      uninterrupted real-time index data.
+    - Outside market hours (post-market, evening, nights, weekends):
+      Polls Upstox REST every 30 seconds to capture official closing prices,
+      settled closing values, and previous close so the dashboard is always 100% accurate.
     """
     while True:
-        now = datetime.now(IST)
-        is_weekday = now.weekday() < 5
-        is_market_hours = is_weekday and (time(9, 15) <= now.time() <= time(15, 30))
-        
-        if not is_market_hours:
-            await asyncio.sleep(60)
-            continue
+        try:
+            now = datetime.now(IST)
+            is_weekday = now.weekday() < 5
+            is_market_hours = is_weekday and (time(9, 15) <= now.time() <= time(15, 30))
 
-        await asyncio.sleep(10)
-
-        if not market_feed.is_index_live():
             idx_keys = getattr(Config, 'ALL_INDEX_KEYS', [
                 "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
                 "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
             ])
-            try:
-                res = _shared_engine.get_ltp_bulk(idx_keys)
-                for idx in idx_keys:
-                    if idx in res:
-                        _shared_state.live_indices[idx] = res[idx]
-            except Exception as e:
-                logger.debug(f"[Fallback] Index REST error: {e}")
 
-        if not market_feed.is_equity_live():
-            try:
-                keys = list(Config.SYMBOLS_MAPPING.values())
-                res = _shared_engine.get_ltp_bulk(keys)
-                for ticker, ltp in res.items():
-                    _shared_prices[ticker] = ltp
-            except Exception as e:
-                logger.warning(f"[Fallback] Equity REST error: {e}")
+            if not is_market_hours:
+                # Outside market hours: periodic refresh to keep closing prices and previous close accurate
+                try:
+                    quotes = _shared_engine.get_market_quotes(idx_keys)
+                    for idx in idx_keys:
+                        key_in_res = idx if idx in quotes else idx.replace("|", ":")
+                        if key_in_res in quotes:
+                            q = quotes[key_in_res]
+                            lp = q.get('last_price')
+                            nc = q.get('net_change')
+                            if lp and lp > 0:
+                                _shared_state.live_indices[idx] = float(lp)
+                                _shared_state.live_indices[idx.replace('|', ':')] = float(lp)
+                                if nc is not None:
+                                    _shared_state.index_prev_close[idx] = float(lp - nc)
+                                    _shared_state.index_prev_close[idx.replace('|', ':')] = float(lp - nc)
+                                elif 'ohlc' in q and 'close' in q['ohlc']:
+                                    _shared_state.index_prev_close[idx] = float(q['ohlc']['close'])
+                                    _shared_state.index_prev_close[idx.replace('|', ':')] = float(q['ohlc']['close'])
+                except Exception as e:
+                    logger.debug(f"[Fallback] Post-market index refresh error: {e}")
+                await asyncio.sleep(30)
+                continue
+
+            # During market hours: check every 2 seconds
+            await asyncio.sleep(2)
+
+            if not market_feed.is_index_live():
+                try:
+                    quotes = _shared_engine.get_market_quotes(idx_keys)
+                    updated = 0
+                    for idx in idx_keys:
+                        key_in_res = idx if idx in quotes else idx.replace("|", ":")
+                        if key_in_res in quotes:
+                            q = quotes[key_in_res]
+                            lp = q.get('last_price')
+                            nc = q.get('net_change')
+                            if lp and lp > 0:
+                                _shared_state.live_indices[idx] = float(lp)
+                                _shared_state.live_indices[idx.replace('|', ':')] = float(lp)
+                                if nc is not None:
+                                    _shared_state.index_prev_close[idx] = float(lp - nc)
+                                    _shared_state.index_prev_close[idx.replace('|', ':')] = float(lp - nc)
+                                elif 'ohlc' in q and 'close' in q['ohlc']:
+                                    _shared_state.index_prev_close[idx] = float(q['ohlc']['close'])
+                                    _shared_state.index_prev_close[idx.replace('|', ':')] = float(q['ohlc']['close'])
+                                updated += 1
+                    if updated:
+                        logger.debug(f"[Fallback] Market-hours index REST poll: {updated} indices updated.")
+                except Exception as e:
+                    logger.debug(f"[Fallback] Market-hours index REST error: {e}")
+
+            if not market_feed.is_equity_live():
+                try:
+                    keys = list(Config.SYMBOLS_MAPPING.values())
+                    res = _shared_engine.get_ltp_bulk(keys)
+                    for ticker, ltp in res.items():
+                        if ltp and ltp > 0:
+                            _shared_prices[ticker] = ltp
+                except Exception as e:
+                    logger.warning(f"[Fallback] Equity REST error: {e}")
+
+        except Exception as e:
+            logger.error(f"[Fallback] Unexpected loop error: {e}")
+            await asyncio.sleep(5)
 
 def run_local_rule_analysis(feature_payloads: list) -> list:
     """
@@ -2235,6 +2361,22 @@ def api_get_signals(user: dict = Depends(require_auth)):
 def api_get_live_prices(user: dict = Depends(require_auth)):
     return _shared_prices
 
+@app.get("/api/indices")
+def api_get_indices(user: dict = Depends(require_auth)):
+    """
+    Lightweight endpoint for fast frontend index banner polling (every second).
+    Returns merged Indian + global indices with prev close and WS feed status.
+    """
+    import time as _tm
+    all_indices, all_prev_close = get_merged_indices()
+    return {
+        "prices": all_indices,
+        "prev_close": all_prev_close,
+        "ws_live": market_feed.is_live(),
+        "ws_index_live": market_feed.is_index_live(),
+        "timestamp": _tm.time(),
+    }
+
 @app.get("/api/trades/active")
 def api_get_active_trades(user: dict = Depends(require_auth)):
     uid = user["uid"]
@@ -2548,58 +2690,7 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     bot = get_or_create_bot(uid, db)
     global_halt = not get_global_trading_enabled()
     # Merge live Indian indices and International/Global indices
-    all_indices = {}
-    all_prev_close = {}
-    try:
-        from global_indices_service import get_global_indices_data
-        g_prices, g_prev = get_global_indices_data()
-        all_indices.update(g_prices)
-        all_prev_close.update(g_prev)
-    except Exception as e:
-        logger.debug(f"Error merging global indices: {e}")
-
-    INDEX_KEY_TO_NAME = {
-        "NSE_INDEX|Nifty 50": "NIFTY 50",
-        "BSE_INDEX|SENSEX": "SENSEX",
-        "NSE_INDEX|Nifty Bank": "NIFTY BANK",
-        "NSE_INDEX|India VIX": "INDIA VIX",
-        "NSE_INDEX|Nifty Fin Service": "FINNIFTY",
-        "NSE_INDEX|NIFTY MID SELECT": "MIDCPNIFTY",
-        "NSE_INDEX|Nifty Next 50": "NIFTY NEXT 50",
-        "NSE_INDEX|Nifty 100": "NIFTY 100",
-        "NSE_INDEX|Nifty 200": "NIFTY 200",
-        "NSE_INDEX|Nifty 500": "NIFTY 500",
-        "NSE_INDEX|Nifty IT": "NIFTY IT",
-        "NSE_INDEX|Nifty Auto": "NIFTY AUTO",
-        "NSE_INDEX|Nifty Metal": "NIFTY METAL",
-        "NSE_INDEX|Nifty Pharma": "NIFTY PHARMA",
-        "NSE_INDEX|Nifty FMCG": "NIFTY FMCG",
-        "NSE_INDEX|Nifty Energy": "NIFTY ENERGY",
-        "NSE_INDEX|Nifty Realty": "NIFTY REALTY",
-        "NSE_INDEX|Nifty Infra": "NIFTY INFRA",
-        "BSE_INDEX|BANKEX": "BANKEX",
-        "NSE_INDEX|Nifty PSU Bank": "NIFTY PSU BANK",
-        "NSE_INDEX|Nifty Commodities": "NIFTY COMMODITIES",
-        "NSE_INDEX|Nifty PSE": "NIFTY PSE",
-    }
-
-    # Prioritize active Upstox stream/quotes if available
-    for k, v in _shared_state.live_indices.items():
-        if v and v > 0:
-            all_indices[k] = v
-            all_indices[k.replace('|', ':')] = v
-            all_indices[k.replace(':', '|')] = v
-            pipe_k = k.replace(':', '|')
-            if pipe_k in INDEX_KEY_TO_NAME:
-                all_indices[INDEX_KEY_TO_NAME[pipe_k]] = v
-    for k, v in _shared_state.index_prev_close.items():
-        if v and v > 0:
-            all_prev_close[k] = v
-            all_prev_close[k.replace('|', ':')] = v
-            all_prev_close[k.replace(':', '|')] = v
-            pipe_k = k.replace(':', '|')
-            if pipe_k in INDEX_KEY_TO_NAME:
-                all_prev_close[INDEX_KEY_TO_NAME[pipe_k]] = v
+    all_indices, all_prev_close = get_merged_indices()
 
     # Backfill shared state live_indices if empty so trading bots don't encounter 0 VIX/NIFTY
     for k, v in all_indices.items():

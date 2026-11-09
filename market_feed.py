@@ -28,6 +28,32 @@ _raw_indices = getattr(Config, 'ALL_INDEX_KEYS', [
     "NSE_INDEX|Nifty 50", "BSE_INDEX|SENSEX", "NSE_INDEX|Nifty Bank",
     "NSE_INDEX|Nifty Fin Service", "NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX|India VIX"
 ])
+
+INDEX_KEY_TO_NAME: Dict[str, str] = {
+    "NSE_INDEX|Nifty 50": "NIFTY 50",
+    "BSE_INDEX|SENSEX": "SENSEX",
+    "NSE_INDEX|Nifty Bank": "NIFTY BANK",
+    "NSE_INDEX|India VIX": "INDIA VIX",
+    "NSE_INDEX|Nifty Fin Service": "FINNIFTY",
+    "NSE_INDEX|NIFTY MID SELECT": "MIDCPNIFTY",
+    "NSE_INDEX|Nifty Next 50": "NIFTY NEXT 50",
+    "NSE_INDEX|Nifty 100": "NIFTY 100",
+    "NSE_INDEX|Nifty 200": "NIFTY 200",
+    "NSE_INDEX|Nifty 500": "NIFTY 500",
+    "NSE_INDEX|Nifty IT": "NIFTY IT",
+    "NSE_INDEX|Nifty Auto": "NIFTY AUTO",
+    "NSE_INDEX|Nifty Metal": "NIFTY METAL",
+    "NSE_INDEX|Nifty Pharma": "NIFTY PHARMA",
+    "NSE_INDEX|Nifty FMCG": "NIFTY FMCG",
+    "NSE_INDEX|Nifty Energy": "NIFTY ENERGY",
+    "NSE_INDEX|Nifty Realty": "NIFTY REALTY",
+    "NSE_INDEX|Nifty Infra": "NIFTY INFRA",
+    "BSE_INDEX|BANKEX": "BANKEX",
+    "NSE_INDEX|Nifty PSU Bank": "NIFTY PSU BANK",
+    "NSE_INDEX|Nifty Commodities": "NIFTY COMMODITIES",
+    "NSE_INDEX|Nifty PSE": "NIFTY PSE",
+}
+
 INDEX_KEYS = [k.replace("|", ":") for k in _raw_indices] + [
     "NSE_INDEX:NIFTY FIN SERVICE", "NSE_INDEX:NIFTY BANK", "NSE_INDEX:NIFTY MIDCAP 50", "NSE_INDEX:NIFTY 50"
 ]
@@ -207,9 +233,16 @@ def _on_market_message(message):
                     if "NIFTY BANK" in upper_key: normalized_key = "NSE_INDEX|Nifty Bank"
 
                     _indices_cache[normalized_key] = ltp
+                    _indices_cache[normalized_key.replace('|', ':')] = ltp
+                    friendly = INDEX_KEY_TO_NAME.get(normalized_key)
+                    if friendly:
+                        _indices_cache[friendly] = ltp
                     _tick_timestamps[normalized_key] = _time.time()
                     if prev_close > 0:
                         _indices_prev_close[normalized_key] = prev_close
+                        _indices_prev_close[normalized_key.replace('|', ':')] = prev_close
+                        if friendly:
+                            _indices_prev_close[friendly] = prev_close
                     
                     global _last_index_tick
                     _last_index_tick = _time.time()
@@ -358,7 +391,7 @@ def is_equity_live():
     return (_time.time() - _last_equity_tick) < 30
 
 def is_index_live():
-    return (_time.time() - _last_index_tick) < 5
+    return (_time.time() - _last_index_tick) < 3.5
 
 # ─── Bug Fix 4: Stale Feed Helpers ───────────────────────────────────────────
 

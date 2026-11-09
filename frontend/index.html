@@ -5973,6 +5973,84 @@
             } catch (e) { }
         }
 
+        // ─── DEDICATED REAL-TIME INDEX PRICE POLLING ─────────────────────────────────
+        // Polls /api/indices every 1000ms (every second) for live index values with animated flash
+        let _prevIndexPrices = {};
+        let _isFetchingIndices = false;
+
+        function getIndexValue(map, item) {
+            if (!map || !item) return undefined;
+            if (map[item.key] !== undefined && map[item.key] !== null) return map[item.key];
+            const colonKey = item.key.replace(/\|/g, ':');
+            if (map[colonKey] !== undefined && map[colonKey] !== null) return map[colonKey];
+            const pipeKey = item.key.replace(/:/g, '|');
+            if (map[pipeKey] !== undefined && map[pipeKey] !== null) return map[pipeKey];
+            if (item.name && map[item.name] !== undefined && map[item.name] !== null) return map[item.name];
+            return undefined;
+        }
+
+        async function fetchIndices() {
+            if (_isFetchingIndices) return;
+            _isFetchingIndices = true;
+            try {
+                const res = await fetch(`${API}/indices`);
+                if (!res.ok) {
+                    _isFetchingIndices = false;
+                    return;
+                }
+                const data = await res.json();
+                const prices = data.prices || {};
+                const prevClose = data.prev_close || {};
+
+                // Flash animation helper
+                function flashPrice(el, newVal, oldVal) {
+                    if (!el) return;
+                    el.textContent = Number(newVal).toFixed(2);
+                    if (oldVal && oldVal > 0 && Math.abs(newVal - oldVal) > 0.001) {
+                        const isUp = newVal > oldVal;
+                        el.style.transition = 'color 0.25s, text-shadow 0.25s';
+                        el.style.color = isUp ? 'var(--green, #00e676)' : 'var(--red, #ff3b3b)';
+                        el.style.textShadow = isUp
+                            ? '0 0 10px rgba(0,230,118,0.7)'
+                            : '0 0 10px rgba(255,59,59,0.7)';
+                        setTimeout(() => {
+                            el.style.color = '';
+                            el.style.textShadow = '';
+                        }, 400);
+                    }
+                }
+
+                // Update banner via the existing function (also updates _lastIndicesState)
+                if (typeof updateConfiguredIndexBannerPrices === 'function') {
+                    updateConfiguredIndexBannerPrices(prices, prevClose);
+                }
+
+                // Also apply direct flash animation on each visible banner item
+                const configured = typeof getSavedConfiguredIndices === 'function' ? getSavedConfiguredIndices() : [];
+                configured.forEach(item => {
+                    const safeKey = typeof getIndexSafeId === 'function' ? getIndexSafeId(item.key) : item.key.replace(/[^a-zA-Z0-9]/g, '_');
+                    const ltp = getIndexValue(prices, item);
+                    if (ltp !== undefined && ltp > 0) {
+                        const prevLtp = _prevIndexPrices[item.key];
+                        const elPrice = document.getElementById(`ix-val-${safeKey}`);
+                        flashPrice(elPrice, ltp, prevLtp);
+                        _prevIndexPrices[item.key] = ltp;
+                    }
+                });
+
+                // Update WS feed indicator if present
+                const wsIndEl = document.getElementById('ws-index-status');
+                if (wsIndEl) {
+                    wsIndEl.textContent = data.ws_index_live ? '● LIVE' : '● REST';
+                    wsIndEl.style.color = data.ws_index_live ? 'var(--green, #00e676)' : 'var(--yellow, #ffd740)';
+                }
+            } catch (e) {
+                // silent
+            } finally {
+                _isFetchingIndices = false;
+            }
+        }
+
         // ─── SIGNALS / SCANNER ───────────────────────────────────────────────────────
         let lastSignalSymbols = [];
         let isDemoSignalActive = false;
@@ -8705,8 +8783,8 @@
 
             configured.forEach(item => {
                 const safeKey = getIndexSafeId(item.key);
-                const ltp = indicesMap[item.key] !== undefined ? indicesMap[item.key] : indicesMap[item.key.replace('|', ':')];
-                const prevClose = prevCloseMap ? (prevCloseMap[item.key] !== undefined ? prevCloseMap[item.key] : prevCloseMap[item.key.replace('|', ':')]) : 0;
+                const ltp = getIndexValue(indicesMap, item);
+                const prevClose = getIndexValue(prevCloseMap, item) || 0;
 
                 const elPrice = document.getElementById(`ix-val-${safeKey}`);
                 const elChg = document.getElementById(`ix-chg-${safeKey}`);
@@ -8715,7 +8793,7 @@
                 const legPriceEl = legId ? document.getElementById(legId) : null;
                 const legChgEl = legId ? document.getElementById(legId + '-chg') : null;
 
-                if (ltp !== undefined && ltp !== null) {
+                if (ltp !== undefined && ltp !== null && ltp > 0) {
                     const priceFormatted = Number(ltp).toFixed(2);
                     if (elPrice) elPrice.textContent = priceFormatted;
                     if (legPriceEl && legPriceEl !== elPrice) legPriceEl.textContent = priceFormatted;
@@ -9787,6 +9865,7 @@
             await fetchSignals();
             await fetchHistory();
             await fetchLivePrices();
+            await fetchIndices();
             await fetchV2Pipeline();
             await fetchStrategyPerformance();
             updateTokenTimer();
@@ -9801,6 +9880,7 @@
         setInterval(fetchStatus, 2000);
         setInterval(fetchTrades, 1500);
         setInterval(fetchLivePrices, 1000);
+        setInterval(fetchIndices, 1000);  // Dedicated real-time index polling every second with flash animation
         setInterval(fetchSignals, 5000);
         setInterval(fetchHistory, 8000);
         setInterval(fetchV2Pipeline, 4000);
