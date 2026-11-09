@@ -36,8 +36,7 @@ class DualStrategyEngine:
         }
 
     def start(self, config):
-        if self.is_running:
-            return False, "Strategy already running"
+        return False, "Dual Strategy is currently disabled."
         
         self.state.update({
             "status": "STARTING",

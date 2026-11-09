@@ -2312,17 +2312,13 @@ def get_dashboard(request: Request, token: Optional[str] = Depends(get_token_fro
 
 @app.get("/dual")
 def get_dual(request: Request, token: Optional[str] = Depends(get_token_from_request)):
-    if not token or not verify_access_token(token):
-        return RedirectResponse("/login", status_code=302)
-    with open("frontend/dual.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    # Dual Strategy is currently disabled
+    return RedirectResponse("/", status_code=302)
 
 @app.get("/dual-demo")
 def get_dual_demo(request: Request, token: Optional[str] = Depends(get_token_from_request)):
-    if not token or not verify_access_token(token):
-        return RedirectResponse("/login", status_code=302)
-    with open("frontend/dual_demo.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+    # Dual Strategy is currently disabled
+    return RedirectResponse("/", status_code=302)
 
 @app.get("/super-admin")
 def get_super_admin_screen(request: Request, token: Optional[str] = Depends(get_token_from_request)):
@@ -3437,12 +3433,10 @@ async def api_update_sl_path(
         
     return {"status": "success", "new_sl": body.new_sl}
 
-# Dual strategy endpoints (shared engine for demo, per-user for live)
+# Dual strategy endpoints (Disabled)
 @app.post("/api/dual/start")
 async def dual_start(body: dict, user: dict = Depends(require_auth), db=Depends(get_db)):
-    uid = user["uid"]
-    bot = get_or_create_bot(uid, db)
-    return bot.dual.start(body)
+    return {"status": "error", "message": "Dual Position Strategy is currently disabled."}
 
 @app.post("/api/dual/stop")
 async def dual_stop(user: dict = Depends(require_auth), db=Depends(get_db)):
@@ -3452,9 +3446,7 @@ async def dual_stop(user: dict = Depends(require_auth), db=Depends(get_db)):
 
 @app.get("/api/dual/status")
 async def dual_status(user: dict = Depends(require_auth), db=Depends(get_db)):
-    uid = user["uid"]
-    bot = get_or_create_bot(uid, db)
-    return bot.dual.get_status()
+    return {"status": "DISABLED", "message": "Dual Position Strategy is currently disabled."}
 
 
 # ────────────────────────────────────────────────────────────────────────────
