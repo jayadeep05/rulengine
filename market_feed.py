@@ -53,12 +53,12 @@ _stop_event = threading.Event()
 _last_auth_error_log = {}
 
 def _get_authorized_url(api_type: str = "market"):
-    """Fetches a fresh authorized URL."""
+    """Fetches a fresh authorized URL for Upstox WebSocket."""
     token = None
     if _shared_creds:
-        token = _shared_creds.get("analytics_token") if (api_type == "market" and _shared_creds.get("analytics_token")) else _shared_creds.get("upstox_access_token")
+        token = _shared_creds.get("upstox_access_token") or _shared_creds.get("analytics_token")
     if not token:
-        token = Config.ANALYTICS_TOKEN if (api_type == "market" and Config.ANALYTICS_TOKEN) else Config.UPSTOX_ACCESS_TOKEN
+        token = Config.UPSTOX_ACCESS_TOKEN or Config.ANALYTICS_TOKEN
     
     url = f"https://api.upstox.com/{'v3' if api_type == 'market' else 'v2'}/feed/{'market-data-feed' if api_type == 'market' else 'portfolio-stream-feed'}/authorize"
         
@@ -74,6 +74,14 @@ def _get_authorized_url(api_type: str = "market"):
             uri = data.get('data', {}).get('authorizedRedirectUri') or data.get('data', {}).get('authorized_redirect_uri')
             if uri:
                 return uri
+        elif response.status_code == 401 and _shared_creds and _shared_creds.get("analytics_token") and token != _shared_creds.get("analytics_token"):
+            # Retry with analytics token as fallback if available and different
+            alt_headers = {'Accept': 'application/json', 'Authorization': f'Bearer {_shared_creds.get("analytics_token")}'}
+            alt_resp = requests.get(url, headers=alt_headers, params={'client_id': Config.UPSTOX_CLIENT_ID}, timeout=15)
+            if alt_resp.status_code == 200:
+                alt_uri = alt_resp.json().get('data', {}).get('authorizedRedirectUri') or alt_resp.json().get('data', {}).get('authorized_redirect_uri')
+                if alt_uri:
+                    return alt_uri
         now_ts = _time.time()
         last_log = _last_auth_error_log.get(api_type, 0)
         if (now_ts - last_log) > 600:
@@ -238,9 +246,9 @@ def _market_loop():
             config = upstox_client.Configuration()
             token = None
             if _shared_creds:
-                token = _shared_creds.get("analytics_token") or _shared_creds.get("upstox_access_token")
+                token = _shared_creds.get("upstox_access_token") or _shared_creds.get("analytics_token")
             if not token:
-                token = Config.ANALYTICS_TOKEN if Config.ANALYTICS_TOKEN else Config.UPSTOX_ACCESS_TOKEN
+                token = Config.UPSTOX_ACCESS_TOKEN or Config.ANALYTICS_TOKEN
             if not token:
                 _time.sleep(30)
                 continue

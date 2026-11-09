@@ -5,6 +5,7 @@ Sends alerts via Telegram Bot API for all critical events.
 Uses direct HTTP calls — no external Telegram SDK needed.
 """
 
+import os
 import logging
 import requests
 import asyncio
@@ -19,13 +20,31 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 import time as _time
 import threading
 
+def _get_telegram_creds():
+    token = Config.TELEGRAM_BOT_TOKEN or os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = Config.TELEGRAM_CHAT_ID or os.getenv("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        try:
+            from database import SessionLocal, SystemConfigDB
+            with SessionLocal() as db:
+                if not token:
+                    row = db.query(SystemConfigDB).filter(SystemConfigDB.config_key == "TELEGRAM_BOT_TOKEN").first()
+                    if row and row.config_value:
+                        token = row.config_value.strip()
+                if not chat_id:
+                    row = db.query(SystemConfigDB).filter(SystemConfigDB.config_key == "TELEGRAM_CHAT_ID").first()
+                    if row and row.config_value:
+                        chat_id = row.config_value.strip()
+        except Exception:
+            pass
+    return token, chat_id
+
 def _send_telegram_blocking(message: str, parse_mode: str = "HTML", retries: int = 1) -> bool:
     """Send a Telegram message synchronously. Supports retry logic on failures."""
-    token = Config.TELEGRAM_BOT_TOKEN
-    chat_id = Config.TELEGRAM_CHAT_ID
+    token, chat_id = _get_telegram_creds()
     
     if not token or not chat_id:
-        logger.debug("Telegram not configured (no token or chat_id). Skipping alert.")
+        logger.warning("Telegram not configured (missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID in .env or database system_config). Alert not sent.")
         return False
     
     url = TELEGRAM_API_URL.format(token=token)

@@ -36,14 +36,19 @@ class UpstoxExecutionEngine:
         return (str(self.mode).upper() == "TEST") or getattr(Config, "PAPER_TRADING_MODE", False)
 
     def _get_headers(self, use_analytics=False):
+        token = None
         if self._creds:
-            token = self._creds.get("analytics_token", "") if use_analytics else self._creds.get("upstox_access_token", "")
-            if not token:  # fall through to the other token if one is empty
-                token = self._creds.get("upstox_access_token", "") or self._creds.get("analytics_token", "")
+            token = self._creds.get("upstox_access_token")
+            if not token and use_analytics:
+                token = self._creds.get("analytics_token")
+            if not token:
+                token = self._creds.get("analytics_token") or ""
         else:
             token = Config.UPSTOX_ACCESS_TOKEN
-            if use_analytics and Config.ANALYTICS_TOKEN:
+            if not token and use_analytics:
                 token = Config.ANALYTICS_TOKEN
+            if not token:
+                token = Config.ANALYTICS_TOKEN or ""
         return {
             'Accept': 'application/json',
             'Authorization': f'Bearer {token}',
@@ -85,13 +90,11 @@ class UpstoxExecutionEngine:
         """Fetch real-time Last Traded Price (LTP) using Full Market Quotes API."""
         try:
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={instrument_key}"
-            # Indices can use analytics token
-            use_analytics = "INDEX" in instrument_key
-            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            response = requests.get(url, headers=self._get_headers(use_analytics=False), timeout=5)
             
-            if response.status_code == 401 and not use_analytics:
-                # Try fallback to analytics for any quote if main fails
-                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+            if response.status_code == 401:
+                # Try fallback to analytics token if available
+                response = requests.get(url, headers=self._get_headers(use_analytics=True), timeout=5)
             response.raise_for_status()
             data = response.json()
             
@@ -114,12 +117,10 @@ class UpstoxExecutionEngine:
                 return prices
             keys_str = ",".join(instrument_keys)
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={keys_str}"
-            # Check if any index keys are present
-            use_analytics = any("INDEX" in k for k in instrument_keys) if 'instrument_keys' in locals() else False
-            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            response = requests.get(url, headers=self._get_headers(use_analytics=False), timeout=5)
             
-            if response.status_code == 401 and not use_analytics:
-                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+            if response.status_code == 401:
+                response = requests.get(url, headers=self._get_headers(use_analytics=True), timeout=5)
                 
             response.raise_for_status()
             data = response.json()
@@ -127,12 +128,8 @@ class UpstoxExecutionEngine:
             if 'data' in data:
                 # Upstox returns keys like "NSE_EQ:RELIANCE" but we send "NSE_EQ|INE002A01018"
                 # Build a fast reverse lookup: convert pipe-format keys to colon-format for matching
-                # e.g. "NSE_EQ|INE002A01018" -> we DON'T know ticker, so match by colon key prefix
-                # Upstox also accepts instrument_key in response as-is in some cases.
-                # Most reliable: match by raw_key directly replacing colon with pipe.
                 key_map = {}
                 for k in instrument_keys:
-                    # "NSE_EQ|INE002A01018" -> try "NSE_EQ:INE002A01018" as potential return key
                     colon_version = k.replace('|', ':')
                     key_map[colon_version] = k
                     key_map[k] = k  # also direct match
@@ -169,11 +166,10 @@ class UpstoxExecutionEngine:
                 return quotes
             keys_str = ",".join(instrument_keys)
             url = f"{self.api_v2}/market-quote/quotes?instrument_key={keys_str}"
-            use_analytics = any("INDEX" in k for k in instrument_keys)
-            response = requests.get(url, headers=self._get_headers(use_analytics), timeout=5)
+            response = requests.get(url, headers=self._get_headers(use_analytics=False), timeout=5)
             
-            if response.status_code == 401 and not use_analytics:
-                response = requests.get(url, headers=self._get_headers(True), timeout=5)
+            if response.status_code == 401:
+                response = requests.get(url, headers=self._get_headers(use_analytics=True), timeout=5)
 
             response.raise_for_status()
             data = response.json()

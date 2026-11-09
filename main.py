@@ -654,6 +654,31 @@ def _evaluate_market_regime(bot, user_id, layer4, participation_ratio):
         send_telegram(f"⚠️ Market regime dynamically updated from {old_regime} to {new_regime} (Nifty: {nifty_chg_pct:.2f}%, VIX: {vix_val:.1f})")
 
 
+def _ensure_fresh_watchlist_prices(engine, watchlist, prices_dict, timestamps_dict):
+    """Backfills missing or stale watchlist prices via REST bulk quotes if websocket ticks are lagging."""
+    if not watchlist:
+        return
+    missing = []
+    now_ts = _time.time()
+    for s in watchlist:
+        sym = s.get("symbol")
+        ikey = s.get("instrument_key")
+        if sym and ikey:
+            last_ts = timestamps_dict.get(sym, 0.0)
+            if (sym not in prices_dict) or ((now_ts - last_ts) > 30.0):
+                missing.append((sym, ikey))
+    if missing:
+        try:
+            bulk_res = engine.get_ltp_bulk([m[1] for m in missing])
+            for sym, ikey in missing:
+                p = bulk_res.get(ikey) or bulk_res.get(ikey.replace('|', ':'))
+                if p and float(p) > 0:
+                    prices_dict[sym] = float(p)
+                    timestamps_dict[sym] = now_ts
+        except Exception as e:
+            logger.debug(f"REST price backfill error: {e}")
+
+
 async def user_trading_cycle(user_id: int):
     """
     Per-user trading cycle — v2 pipeline-based.
@@ -1006,6 +1031,7 @@ async def user_trading_cycle(user_id: int):
         # ── ORB Phase 1: Observation window (9:15 AM – 9:30 AM) ─────────
         if not orb_obs_complete and time(9, 15) <= now.time() < time(9, 30):
             if layer2.active_watchlist:
+                _ensure_fresh_watchlist_prices(bot.engine, layer2.active_watchlist, _shared_prices, _shared_timestamps)
                 orb.observe(layer2.active_watchlist, _shared_prices)
 
         # ── ORB Phase 1 → 2 transition: mark complete at 9:30 AM ────────
@@ -1147,6 +1173,7 @@ async def user_trading_cycle(user_id: int):
                 and (orb_now_ts - orb_last_scan) >= 60):
             orb_last_scan = orb_now_ts
             try:
+                _ensure_fresh_watchlist_prices(bot.engine, layer2.active_watchlist, _shared_prices, _shared_timestamps)
                 nifty_chg_pct = layer4.get_nifty_change_pct()
                 nifty_trend = layer4.get_nifty_trend()
                 active_trade_symbols = [t['symbol'] for t in bot.tm.active_trades]
@@ -1336,6 +1363,7 @@ async def user_trading_cycle(user_id: int):
                 bot.state.vix_alert_state = 'normal'
 
             try:
+                _ensure_fresh_watchlist_prices(bot.engine, layer2.active_watchlist, _shared_prices, _shared_timestamps)
                 # Pass latest sector performance from Layer 4 into Layer 3
                 sector_perf = layer4.get_sector_perf() if hasattr(layer4, 'get_sector_perf') else {}
 
