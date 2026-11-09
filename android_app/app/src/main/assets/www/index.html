@@ -4033,20 +4033,11 @@
             <!-- Multi-Account Trade Replication Controls (Master Admin Only) -->
             <div id="multi-account-nav-group" style="display: none; align-items: center;">
                 <button id="btn-multi-account-toggle" class="btn-outline hide-mob" onclick="openMultiAccountModal()"
-                    title="Multi-Account Trading: Click to manage linked accounts (or click status to toggle)"
-                    style="border: 1px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.1); color: #c084fc; font-weight: 700; font-size: 11px; padding: 6px 12px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; transition: all 0.2s ease;">
+                    title="Multi-Account Trade Replication"
+                    style="border: 1px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.1); color: #c084fc; font-weight: 700; font-size: 11px; padding: 6px 12px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: all 0.2s ease;">
                     <span id="nav-multi-dot"
                         style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; flex-shrink: 0;"></span>
-                    <span id="nav-multi-label" style="display: inline-flex; align-items: center; gap: 4px;">
-                        <span>⚡ Multi-Account:</span>
-                        <span id="nav-multi-status" onclick="event.stopPropagation(); toggleMultiAccountFromNav();"
-                            title="Click to toggle Multi-Account ON/OFF"
-                            style="padding: 1px 5px; border-radius: 5px; background: rgba(139, 92, 246, 0.2); font-weight: 800; cursor: pointer;">OFF</span>
-                    </span>
-                    <span style="display: inline-block; width: 1px; height: 12px; background: rgba(139, 92, 246, 0.35); margin: 0 2px;"></span>
-                    <span id="nav-multi-pill" style="display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 5px; background: rgba(139, 92, 246, 0.18); font-size: 10.5px;">
-                        👥 <span id="nav-multi-count">0</span>
-                    </span>
+                    <span id="nav-multi-label">Multi-Account</span>
                 </button>
             </div>
             <button id="btn-toggle" class="btn-toggle" onclick="toggleSystem()">▶ START</button>
@@ -5737,11 +5728,11 @@
                 }
 
                 const mBtn = document.getElementById('btn-mode');
-                mBtn.textContent = (config.MODE || 'TEST') + ' MODE';
+                mBtn.textContent = (config.MODE || 'TEST') === 'LIVE' ? 'LIVE' : (config.MODE || 'TEST');
                 mBtn.className = `btn-mode ${(config.MODE || 'test').toLowerCase()}`;
 
                 const tBtn = document.getElementById('btn-toggle');
-                tBtn.innerHTML = state.is_running ? '⏸ PAUSE SYSTEM' : '▶ START SYSTEM';
+                tBtn.innerHTML = state.is_running ? '⏸ PAUSE' : '▶ START';
                 tBtn.className = `btn-toggle${state.is_running ? ' active' : ''}`;
 
                 // Risk dashboard
@@ -9525,41 +9516,27 @@
         function updateMultiAccountNavUI() {
             const btn = document.getElementById('btn-multi-account-toggle');
             const dot = document.getElementById('nav-multi-dot');
-            const statusEl = document.getElementById('nav-multi-status');
             const label = document.getElementById('nav-multi-label');
-            const countEl = document.getElementById('nav-multi-count');
 
-            if (countEl) countEl.textContent = multiAccountState.linkedAccounts.length;
+            if (label) label.textContent = 'Multi-Account';
 
             if (multiAccountState.enabled) {
                 if (dot) dot.style.background = '#10b981';
-                if (statusEl) {
-                    statusEl.textContent = `ON (${multiAccountState.activeCount})`;
-                    statusEl.style.background = 'rgba(16, 185, 129, 0.25)';
-                    statusEl.style.color = '#34d399';
-                } else if (label) {
-                    label.textContent = `⚡ Multi-Account: ON (${multiAccountState.activeCount})`;
-                }
                 if (btn) {
                     btn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
-                    btn.style.background = 'rgba(16, 185, 129, 0.12)';
+                    btn.style.background = 'rgba(16, 185, 129, 0.15)';
                     btn.style.color = '#34d399';
                     btn.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.25)';
+                    btn.title = `Multi-Account: ACTIVE (${multiAccountState.activeCount} accounts)`;
                 }
             } else {
                 if (dot) dot.style.background = '#94a3b8';
-                if (statusEl) {
-                    statusEl.textContent = 'OFF';
-                    statusEl.style.background = 'rgba(139, 92, 246, 0.2)';
-                    statusEl.style.color = '#c084fc';
-                } else if (label) {
-                    label.textContent = '⚡ Multi-Account: OFF';
-                }
                 if (btn) {
                     btn.style.borderColor = 'rgba(139, 92, 246, 0.4)';
                     btn.style.background = 'rgba(139, 92, 246, 0.08)';
                     btn.style.color = '#c084fc';
                     btn.style.boxShadow = 'none';
+                    btn.title = 'Multi-Account: DISABLED (Click to configure)';
                 }
             }
         }
