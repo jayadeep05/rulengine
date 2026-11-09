@@ -2558,17 +2558,48 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     except Exception as e:
         logger.debug(f"Error merging global indices: {e}")
 
+    INDEX_KEY_TO_NAME = {
+        "NSE_INDEX|Nifty 50": "NIFTY 50",
+        "BSE_INDEX|SENSEX": "SENSEX",
+        "NSE_INDEX|Nifty Bank": "NIFTY BANK",
+        "NSE_INDEX|India VIX": "INDIA VIX",
+        "NSE_INDEX|Nifty Fin Service": "FINNIFTY",
+        "NSE_INDEX|NIFTY MID SELECT": "MIDCPNIFTY",
+        "NSE_INDEX|Nifty Next 50": "NIFTY NEXT 50",
+        "NSE_INDEX|Nifty 100": "NIFTY 100",
+        "NSE_INDEX|Nifty 200": "NIFTY 200",
+        "NSE_INDEX|Nifty 500": "NIFTY 500",
+        "NSE_INDEX|Nifty IT": "NIFTY IT",
+        "NSE_INDEX|Nifty Auto": "NIFTY AUTO",
+        "NSE_INDEX|Nifty Metal": "NIFTY METAL",
+        "NSE_INDEX|Nifty Pharma": "NIFTY PHARMA",
+        "NSE_INDEX|Nifty FMCG": "NIFTY FMCG",
+        "NSE_INDEX|Nifty Energy": "NIFTY ENERGY",
+        "NSE_INDEX|Nifty Realty": "NIFTY REALTY",
+        "NSE_INDEX|Nifty Infra": "NIFTY INFRA",
+        "BSE_INDEX|BANKEX": "BANKEX",
+        "NSE_INDEX|Nifty PSU Bank": "NIFTY PSU BANK",
+        "NSE_INDEX|Nifty Commodities": "NIFTY COMMODITIES",
+        "NSE_INDEX|Nifty PSE": "NIFTY PSE",
+    }
+
     # Prioritize active Upstox stream/quotes if available
     for k, v in _shared_state.live_indices.items():
         if v and v > 0:
             all_indices[k] = v
             all_indices[k.replace('|', ':')] = v
             all_indices[k.replace(':', '|')] = v
+            pipe_k = k.replace(':', '|')
+            if pipe_k in INDEX_KEY_TO_NAME:
+                all_indices[INDEX_KEY_TO_NAME[pipe_k]] = v
     for k, v in _shared_state.index_prev_close.items():
         if v and v > 0:
             all_prev_close[k] = v
             all_prev_close[k.replace('|', ':')] = v
             all_prev_close[k.replace(':', '|')] = v
+            pipe_k = k.replace(':', '|')
+            if pipe_k in INDEX_KEY_TO_NAME:
+                all_prev_close[INDEX_KEY_TO_NAME[pipe_k]] = v
 
     # Backfill shared state live_indices if empty so trading bots don't encounter 0 VIX/NIFTY
     for k, v in all_indices.items():

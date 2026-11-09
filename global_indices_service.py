@@ -106,8 +106,11 @@ def refresh_global_indices() -> None:
     new_prev: Dict[str, float] = {}
 
     try:
+        # Only poll international / global macro markets from Yahoo Finance.
+        # Indian indices (NSE/BSE) are streamed real-time directly via Upstox WebSocket/REST.
+        international_catalog = [item for item in GLOBAL_INDICES_CATALOG if item["key"].startswith("GLOBAL_INDEX|")]
         with ThreadPoolExecutor(max_workers=10) as executor:
-            results = list(executor.map(_fetch_single_symbol, GLOBAL_INDICES_CATALOG))
+            results = list(executor.map(_fetch_single_symbol, international_catalog))
 
         for key, name, price, prev in results:
             if price is not None:
@@ -131,7 +134,7 @@ def refresh_global_indices() -> None:
             with _lock:
                 _global_prices.update(new_prices)
                 _global_prev_close.update(new_prev)
-            logger.info(f"[GlobalIndices] Refreshed {len(new_prices)} index quote entries (including Indian benchmarks).")
+            logger.info(f"[GlobalIndices] Refreshed {len(new_prices)} global/international index quotes.")
     except Exception as e:
         logger.error(f"[GlobalIndices] refresh failed: {e}")
 
