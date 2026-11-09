@@ -216,7 +216,7 @@ class FeatureExtractor:
             if dist < min_sl_dist:
                 calculated_sl = calculated_entry - atr_14
             elif dist > max_sl_dist:
-                logger.debug(f"[Layer 4] {signal['symbol']} skipped — SL distance ({dist/calculated_entry*100:.2f}%) exceeds 1.5 ATR limit.")
+                logger.info(f"[Layer 4] {signal['symbol']} skipped — SL distance ({dist/calculated_entry*100:.2f}%) exceeds 1.5 ATR limit.")
                 return None
             else:
                 calculated_sl = base_sl
@@ -229,7 +229,7 @@ class FeatureExtractor:
                 if vol_ratio_6bar > 3.0 and volume_trend == "expanding":
                     calculated_target = min(calculated_target, resistance_20bar * 1.005)
                 else:
-                    logger.debug(f"[Layer 4] {signal['symbol']} skipped — target ({calculated_target:.2f}) exceeds resistance ({resistance_20bar:.2f}) without volume breakout.")
+                    logger.info(f"[Layer 4] {signal['symbol']} skipped — target ({calculated_target:.2f}) exceeds resistance ({resistance_20bar:.2f}) without volume breakout.")
                     return None
                     
         else:  # SHORT
@@ -250,7 +250,7 @@ class FeatureExtractor:
                 if vol_ratio_6bar > 3.0 and volume_trend == "expanding":
                     calculated_target = max(calculated_target, support_20bar * 0.995)
                 else:
-                    logger.debug(f"[Layer 4] {signal['symbol']} skipped — target ({calculated_target:.2f}) exceeds support ({support_20bar:.2f}) without volume breakdown.")
+                    logger.info(f"[Layer 4] {signal['symbol']} skipped — target ({calculated_target:.2f}) exceeds support ({support_20bar:.2f}) without volume breakdown.")
                     return None
 
         # ── Market Context ────────────────────────────────────────────────
