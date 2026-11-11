@@ -5906,7 +5906,7 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; flex-shrink: 0; min-width: 70px; justify-content: flex-end;">
-                        <span style="font-size: 15px; font-weight: 800; font-family: 'JetBrains Mono'; color: ${isProfit ? 'var(--green)' : 'var(--red)'}; white-space: nowrap;">${isProfit ? '+' : '−'}₹${Math.abs(pnl).toFixed(2)}</span>
+                        <span id="active-pnl-${t.symbol}" data-entry="${entry}" data-side="${t.side}" data-qty="${qty}" style="font-size: 15px; font-weight: 800; font-family: 'JetBrains Mono'; color: ${isProfit ? 'var(--green)' : 'var(--red)'}; white-space: nowrap;">${isProfit ? '+' : '−'}₹${Math.abs(pnl).toFixed(2)}</span>
                     </div>
                 </div>
             </div>`;
@@ -5943,6 +5943,20 @@
                         activeP.setAttribute('data-prev', prices[sym]);
                         if (prices[sym] > prev) { activeP.style.color = 'var(--green)'; }
                         else if (prices[sym] < prev) { activeP.style.color = 'var(--red)'; }
+                    }
+
+                    const activePnl = document.getElementById(`active-pnl-${sym}`);
+                    if (activePnl) {
+                        const entry = parseFloat(activePnl.getAttribute('data-entry') || 0);
+                        const side = activePnl.getAttribute('data-side') || 'BUY';
+                        const qty = parseFloat(activePnl.getAttribute('data-qty') || 1);
+                        const liveLtp = parseFloat(prices[sym]);
+                        if (entry > 0 && liveLtp > 0) {
+                            const curPnl = side === 'BUY' ? (liveLtp - entry) * qty : (entry - liveLtp) * qty;
+                            const isProf = curPnl >= 0;
+                            activePnl.textContent = `${isProf ? '+' : '−'}₹${Math.abs(curPnl).toFixed(2)}`;
+                            activePnl.style.color = isProf ? 'var(--green)' : 'var(--red)';
+                        }
                     }
                 }
 

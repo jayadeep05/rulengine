@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
-import time as _time
+import time as _tm, time as _time
 import logging
 import math
 import pandas as pd
@@ -255,6 +255,7 @@ async def startup_event():
         logger.warning(f"Error starting global indices poller: {e}")
 
     asyncio.create_task(ws_fallback_pump())
+    asyncio.create_task(active_trades_price_pump())
     asyncio.create_task(periodic_stat_sync())
     asyncio.create_task(dynamic_discovery_loop())
 
@@ -563,6 +564,89 @@ async def ws_fallback_pump():
         except Exception as e:
             logger.error(f"[Fallback] Unexpected loop error: {e}")
             await asyncio.sleep(5)
+
+async def active_trades_price_pump():
+    """
+    Dedicated high-frequency price updater for all active positions (runs every 1 second).
+    Guarantees:
+    1. Real-time sub-second price updates for all active trades (even stocks not in default 91 universe).
+    2. Real-time P&L calculation and instant frontend sync.
+    3. Immediate SL, Target, and Trailing SL evaluation without waiting for the 60s trading loop.
+    4. Auto-subscribes any active position to the Upstox WebSocket feed.
+    """
+    logger.info("[ActiveTradesPump] Dedicated 1-second active trade price pump started.")
+    while True:
+        try:
+            for uid, bot in list(all_bots().items()):
+                if not bot or not getattr(bot, 'tm', None) or not bot.tm.active_trades:
+                    continue
+
+                market_regime = getattr(bot.state, "market_regime", "UNKNOWN")
+                name_to_ltp = {}
+
+                for trade in list(bot.tm.active_trades):
+                    sym = trade.get("symbol", "").upper()
+                    token = trade.get("instrument_token") or trade.get("metadata", {}).get("instrument_token")
+                    if not token:
+                        from instrument_resolver import get_instrument_key
+                        token = get_instrument_key(sym)
+                    if token and not trade.get("instrument_token"):
+                        trade["instrument_token"] = token
+
+                    # 1. Ensure symbol is subscribed on market_feed WebSocket
+                    if token and sym:
+                        try:
+                            market_feed.subscribe_symbol(sym, token)
+                        except Exception:
+                            pass
+
+                    # 2. Check price in shared cache
+                    ltp = _shared_prices.get(sym)
+                    if not ltp and token:
+                        ltp = _shared_prices.get(token) or _shared_prices.get(token.replace("|", ":"))
+
+                    last_ts = _shared_timestamps.get(sym, 0)
+                    is_stale = (_tm.time() - last_ts) > 2.5
+
+                    # 3. If missing, zero, or stale, poll live LTP immediately via engine using verified instrument token
+                    if not ltp or ltp <= 0 or is_stale:
+                        lookup_key = token
+                        if not lookup_key:
+                            from instrument_resolver import get_instrument_key
+                            lookup_key = get_instrument_key(sym)
+                        
+                        if lookup_key:
+                            try:
+                                fresh_ltp = float(bot.engine.get_ltp(lookup_key))
+                                if fresh_ltp and fresh_ltp > 0:
+                                    ltp = fresh_ltp
+                                    _shared_prices[sym] = ltp
+                                    _shared_prices[lookup_key] = ltp
+                                    _shared_prices[lookup_key.replace('|', ':')] = ltp
+                                    _shared_timestamps[sym] = _tm.time()
+                            except Exception as poll_err:
+                                logger.debug(f"[ActiveTradesPump] LTP fetch error for {sym}: {poll_err}")
+
+                    if ltp and ltp > 0:
+                        name_to_ltp[sym] = ltp
+                        trade["current_price"] = round(ltp, 2)
+                        side = trade.get("side", "BUY")
+                        entry = trade.get("entry_price", ltp)
+                        qty = trade.get("qty", 1)
+                        trade["pnl"] = round((ltp - entry) * qty if side == "BUY" else (entry - ltp) * qty, 2)
+
+                # 4. Push updated prices to TradeManager for SL/Target checking
+                if name_to_ltp:
+                    try:
+                        bot.tm.update_prices(name_to_ltp, bot.engine, market_regime=market_regime)
+                    except Exception as tm_err:
+                        logger.error(f"[ActiveTradesPump] TradeManager update error: {tm_err}")
+
+            await asyncio.sleep(1)
+
+        except Exception as e:
+            logger.error(f"[ActiveTradesPump] Error in active trade price pump: {e}")
+            await asyncio.sleep(2)
 
 def run_local_rule_analysis(feature_payloads: list) -> list:
     """
@@ -981,14 +1065,26 @@ async def user_trading_cycle(user_id: int):
             nifty_ltp = _shared_state.live_indices.get("NSE_INDEX|Nifty 50", 0)
             bot.state.market_condition = "VOLATILE" if vix_ltp > 18 else ("SIDEWAYS" if vix_ltp < 12 else "TRENDING")
             
-            # Update prices for active trades
+            # Update prices for all active trades (supporting both universe and radar/custom stocks)
             name_to_ltp = {}
-            for sym_name, sym_key in Config.SYMBOLS_MAPPING.items():
-                if sym_name in _shared_prices:
-                    name_to_ltp[sym_name] = _shared_prices[sym_name]
-                elif sym_key in _shared_prices:
-                    name_to_ltp[sym_name] = _shared_prices[sym_key]
-            bot.tm.update_prices(name_to_ltp, bot.engine)
+            for t in bot.tm.active_trades:
+                sym_name = t["symbol"]
+                sym_token = t.get("instrument_token") or Config.SYMBOLS_MAPPING.get(sym_name)
+                price = _shared_prices.get(sym_name)
+                if not price and sym_token:
+                    price = _shared_prices.get(sym_token) or _shared_prices.get(sym_token.replace("|", ":"))
+                if not price and sym_token:
+                    try:
+                        price = float(bot.engine.get_ltp(sym_token))
+                        if price and price > 0:
+                            _shared_prices[sym_name] = price
+                    except Exception:
+                        pass
+                if price and price > 0:
+                    name_to_ltp[sym_name] = price
+
+            if name_to_ltp:
+                bot.tm.update_prices(name_to_ltp, bot.engine, market_regime=getattr(bot.state, "market_regime", "UNKNOWN"))
 
         # ── Token Health & Auto-Sync Check ─────────────────────────────────
         import time as _t
@@ -2380,16 +2476,39 @@ def api_get_active_trades(user: dict = Depends(require_auth)):
     if not bot:
         return []
     
-    # Dynamically update prices from shared live prices cache for fast frontend updates
+    # Dynamically update prices and P&L from shared live prices cache with live on-demand fallback
     trades = []
     for t in bot.tm.active_trades:
         trade_copy = dict(t)
         symbol = t["symbol"]
-        ltp = _shared_prices.get(symbol, t.get("current_price", t["entry_price"]))
-        if ltp == t.get("current_price", t["entry_price"]):
-            sym_key = Config.SYMBOLS_MAPPING.get(symbol)
-            if sym_key and sym_key in _shared_prices:
-                ltp = _shared_prices[sym_key]
+        token = t.get("instrument_token") or t.get("metadata", {}).get("instrument_token") or Config.SYMBOLS_MAPPING.get(symbol)
+        if not token:
+            from instrument_resolver import get_instrument_key
+            token = get_instrument_key(symbol)
+        if token and not t.get("instrument_token"):
+            t["instrument_token"] = token
+        
+        # 1. Lookup from memory feed cache
+        ltp = _shared_prices.get(symbol)
+        if (not ltp or ltp <= 0) and token:
+            ltp = _shared_prices.get(token) or _shared_prices.get(token.replace("|", ":"))
+
+        # 2. If missing or equals initial entry, fetch verified live quote directly
+        if (not ltp or ltp <= 0 or ltp == t.get("entry_price")) and token:
+            try:
+                live_val = float(bot.engine.get_ltp(token))
+                if live_val and live_val > 0:
+                    ltp = live_val
+                    _shared_prices[symbol] = ltp
+                    if token:
+                        _shared_prices[token] = ltp
+                        _shared_prices[token.replace('|', ':')] = ltp
+                    _shared_timestamps[symbol] = _tm.time()
+            except Exception:
+                pass
+
+        if not ltp or ltp <= 0:
+            ltp = t.get("current_price", t["entry_price"])
         
         trade_copy["current_price"] = round(ltp, 2)
         qty = t["qty"]
@@ -2400,6 +2519,11 @@ def api_get_active_trades(user: dict = Depends(require_auth)):
         else:
             pnl = (entry - ltp) * qty
         trade_copy["pnl"] = round(pnl, 2)
+
+        # Sync back to in-memory trade object
+        t["current_price"] = round(ltp, 2)
+        t["pnl"] = round(pnl, 2)
+
         trades.append(trade_copy)
         
     return trades
@@ -3135,6 +3259,14 @@ async def api_manual_trade(
         if bot.tm.active_trades:
             bot.tm.active_trades[-1]['instrument_token'] = symbol_key
             
+        try:
+            market_feed.subscribe_symbol(body.symbol, symbol_key)
+            _shared_prices[body.symbol] = entry_price
+            _shared_prices[symbol_key] = entry_price
+            _shared_timestamps[body.symbol] = _tm.time()
+        except Exception:
+            pass
+            
         send_alert(uid, f"⚡ Manual {side} Order Executed for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
         return {"status": "success", "order_id": order_id, "symbol": body.symbol, "side": side, "qty": qty, "price": entry_price}
     else:
@@ -3315,6 +3447,15 @@ async def api_prime_radar_execute(
         )
         if bot.tm.active_trades:
             bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
+
+        # Automatically register & subscribe to real-time WebSocket ticks for this symbol
+        try:
+            market_feed.subscribe_symbol(body.symbol, body.instrument_key)
+            _shared_prices[body.symbol] = entry_price
+            _shared_prices[body.instrument_key] = entry_price
+            _shared_timestamps[body.symbol] = _tm.time()
+        except Exception as sub_err:
+            logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
 
         trade_msg = (
             f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "

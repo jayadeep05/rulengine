@@ -73,6 +73,7 @@ _last_equity_tick: float = 0
 _last_index_tick: float = 0
 _trade_manager = None
 _shared_creds = None
+_current_streamer = None
 
 _stop_event = threading.Event()
 
@@ -258,6 +259,13 @@ def _on_market_message(message):
                         _prices_cache[human_name] = ltp
                         _tick_timestamps[human_name] = _time.time()
                     
+                    # Also store directly by instrument key to guarantee direct lookups always succeed
+                    _prices_cache[instrument_key] = ltp
+                    alt_k = instrument_key.replace(":", "|") if ":" in instrument_key else instrument_key.replace("|", ":")
+                    _prices_cache[alt_k] = ltp
+                    _tick_timestamps[instrument_key] = _time.time()
+                    _tick_timestamps[alt_k] = _time.time()
+                    
                     global _last_equity_tick
                     _last_equity_tick = _time.time()
                 
@@ -288,7 +296,9 @@ def _market_loop():
             config.access_token = token
             api_client.configuration = config
             
+            global _current_streamer
             streamer = MarketDataStreamerV3(api_client, instrumentKeys=ALL_INSTRUMENT_KEYS, mode="ltpc")
+            _current_streamer = streamer
             logger.info(f"[WS-Market] Subscribing to {len(ALL_INSTRUMENT_KEYS)} keys (including {len(INDEX_KEYS)} indices)")
             
             closed_event = threading.Event()
@@ -347,6 +357,41 @@ def _portfolio_loop():
         backoff = min(backoff * 2, 300)
 
 # ─── Public API ───────────────────────────────────────────────────────────────
+
+def subscribe_symbol(symbol: str, instrument_key: str):
+    """
+    Dynamically registers and subscribes an equity/derivative symbol to the live WebSocket feed.
+    Guarantees that active trades and custom symbols receive real-time price updates.
+    """
+    if not symbol or not instrument_key:
+        return
+    
+    clean_sym = symbol.strip().upper()
+    pipe_key = instrument_key.replace(":", "|")
+    colon_key = instrument_key.replace("|", ":")
+    
+    # 1. Update reverse mappings
+    _REVERSE_MAP[pipe_key] = clean_sym
+    _REVERSE_MAP[colon_key] = clean_sym
+    
+    # 2. Add to Config.SYMBOLS_MAPPING in memory
+    Config.SYMBOLS_MAPPING[clean_sym] = pipe_key
+    
+    # 3. Add to ALL_INSTRUMENT_KEYS if not present
+    new_sub = False
+    for k in (pipe_key, colon_key):
+        if k not in ALL_INSTRUMENT_KEYS:
+            ALL_INSTRUMENT_KEYS.append(k)
+            new_sub = True
+            
+    # 4. If active WebSocket streamer is connected, dynamically subscribe
+    global _current_streamer
+    if _current_streamer and new_sub:
+        try:
+            _current_streamer.subscribe([pipe_key, colon_key], "ltpc")
+            logger.info(f"[WS-Market] Dynamically subscribed to live ticks for {clean_sym} ({pipe_key})")
+        except Exception as e:
+            logger.debug(f"[WS-Market] Dynamic subscribe error for {clean_sym}: {e}")
 
 def update_credentials(credentials: dict):
     global _shared_creds
