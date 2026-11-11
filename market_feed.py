@@ -54,6 +54,56 @@ INDEX_KEY_TO_NAME: Dict[str, str] = {
     "NSE_INDEX|Nifty PSE": "NIFTY PSE",
 }
 
+# Exact Canonical Normalization Mapping (O(1) dictionary, completely collision-free)
+EXACT_INDEX_MAP: Dict[str, str] = {}
+for canonical_k, friendly_k in INDEX_KEY_TO_NAME.items():
+    pipe_k = canonical_k.replace(":", "|")
+    colon_k = canonical_k.replace("|", ":")
+    EXACT_INDEX_MAP[pipe_k.upper()] = canonical_k
+    EXACT_INDEX_MAP[colon_k.upper()] = canonical_k
+    EXACT_INDEX_MAP[friendly_k.upper()] = canonical_k
+
+# Explicit aliases for common Upstox feed variations:
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY 50"] = "NSE_INDEX|Nifty 50"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY 50"] = "NSE_INDEX|Nifty 50"
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY50"] = "NSE_INDEX|Nifty 50"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY50"] = "NSE_INDEX|Nifty 50"
+
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY BANK"] = "NSE_INDEX|Nifty Bank"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY BANK"] = "NSE_INDEX|Nifty Bank"
+EXACT_INDEX_MAP["NSE_INDEX|BANKNIFTY"] = "NSE_INDEX|Nifty Bank"
+EXACT_INDEX_MAP["NSE_INDEX:BANKNIFTY"] = "NSE_INDEX|Nifty Bank"
+
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY FIN SERVICE"] = "NSE_INDEX|Nifty Fin Service"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY FIN SERVICE"] = "NSE_INDEX|Nifty Fin Service"
+EXACT_INDEX_MAP["NSE_INDEX|FINNIFTY"] = "NSE_INDEX|Nifty Fin Service"
+EXACT_INDEX_MAP["NSE_INDEX:FINNIFTY"] = "NSE_INDEX|Nifty Fin Service"
+
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY MID SELECT"] = "NSE_INDEX|NIFTY MID SELECT"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY MID SELECT"] = "NSE_INDEX|NIFTY MID SELECT"
+EXACT_INDEX_MAP["NSE_INDEX|MIDCPNIFTY"] = "NSE_INDEX|NIFTY MID SELECT"
+EXACT_INDEX_MAP["NSE_INDEX:MIDCPNIFTY"] = "NSE_INDEX|NIFTY MID SELECT"
+
+EXACT_INDEX_MAP["BSE_INDEX|SENSEX"] = "BSE_INDEX|SENSEX"
+EXACT_INDEX_MAP["BSE_INDEX:SENSEX"] = "BSE_INDEX|SENSEX"
+EXACT_INDEX_MAP["BSE_INDEX|BANKEX"] = "BSE_INDEX|BANKEX"
+EXACT_INDEX_MAP["BSE_INDEX:BANKEX"] = "BSE_INDEX|BANKEX"
+
+EXACT_INDEX_MAP["NSE_INDEX|INDIA VIX"] = "NSE_INDEX|India VIX"
+EXACT_INDEX_MAP["NSE_INDEX:INDIA VIX"] = "NSE_INDEX|India VIX"
+
+# Distinct entries for other 50/500/Midcap indices so collisions never occur:
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY 500"] = "NSE_INDEX|Nifty 500"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY 500"] = "NSE_INDEX|Nifty 500"
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY 100"] = "NSE_INDEX|Nifty 100"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY 100"] = "NSE_INDEX|Nifty 100"
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY 200"] = "NSE_INDEX|Nifty 200"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY 200"] = "NSE_INDEX|Nifty 200"
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY NEXT 50"] = "NSE_INDEX|Nifty Next 50"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY NEXT 50"] = "NSE_INDEX|Nifty Next 50"
+EXACT_INDEX_MAP["NSE_INDEX|NIFTY MIDCAP 50"] = "NSE_INDEX|Nifty Midcap 50"
+EXACT_INDEX_MAP["NSE_INDEX:NIFTY MIDCAP 50"] = "NSE_INDEX|Nifty Midcap 50"
+
 INDEX_KEYS = [k.replace("|", ":") for k in _raw_indices] + [
     "NSE_INDEX:NIFTY FIN SERVICE", "NSE_INDEX:NIFTY BANK", "NSE_INDEX:NIFTY MIDCAP 50", "NSE_INDEX:NIFTY 50"
 ]
@@ -210,34 +260,30 @@ def _on_market_message(message):
                 prev_close = float(msg.get('cp') or msg.get('pc') or msg.get('pclose') or 0)
                 
                 # Check if it's an index (case-insensitive and flexible format)
-                is_index = False
                 upper_key = instrument_key.upper().replace(":", "|")
-                
-                # Check against predefined set
-                for ik in INDEX_SET:
-                    if ik.upper().replace(":", "|") == upper_key:
-                        is_index = True
-                        break
-                
-                # Broad wildcard matching for any index or VIX
-                if not is_index:
-                    is_index = "_INDEX" in upper_key or "NIFTY" in upper_key or "SENSEX" in upper_key or "VIX" in upper_key
+                is_index = (
+                    upper_key in EXACT_INDEX_MAP 
+                    or "_INDEX|" in upper_key 
+                    or upper_key.startswith("NSE_INDEX:") 
+                    or upper_key.startswith("BSE_INDEX:")
+                )
                 
                 if is_index:
-                    # Normalize to pipe format for UI consistency
-                    normalized_key = instrument_key.replace(":", "|")
-                    # Special handling for NIFTY 50 capitalization mismatch
-                    if "NIFTY 50" in upper_key: normalized_key = "NSE_INDEX|Nifty 50"
-                    if "SENSEX" in upper_key and "BSE" in upper_key:
-                        if not any(sub in upper_key for sub in ("50", "60", "NEXT", "EQUAL", "SNSX", "SS6535", "SENEQW")):
-                            normalized_key = "BSE_INDEX|SENSEX"
-                    if "NIFTY BANK" in upper_key: normalized_key = "NSE_INDEX|Nifty Bank"
+                    # Precise canonical normalization without fuzzy collision
+                    normalized_key = EXACT_INDEX_MAP.get(upper_key, instrument_key.replace(":", "|"))
 
                     _indices_cache[normalized_key] = ltp
                     _indices_cache[normalized_key.replace('|', ':')] = ltp
                     friendly = INDEX_KEY_TO_NAME.get(normalized_key)
                     if friendly:
                         _indices_cache[friendly] = ltp
+
+                    # Also mirror into _prices_cache so lookups by symbol/key anywhere hit the exact tick
+                    _prices_cache[normalized_key] = ltp
+                    _prices_cache[normalized_key.replace('|', ':')] = ltp
+                    if friendly:
+                        _prices_cache[friendly] = ltp
+
                     _tick_timestamps[normalized_key] = _time.time()
                     if prev_close > 0:
                         _indices_prev_close[normalized_key] = prev_close

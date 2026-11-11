@@ -6071,8 +6071,18 @@
                     if (spot && spot > 0) {
                         primeOptState.underlyingSpot = spot;
                         const spotDisplay = document.getElementById('prime-opt-spot-display');
-                        if (spotDisplay && primeOptState.selectedContract) {
-                            spotDisplay.textContent = `Spot: ₹${spot.toFixed(2)} (ATM: ₹${primeOptState.selectedContract.strike_price})`;
+                        if (spotDisplay) {
+                            let atmStrike = 0;
+                            if (primeOptState.contracts && primeOptState.contracts.length > 0) {
+                                const closest = primeOptState.contracts.reduce((c, curr) => 
+                                    Math.abs(curr.strike_price - spot) < Math.abs(c.strike_price - spot) ? curr : c, 
+                                    primeOptState.contracts[0]
+                                );
+                                atmStrike = closest ? closest.strike_price : 0;
+                            } else if (primeOptState.selectedContract) {
+                                atmStrike = primeOptState.selectedContract.strike_price;
+                            }
+                            spotDisplay.textContent = `Spot: ₹${spot.toFixed(2)} (ATM: ₹${atmStrike})`;
                         }
                     }
                 }
