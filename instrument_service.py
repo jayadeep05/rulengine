@@ -10,7 +10,7 @@ import json
 import time
 import logging
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +266,7 @@ class InstrumentService:
     def get_options_contracts(
         self,
         underlying: str,
-        expiry: Optional[int] = None,
+        expiry: Optional[Union[int, str]] = None,
         option_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -281,7 +281,17 @@ class InstrumentService:
 
         # If expiry not supplied, default to the earliest upcoming expiry
         if expiry is not None:
-            target_expiry = int(expiry)
+            try:
+                target_expiry = int(expiry)
+            except (ValueError, TypeError):
+                exp_str = str(expiry).strip().lower()
+                matched_epoch = None
+                for ep in expiries_map.keys():
+                    dt = datetime.fromtimestamp(ep / 1000.0)
+                    if exp_str == dt.strftime("%Y-%m-%d").lower() or exp_str == dt.strftime("%d %b %Y").lower():
+                        matched_epoch = ep
+                        break
+                target_expiry = matched_epoch if matched_epoch is not None else sorted(expiries_map.keys())[0]
         else:
             today = datetime.now().date()
             valid_upcoming = [

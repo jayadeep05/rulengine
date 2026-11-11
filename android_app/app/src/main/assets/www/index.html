@@ -4492,7 +4492,10 @@
                             </div>
                         </div>
                         <div>
-                            <div class="prime-field-label">Strike Price</div>
+                            <div class="prime-field-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Strike Price</span>
+                                <span id="prime-opt-spot-display" style="font-size: 8.5px; font-weight: 700; color: #c084fc; text-transform: none; letter-spacing: 0;">Spot: ₹0.00</span>
+                            </div>
                             <select id="prime-opt-strike" class="prime-input"
                                 onchange="onPrimeOptStrikeChange(this.value)">
                                 <option value="">Loading...</option>
@@ -4551,7 +4554,7 @@
                         <div>
                             <div class="prime-field-label">Lots</div>
                             <input type="number" id="prime-opt-lots" class="prime-input" min="1" value="1"
-                                oninput="updatePrimeOptTotalQty()">
+                                oninput="primeOptState.userEditedLots = true; updatePrimeOptTotalQty(); validatePrimeOptForm();">
                         </div>
                         <div id="prime-opt-limit-box">
                             <div class="prime-field-label">Limit Price (₹)</div>
@@ -6024,6 +6027,7 @@
                 const data = await res.json();
                 const prices = data.prices || {};
                 const prevClose = data.prev_close || {};
+                window._latestIndices = prices;
 
                 // Flash animation helper
                 function flashPrice(el, newVal, oldVal) {
@@ -6060,6 +6064,18 @@
                         _prevIndexPrices[item.key] = ltp;
                     }
                 });
+
+                // Real-time update of PrimeRadar Options underlying spot display if an index is selected
+                if (typeof primeOptState !== 'undefined' && primeOptState.underlying) {
+                    const spot = typeof getUnderlyingLiveSpot === 'function' ? getUnderlyingLiveSpot(primeOptState.underlying) : 0;
+                    if (spot && spot > 0) {
+                        primeOptState.underlyingSpot = spot;
+                        const spotDisplay = document.getElementById('prime-opt-spot-display');
+                        if (spotDisplay && primeOptState.selectedContract) {
+                            spotDisplay.textContent = `Spot: ₹${spot.toFixed(2)} (ATM: ₹${primeOptState.selectedContract.strike_price})`;
+                        }
+                    }
+                }
 
                 // Update WS feed indicator if present
                 const wsIndEl = document.getElementById('ws-index-status');
@@ -7818,6 +7834,8 @@
             option_type: 'CE',
             contracts: [],
             selectedContract: null,
+            underlyingSpot: 0.0,
+            userEditedLots: false,
             ltp: 0.0,
             side: 'BUY',
             order_type: 'LIMIT',
@@ -7828,6 +7846,55 @@
             sl: 0.0,
             target: 0.0
         };
+
+        // Resolves the real-time spot price of any options underlying (Index or Stock)
+        function getUnderlyingLiveSpot(underlying) {
+            if (!underlying) return 0.0;
+            const u = underlying.trim().toUpperCase();
+
+            // Match underlying with candidate keys in indices and prices
+            let candidateKeys = [];
+            if (u === 'NIFTY' || u === 'NIFTY 50' || u === 'NIFTY50') {
+                candidateKeys = ['NSE_INDEX|Nifty 50', 'NSE_INDEX:Nifty 50', 'NIFTY 50', 'NIFTY'];
+            } else if (u === 'BANKNIFTY' || u === 'NIFTY BANK' || u === 'BANK NIFTY') {
+                candidateKeys = ['NSE_INDEX|Nifty Bank', 'NSE_INDEX:Nifty Bank', 'NIFTY BANK', 'BANKNIFTY'];
+            } else if (u === 'FINNIFTY' || u === 'NIFTY FIN SERVICE' || u === 'NIFTY FINANCIAL SERVICES') {
+                candidateKeys = ['NSE_INDEX|Nifty Fin Service', 'NSE_INDEX:Nifty Fin Service', 'FINNIFTY', 'NIFTY FIN SERVICE'];
+            } else if (u === 'MIDCPNIFTY' || u === 'NIFTY MID SELECT' || u === 'MIDCAP NIFTY') {
+                candidateKeys = ['NSE_INDEX|NIFTY MID SELECT', 'NSE_INDEX:NIFTY MID SELECT', 'MIDCPNIFTY', 'NIFTY MID SELECT'];
+            } else if (u === 'SENSEX' || u === 'BSE SENSEX') {
+                candidateKeys = ['BSE_INDEX|SENSEX', 'BSE_INDEX:SENSEX', 'SENSEX'];
+            } else if (u === 'BANKEX' || u === 'BSE BANKEX') {
+                candidateKeys = ['BSE_INDEX|BANKEX', 'BSE_INDEX:BANKEX', 'BANKEX'];
+            } else if (u === 'NIFTYNXT50' || u === 'NIFTY NEXT 50') {
+                candidateKeys = ['NSE_INDEX|Nifty Next 50', 'NSE_INDEX:Nifty Next 50', 'NIFTY NEXT 50'];
+            } else {
+                candidateKeys = [u];
+            }
+
+            // 1. Check window._latestIndices (from /api/indices)
+            if (window._latestIndices) {
+                for (const k of candidateKeys) {
+                    const val = parseFloat(window._latestIndices[k]);
+                    if (val && val > 0) return val;
+                }
+            }
+
+            // 2. Check window._latestPrices (from /api/live-prices)
+            if (window._latestPrices) {
+                for (const k of candidateKeys) {
+                    const val = parseFloat(window._latestPrices[k]);
+                    if (val && val > 0) return val;
+                }
+            }
+
+            // 3. Check cached spot in primeOptState
+            if (primeOptState.underlyingSpot && primeOptState.underlyingSpot > 0) {
+                return primeOptState.underlyingSpot;
+            }
+
+            return 0.0;
+        }
 
         // Order awaiting explicit confirmation
         let pendingPrimeOrder = null;
@@ -8268,20 +8335,64 @@
                 const strikeSel = document.getElementById('prime-opt-strike');
                 if (!strikeSel) return;
 
-                if (contracts.length === 0) {
+                if (!contracts || contracts.length === 0) {
                     strikeSel.innerHTML = '<option value="">No strikes found</option>';
                     return;
                 }
 
-                // Middle strike (ATM proxy) as default selection
-                const midIndex = Math.floor(contracts.length / 2);
-                strikeSel.innerHTML = contracts.map((c, idx) => `
-                    <option value="${c.instrument_key}" ${idx === midIndex ? 'selected' : ''}>
-                        ₹${c.strike_price} ${c.instrument_type}
-                    </option>
-                `).join('');
+                // 1. Resolve live real-time spot price of the underlying
+                let spotPrice = 0.0;
+                if (contracts[0] && contracts[0].spot_price && contracts[0].spot_price > 0) {
+                    spotPrice = parseFloat(contracts[0].spot_price);
+                }
+                if (!spotPrice || spotPrice <= 0) {
+                    const hdrSpot = parseFloat(res.headers.get('X-Underlying-Spot') || 0);
+                    if (hdrSpot > 0) spotPrice = hdrSpot;
+                }
+                if (!spotPrice || spotPrice <= 0) {
+                    spotPrice = getUnderlyingLiveSpot(primeOptState.underlying);
+                }
+                primeOptState.underlyingSpot = spotPrice;
 
-                onPrimeOptStrikeChange(strikeSel.value);
+                // 2. Dynamically calculate the nearest ATM strike
+                let selectedContract = null;
+                if (spotPrice > 0) {
+                    selectedContract = contracts.reduce((closest, curr) => {
+                        if (!closest) return curr;
+                        const closestDiff = Math.abs(closest.strike_price - spotPrice);
+                        const currDiff = Math.abs(curr.strike_price - spotPrice);
+                        return currDiff < closestDiff ? curr : closest;
+                    }, contracts[0]);
+                } else {
+                    selectedContract = contracts.find(c => c.is_atm) || contracts[Math.floor(contracts.length / 2)];
+                }
+
+                const atmKey = selectedContract ? selectedContract.instrument_key : '';
+                const atmStrike = selectedContract ? selectedContract.strike_price : 0;
+
+                // 3. Update Spot & ATM display in UI
+                const spotDisplay = document.getElementById('prime-opt-spot-display');
+                if (spotDisplay) {
+                    if (spotPrice > 0) {
+                        spotDisplay.textContent = `Spot: ₹${spotPrice.toFixed(2)} (ATM: ₹${atmStrike})`;
+                        spotDisplay.title = `Live ${primeOptState.underlying} spot: ₹${spotPrice.toFixed(2)}. Selected ATM strike: ₹${atmStrike}.`;
+                    } else {
+                        spotDisplay.textContent = `ATM Strike: ₹${atmStrike}`;
+                    }
+                }
+
+                // 4. Render strikes in dropdown, clearly marking the dynamic ATM strike
+                strikeSel.innerHTML = contracts.map(c => {
+                    const isAtm = (c.strike_price === atmStrike);
+                    const isSelected = (c.instrument_key === atmKey);
+                    const label = isAtm
+                        ? `₹${c.strike_price} ${c.instrument_type} • ATM`
+                        : `₹${c.strike_price} ${c.instrument_type}`;
+                    return `<option value="${c.instrument_key}" ${isSelected ? 'selected' : ''}>${label}</option>`;
+                }).join('');
+
+                strikeSel.value = atmKey;
+                onPrimeOptStrikeChange(atmKey);
             } catch (e) {
                 console.warn("loadPrimeOptContracts error:", e);
             }
@@ -8323,6 +8434,25 @@
                     const base = ltp > 0 ? ltp : 50.0;
                     const isBuy = (primeOptState.side === 'BUY');
 
+                    // Auto-calculate lots based on available capital per trade
+                    const lotsInput = document.getElementById('prime-opt-lots');
+                    if (lotsInput && !primeOptState.userEditedLots) {
+                        const lotSize = primeOptState.selectedContract ? (primeOptState.selectedContract.lot_size || 1) : 1;
+                        let totalCap = 10000.0;
+                        if (config && config.USE_LIVE_CAPITAL) {
+                            totalCap = parseFloat(state.account_balance || state.usable_balance || config.MANUAL_CAPITAL || 10000.0);
+                        } else {
+                            totalCap = parseFloat((config && config.MANUAL_CAPITAL) || state.active_capital || state.usable_balance || 10000.0);
+                        }
+                        if (!totalCap || totalCap <= 0) totalCap = 10000.0;
+                        const maxOpen = Math.max(1, parseInt((config && config.MAX_OPEN_TRADES) || 2));
+                        const capPerTrade = totalCap / maxOpen;
+                        const costPerLot = (ltp > 0 ? ltp : 50.0) * lotSize;
+                        const calcLots = Math.max(1, Math.floor(capPerTrade / costPerLot));
+                        lotsInput.value = calcLots;
+                        updatePrimeOptTotalQty();
+                    }
+
                     // Auto-suggest price inputs
                     const priceInput = document.getElementById('prime-opt-price');
                     if (priceInput && (force || !priceInput.value || parseFloat(priceInput.value) <= 0)) {
@@ -8340,6 +8470,7 @@
                     if (targetInput && (force || !targetInput.value || parseFloat(targetInput.value) <= 0)) {
                         targetInput.value = (base * (isBuy ? 1.30 : 0.70)).toFixed(2);
                     }
+                    validatePrimeOptForm();
                 }
             } catch (e) {
                 console.warn("Error refreshing Options LTP:", e);

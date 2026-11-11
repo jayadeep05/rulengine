@@ -12,7 +12,7 @@ from datetime import datetime, time
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 
 # ── Auth imports ──────────────────────────────────────────────────────────────
 from auth import (
@@ -2970,16 +2970,117 @@ def api_get_options_expiries(underlying: str, user: dict = Depends(require_auth)
     from instrument_service import instrument_service
     return instrument_service.get_options_expiries(underlying)
 
+def get_underlying_spot_price(underlying: str, user_id: Optional[int] = None) -> float:
+    """
+    Resolves the real-time spot price of any options underlying (Index or Stock).
+    Checks shared streaming price cache, index feeds, and live broker engine quote.
+    """
+    if not underlying:
+        return 0.0
+    u = underlying.strip().upper()
+
+    keys_to_check = []
+    if u in ("NIFTY", "NIFTY 50", "NIFTY50"):
+        keys_to_check = ["NSE_INDEX|Nifty 50", "NSE_INDEX:Nifty 50", "NIFTY 50", "NIFTY"]
+    elif u in ("BANKNIFTY", "NIFTY BANK", "BANK NIFTY"):
+        keys_to_check = ["NSE_INDEX|Nifty Bank", "NSE_INDEX:Nifty Bank", "NIFTY BANK", "BANKNIFTY"]
+    elif u in ("FINNIFTY", "NIFTY FIN SERVICE", "NIFTY FINANCIAL SERVICES"):
+        keys_to_check = ["NSE_INDEX|Nifty Fin Service", "NSE_INDEX:Nifty Fin Service", "FINNIFTY", "NIFTY FIN SERVICE"]
+    elif u in ("MIDCPNIFTY", "NIFTY MID SELECT", "MIDCAP NIFTY"):
+        keys_to_check = ["NSE_INDEX|NIFTY MID SELECT", "NSE_INDEX:NIFTY MID SELECT", "MIDCPNIFTY", "NIFTY MID SELECT"]
+    elif u in ("SENSEX", "BSE SENSEX"):
+        keys_to_check = ["BSE_INDEX|SENSEX", "BSE_INDEX:SENSEX", "SENSEX"]
+    elif u in ("BANKEX", "BSE BANKEX"):
+        keys_to_check = ["BSE_INDEX|BANKEX", "BSE_INDEX:BANKEX", "BANKEX"]
+    elif u in ("NIFTYNXT50", "NIFTY NEXT 50"):
+        keys_to_check = ["NSE_INDEX|Nifty Next 50", "NSE_INDEX:Nifty Next 50", "NIFTY NEXT 50"]
+    else:
+        from instrument_resolver import get_instrument_key
+        st_key = get_instrument_key(u)
+        if st_key:
+            keys_to_check = [u, st_key, st_key.replace("|", ":")]
+        else:
+            keys_to_check = [u]
+
+    # 1. Check shared live prices
+    for k in keys_to_check:
+        val = _shared_prices.get(k)
+        if val and float(val) > 0:
+            return float(val)
+
+    # 2. Check merged index feed
+    try:
+        indices, _ = get_merged_indices()
+        for k in keys_to_check:
+            val = indices.get(k)
+            if val and float(val) > 0:
+                return float(val)
+    except Exception:
+        pass
+
+    # 3. Check broker engine quote
+    bot = get_bot(user_id) if user_id else None
+    if not bot:
+        from user_bot_registry import all_bots
+        bots = all_bots()
+        if bots:
+            bot = next(iter(bots.values()))
+    if bot:
+        for k in keys_to_check:
+            if "|" in k or ":" in k:
+                try:
+                    q = float(bot.engine.get_ltp(k))
+                    if q and q > 0:
+                        _shared_prices[k] = q
+                        return q
+                except Exception:
+                    pass
+
+    return 0.0
+
 @app.get("/api/instruments/options/contracts")
 def api_get_options_contracts(
     underlying: str,
-    expiry: Optional[int] = None,
+    expiry: Optional[Union[int, str]] = None,
     type: Optional[str] = None,
     user: dict = Depends(require_auth)
 ):
-    """Returns sorted options contracts for underlying, expiry, and CE/PE."""
+    """Returns sorted options contracts for underlying, expiry, and CE/PE with dynamic ATM strike calculation."""
     from instrument_service import instrument_service
-    return instrument_service.get_options_contracts(underlying, expiry=expiry, option_type=type)
+    contracts = instrument_service.get_options_contracts(underlying, expiry=expiry, option_type=type)
+    
+    uid = user.get("uid")
+    spot_price = get_underlying_spot_price(underlying, uid)
+    
+    atm_strike = None
+    if spot_price > 0 and contracts:
+        closest_contract = min(contracts, key=lambda c: abs(c["strike_price"] - spot_price))
+        atm_strike = closest_contract["strike_price"]
+        for c in contracts:
+            c["is_atm"] = bool(c["strike_price"] == atm_strike)
+            c["spot_price"] = spot_price
+            c["atm_strike"] = atm_strike
+    elif contracts:
+        mid = len(contracts) // 2
+        atm_strike = contracts[mid]["strike_price"]
+        for c in contracts:
+            c["is_atm"] = bool(c["strike_price"] == atm_strike)
+            c["spot_price"] = 0.0
+            c["atm_strike"] = atm_strike
+
+    return JSONResponse(
+        content=contracts,
+        headers={
+            "X-Underlying-Spot": str(spot_price),
+            "X-ATM-Strike": str(atm_strike or 0.0)
+        }
+    )
+
+@app.get("/api/instruments/options/spot")
+def api_get_underlying_spot(underlying: str, user: dict = Depends(require_auth)):
+    """Returns the verified live spot price and ATM strike for any options underlying."""
+    spot = get_underlying_spot_price(underlying, user.get("uid"))
+    return {"underlying": underlying, "spot_price": spot}
 
 @app.get("/api/market/ltp")
 def api_get_market_ltp(
