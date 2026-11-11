@@ -167,6 +167,7 @@ class UserConfig(Base):
     use_claude_filter      = Column("use_groq_filter", Integer, default=1)  # 1=True, 0=False
     use_live_capital       = Column(Integer, default=0)
     manual_capital         = Column(Float, default=10000.0)
+    leverage               = Column(Float, default=5.0)
     hybrid_virtual_mode    = Column(Integer, default=1)  # 1=True, 0=False
     trading_mode           = Column(String(20), default="TEST")  # "TEST" or "LIVE"
     is_running             = Column(Integer, default=0)          # 1=Running, 0=Stopped

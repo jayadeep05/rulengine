@@ -3059,6 +3059,7 @@ async def api_update_config(payload: dict, user: dict = Depends(require_auth), d
     if "USE_LIVE_CAPITAL" in payload: cfg.use_live_capital = 1 if payload["USE_LIVE_CAPITAL"] else 0
     if "HYBRID_VIRTUAL_MODE" in payload: cfg.hybrid_virtual_mode = 1 if payload["HYBRID_VIRTUAL_MODE"] else 0
     if "MANUAL_CAPITAL" in payload: cfg.manual_capital = float(payload["MANUAL_CAPITAL"])
+    if "LEVERAGE" in payload: cfg.leverage = float(payload["LEVERAGE"])
     if "MODE" in payload: cfg.trading_mode = payload["MODE"].upper()
     
     db.commit()
@@ -3127,6 +3128,7 @@ def get_user_config_dict(db, user_id: int) -> dict:
         "USE_LIVE_CAPITAL": bool(cfg.use_live_capital),
         "HYBRID_VIRTUAL_MODE": getattr(cfg, 'hybrid_virtual_mode', 1) == 1,
         "MANUAL_CAPITAL": cfg.manual_capital,
+        "LEVERAGE": getattr(cfg, 'leverage', None) or getattr(Config, 'INTRADAY_LEVERAGE', 5.0),
         "MODE": cfg.trading_mode or "TEST"
     }
 
@@ -3390,6 +3392,19 @@ async def api_prime_radar_execute(
 
     if live_ltp <= 0:
         live_ltp = 100.0  # Fallback for paper testing when market is offline
+
+    # Dynamic Quantity calculation fallback if qty omitted or <= 0
+    if not body.qty or int(body.qty) <= 0:
+        usable_cap = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
+        if bot.config.get('USE_LIVE_CAPITAL'):
+            usable_cap = float(getattr(bot.state, 'account_balance', 0) or getattr(bot.state, 'usable_balance', 0) or usable_cap)
+        if usable_cap <= 0:
+            usable_cap = 10000.0
+        max_open_cfg = max(1, int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2))
+        lev = float(bot.config.get('LEVERAGE', getattr(Config, 'INTRADAY_LEVERAGE', 5.0)) or 5.0)
+        cap_per_trade = usable_cap / max_open_cfg
+        effective_trade_val = cap_per_trade * lev
+        body.qty = max(1, math.floor(effective_trade_val / live_ltp))
 
     # 6. Execute Order via Broker Engine
     logger.info(

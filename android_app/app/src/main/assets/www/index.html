@@ -4404,9 +4404,12 @@
                     <!-- Order Configuration Grid -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                         <div>
-                            <div class="prime-field-label">Quantity</div>
+                            <div class="prime-field-label" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Quantity</span>
+                                <span id="prime-intra-qty-helper" style="font-size: 8.5px; font-weight: 700; color: #38bdf8; text-transform: none; letter-spacing: 0; cursor: pointer;" onclick="resetPrimeIntraQtyToAuto()" title="Click to recalculate auto quantity">Auto: 5x</span>
+                            </div>
                             <input type="number" id="prime-intra-qty" class="prime-input" min="1" value="1"
-                                oninput="validatePrimeIntraForm()">
+                                oninput="onPrimeIntraQtyInput()">
                         </div>
                         <div id="prime-intra-limit-box">
                             <div class="prime-field-label">Limit Price (₹)</div>
@@ -5434,6 +5437,10 @@
                         <span class="cfg-label">Manual Capital (₹)</span>
                         <input type="number" step="1000" class="cfg-input" id="c-manual-cap">
                     </div>
+                    <div class="cfg-row">
+                        <span class="cfg-label">Intraday Leverage (x)</span>
+                        <input type="number" step="0.5" min="1" max="10" class="cfg-input" id="c-leverage" placeholder="5.0">
+                    </div>
                 </div>
                 <div class="cfg-section" style="grid-column: 1 / -1;">
                     <div class="cfg-sec-title">🔑 Upstox Credentials (Write-Only)</div>
@@ -5634,6 +5641,9 @@
                 const [sRes, cRes] = await Promise.all([fetch(`${API}/status`), fetch(`${API}/config`)]);
                 state = await sRes.json();
                 config = await cRes.json();
+                if (typeof primeIntraState !== 'undefined' && !primeIntraState.userEditedQty && typeof updatePrimeIntraDynamicQty === 'function') {
+                    updatePrimeIntraDynamicQty(false);
+                }
                 const ms = Date.now() - t0;
                 lastFetch = Date.now();
                 updateLatency(ms);
@@ -5968,6 +5978,9 @@
                         primeIntraState.ltp = parseFloat(ltp);
                         const el = document.getElementById('prime-intra-ltp-val');
                         if (el) el.textContent = `₹${parseFloat(ltp).toFixed(2)}`;
+                        if (!primeIntraState.userEditedQty && typeof updatePrimeIntraDynamicQty === 'function') {
+                            updatePrimeIntraDynamicQty(false);
+                        }
                     }
                 }
                 if (typeof primeOptState !== 'undefined' && primeOptState.selectedContract) {
@@ -7281,6 +7294,7 @@
             document.getElementById('c-mode').value = config.MODE || 'TEST';
             document.getElementById('c-use-live-capital').value = config.USE_LIVE_CAPITAL ? 'true' : 'false';
             document.getElementById('c-manual-cap').value = config.MANUAL_CAPITAL || 10000.0;
+            document.getElementById('c-leverage').value = config.LEVERAGE || 5.0;
 
             // Clear write-only fields
             document.getElementById('c-up-id').value = '';
@@ -7319,6 +7333,7 @@
             document.getElementById('c-candle').value = '0.8';
             document.getElementById('c-min-price').value = '50';
             document.getElementById('c-max-price').value = '5000';
+            document.getElementById('c-leverage').value = '5.0';
             toast('Safe mode values loaded. Press Save to apply.', 'info');
         }
         async function saveConfig() {
@@ -7335,7 +7350,8 @@
                 HYBRID_VIRTUAL_MODE: document.getElementById('c-hybrid-mode').value === 'true',
                 MODE: document.getElementById('c-mode').value,
                 USE_LIVE_CAPITAL: document.getElementById('c-use-live-capital').value === 'true',
-                MANUAL_CAPITAL: parseFloat(document.getElementById('c-manual-cap').value)
+                MANUAL_CAPITAL: parseFloat(document.getElementById('c-manual-cap').value),
+                LEVERAGE: parseFloat(document.getElementById('c-leverage')?.value || 5.0)
             };
 
             // Write-only Upstox credentials
@@ -7699,8 +7715,100 @@
             price: 0.0,
             trigger_price: 0.0,
             sl: 0.0,
-            target: 0.0
+            target: 0.0,
+            userEditedQty: false
         };
+
+        // ─── DYNAMIC CAPITAL ALLOCATION & QUANTITY CALCULATION ─────────────────────
+        // Formula per system specification:
+        // Usable Capital = config.USE_LIVE_CAPITAL ? (account_balance || usable_balance) : manual_capital
+        // Capital Per Trade = Usable Capital / Maximum Open Trades
+        // Effective Trade Value (Buying Power) = Capital Per Trade × Leverage (5x default)
+        // Order Quantity = Math.floor(Effective Trade Value / Current Stock Price)
+        function getCalculatedPrimeIntraQty(stockPrice) {
+            const p = parseFloat(stockPrice);
+            if (!p || p <= 0) return { qty: 1, usableCapital: 10000, maxOpenTrades: 2, capitalPerTrade: 5000, leverage: 5.0, effectiveTradeValue: 25000 };
+
+            // 1. Usable Capital based on configuration
+            let usableCapital = 10000.0;
+            if (config && config.USE_LIVE_CAPITAL) {
+                usableCapital = parseFloat(state.account_balance || state.usable_balance || config.MANUAL_CAPITAL || 10000.0);
+            } else {
+                usableCapital = parseFloat((config && config.MANUAL_CAPITAL) || state.active_capital || state.usable_balance || 10000.0);
+            }
+            if (!usableCapital || usableCapital <= 0) usableCapital = 10000.0;
+
+            // 2. Maximum Open Trades from configuration
+            const maxOpenTrades = Math.max(1, parseInt((config && config.MAX_OPEN_TRADES) || 2));
+
+            // 3. Capital Per Trade = Usable Capital / Maximum Open Trades
+            const capitalPerTrade = usableCapital / maxOpenTrades;
+
+            // 4. Leverage: from configuration (default 5.0x for intraday MIS)
+            const leverage = parseFloat((config && config.LEVERAGE) || 5.0) || 5.0;
+
+            // 5. Effective Trade Value = Capital Per Trade * Leverage
+            const effectiveTradeValue = capitalPerTrade * leverage;
+
+            // 6. Quantity = Math.floor(Effective Trade Value / Current Stock Price)
+            const qty = Math.max(1, Math.floor(effectiveTradeValue / p));
+
+            return {
+                qty,
+                usableCapital,
+                maxOpenTrades,
+                capitalPerTrade,
+                leverage,
+                effectiveTradeValue
+            };
+        }
+
+        function updatePrimeIntraDynamicQty(force = false) {
+            const qtyInput = document.getElementById('prime-intra-qty');
+            const helperEl = document.getElementById('prime-intra-qty-helper');
+            if (!qtyInput) return;
+
+            // If user manually edited the quantity, keep manual value unless forced
+            if (primeIntraState.userEditedQty && !force) {
+                if (helperEl) {
+                    helperEl.textContent = '✏️ Manual (reset)';
+                    helperEl.style.color = '#f59e0b';
+                    helperEl.title = 'Manual quantity set. Click to reset to dynamic auto quantity.';
+                }
+                return;
+            }
+
+            const currentPrice = (primeIntraState.ltp && primeIntraState.ltp > 0)
+                ? primeIntraState.ltp
+                : (parseFloat(document.getElementById('prime-intra-price')?.value || 0) || 100.0);
+
+            const calc = getCalculatedPrimeIntraQty(currentPrice);
+            qtyInput.value = calc.qty;
+
+            if (helperEl) {
+                helperEl.textContent = `Auto: ${calc.qty} (${calc.leverage}x)`;
+                helperEl.style.color = '#38bdf8';
+                helperEl.title = `Auto: Capital ₹${Math.round(calc.usableCapital).toLocaleString('en-IN')} / ${calc.maxOpenTrades} slots = ₹${Math.round(calc.capitalPerTrade).toLocaleString('en-IN')} × ${calc.leverage}x lev = ₹${Math.round(calc.effectiveTradeValue).toLocaleString('en-IN')} / ₹${currentPrice.toFixed(2)}`;
+            }
+        }
+
+        function resetPrimeIntraQtyToAuto() {
+            primeIntraState.userEditedQty = false;
+            updatePrimeIntraDynamicQty(true);
+            validatePrimeIntraForm();
+            toast('↺ Quantity reset to dynamic auto-calculation', 'info');
+        }
+
+        function onPrimeIntraQtyInput() {
+            primeIntraState.userEditedQty = true;
+            const helperEl = document.getElementById('prime-intra-qty-helper');
+            if (helperEl) {
+                helperEl.textContent = '✏️ Manual (reset)';
+                helperEl.style.color = '#f59e0b';
+                helperEl.title = 'Click to reset to dynamic auto quantity';
+            }
+            validatePrimeIntraForm();
+        }
 
         // State Store for PrimeRadar – Options
         const primeOptState = {
@@ -7833,6 +7941,7 @@
             primeIntraState.instrument_key = key;
             primeIntraState.lot_size = lotSize || 1;
             primeIntraState.tick_size = tickSize || 0.05;
+            primeIntraState.userEditedQty = false; // Reset manual flag on new stock selection
 
             // Update UI elements
             const symEl = document.getElementById('prime-intra-sym-display');
@@ -7882,6 +7991,9 @@
                         if (targetInput && (force || !targetInput.value || parseFloat(targetInput.value) <= 0)) {
                             targetInput.value = (ltp * (isBuy ? 1.02 : 0.98)).toFixed(2);
                         }
+
+                        // Auto-calculate and update order quantity dynamically based on system config
+                        updatePrimeIntraDynamicQty(force);
                     }
                 }
             } catch (e) {

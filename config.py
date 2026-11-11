@@ -48,6 +48,7 @@ class Config:
     CAPITAL = float(os.getenv("INITIAL_CAPITAL", "25000.0"))  # Configurable virtual balance (₹25,000)
     USE_LIVE_CAPITAL = os.getenv("USE_LIVE_CAPITAL", "false").lower() == "true"
     MANUAL_CAPITAL = float(os.getenv("INITIAL_CAPITAL", "25000.0"))
+    INTRADAY_LEVERAGE = float(os.getenv("INTRADAY_LEVERAGE", "5.0"))
     
     # AI/ML Configuration
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
