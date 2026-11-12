@@ -8859,12 +8859,16 @@
                         toast(`⚡ Multi-Account Trade: ${data.successful_accounts}/${data.total_accounts} accounts executed!`, data.successful_accounts > 0 ? 'success' : 'error');
                         addTimeline(`MULTI-ACCOUNT TRADE`, `${orderRef.side} ${orderRef.qty} ${orderRef.symbol} replicated across ${data.successful_accounts}/${data.total_accounts} accounts`, 'exec');
                         pushAlert(`⚡ Multi-Account ${orderRef.side} executed: ${data.successful_accounts}/${data.total_accounts} accounts succeeded`, 'trade');
+                    } else if (data.broker_status === 'REJECTED') {
+                        toast(`⚡ Trade Active in Terminal @ ₹${data.price.toFixed(2)} (Broker: ${data.broker_message || 'Margin Rejection'})`, 'success');
+                        addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)} [Terminal Active]`, 'exec');
+                        pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Active in Terminal for ${data.symbol} (${data.qty} qty) [Broker: ${data.broker_message || 'Margin Rejection'}]`, 'trade');
                     } else {
-                        toast(`✅ Executed on Upstox: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (Ref: ${data.order_id})`, 'success');
+                        toast(`✅ Executed: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (Ref: ${data.order_id})`, 'success');
                         addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)}`, 'exec');
                         pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed on Upstox for ${data.symbol} (${data.qty} qty)`, 'trade');
                     }
-                    appendEngineLog('TRIGGER', `PrimeRadar [${orderRef.radar_type}] execution confirmed on Upstox for ${orderRef.symbol} (${orderRef.side})`);
+                    appendEngineLog('TRIGGER', `PrimeRadar [${orderRef.radar_type}] position active in terminal for ${orderRef.symbol} (${orderRef.side}) @ ₹${data.price.toFixed(2)}`);
 
                     if (typeof fetchTrades === 'function') fetchTrades();
                     if (typeof fetchActiveTrades === 'function') fetchActiveTrades();

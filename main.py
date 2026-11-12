@@ -3533,93 +3533,120 @@ async def api_prime_radar_execute(
         product=body.product
     )
 
+    import uuid as _uuid
     order_status = res.get("status", "success")
-    order_id = res.get("order_id") or f"PRIME_{int(_time.time()*1000)}"
+    broker_order_id = res.get("order_id") or f"PRIME_{int(_time.time()*1000)}"
+    is_broker_filled = order_status in ("success", "COMPLETE", "pending")
+    broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
 
-    if order_status in ("success", "COMPLETE", "pending"):
-        entry_price = float(res.get("average_price") or (body.price if order_type == "LIMIT" else (body.trigger_price or live_ltp)))
-        if entry_price <= 0:
-            entry_price = round(live_ltp, 2)
+    # Portal Independent Execution:
+    # Use the price at which the user initiated the trade as entry price (or broker fill price if filled)
+    if is_broker_filled and float(res.get("average_price", 0.0)) > 0:
+        entry_price = float(res.get("average_price"))
+    elif order_type == "LIMIT" and body.price > 0:
+        entry_price = float(body.price)
+    elif order_type == "SL-M" and body.trigger_price > 0:
+        entry_price = float(body.trigger_price)
+    else:
+        entry_price = float(live_ltp)
 
-        # Fallback SL & Target if omitted
-        sl = body.sl
-        target = body.target
-        if sl <= 0:
-            sl_pct = 0.01
-            sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
-        if target <= 0:
-            target_pct = 0.02
-            target = round(entry_price * (1.0 - target_pct) if side == "SELL" else entry_price * (1.0 + target_pct), 2)
+    if entry_price <= 0:
+        entry_price = round(live_ltp, 2) if live_ltp > 0 else 100.0
 
-        bot.tm.add_trade(
-            symbol=body.symbol,
-            side=side,
-            entry_price=entry_price,
-            qty=body.qty,
-            sl=sl,
-            target=target,
-            probability=0.85,
-            score=88,
-            metadata={
-                "prime_radar": True,
-                "radar_type": body.radar_type,
-                "order_type": order_type,
-                "limit_price": body.price,
-                "trigger_price": body.trigger_price,
-                "paper_trade": bot.engine.is_paper,
-                "instrument_token": body.instrument_key,
-                "contract_info": body.contract_info or {}
-            }
-        )
-        if bot.tm.active_trades:
-            bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
+    # Fallback SL & Target if omitted
+    sl = body.sl
+    target = body.target
+    if sl <= 0:
+        sl_pct = 0.01
+        sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+    if target <= 0:
+        target_pct = 0.02
+        target = round(entry_price * (1.0 - target_pct) if side == "SELL" else entry_price * (1.0 + target_pct), 2)
 
-        # Automatically register & subscribe to real-time WebSocket ticks for this symbol
-        try:
-            market_feed.subscribe_symbol(body.symbol, body.instrument_key)
-            _shared_prices[body.symbol] = entry_price
-            _shared_prices[body.instrument_key] = entry_price
-            _shared_timestamps[body.symbol] = _tm.time()
-        except Exception as sub_err:
-            logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
+    is_virtual = not is_broker_filled or bot.engine.is_paper
+    sl_order_id = broker_order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
 
-        from telegram_alert import alert_manual_trade_entry
-        alert_manual_trade_entry(
-            symbol=body.symbol,
-            side=side,
-            qty=body.qty,
-            price=entry_price,
-            sl=sl,
-            target=target,
-            radar_type=body.radar_type,
-            order_type=order_type,
-            user_id=uid
-        )
+    bot.tm.add_trade(
+        symbol=body.symbol,
+        side=side,
+        entry_price=entry_price,
+        qty=body.qty,
+        sl=sl,
+        target=target,
+        probability=0.85,
+        score=88,
+        sl_order_id=sl_order_id,
+        metadata={
+            "prime_radar": True,
+            "radar_type": body.radar_type,
+            "order_type": order_type,
+            "limit_price": body.price,
+            "trigger_price": body.trigger_price,
+            "paper_trade": is_virtual,
+            "is_virtual": is_virtual,
+            "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+            "broker_rejection": broker_rejection,
+            "broker_order_id": broker_order_id,
+            "instrument_token": body.instrument_key,
+            "contract_info": body.contract_info or {}
+        }
+    )
+    if bot.tm.active_trades:
+        bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
+        bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
 
+    # Automatically register & subscribe to real-time WebSocket ticks for this symbol
+    try:
+        market_feed.subscribe_symbol(body.symbol, body.instrument_key)
+        _shared_prices[body.symbol] = entry_price
+        _shared_prices[body.instrument_key] = entry_price
+        _shared_timestamps[body.symbol] = _tm.time()
+    except Exception as sub_err:
+        logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
+
+    from telegram_alert import alert_manual_trade_entry
+    alert_manual_trade_entry(
+        symbol=body.symbol,
+        side=side,
+        qty=body.qty,
+        price=entry_price,
+        sl=sl,
+        target=target,
+        radar_type=body.radar_type,
+        order_type=order_type,
+        user_id=uid
+    )
+
+    if is_broker_filled:
         trade_msg = (
             f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "
             f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f})"
         )
-        send_alert(uid, trade_msg)
-
-        return {
-            "status": "success",
-            "order_id": order_id,
-            "symbol": body.symbol,
-            "side": side,
-            "qty": body.qty,
-            "price": entry_price,
-            "sl": sl,
-            "target": target,
-            "order_type": order_type,
-            "radar_type": body.radar_type
-        }
     else:
-        reason = res.get("reason", "Order rejected by broker.")
-        order_id = res.get("order_id", "")
-        logger.error(f"[USER {uid}] PrimeRadar order rejected by Upstox: {reason} (Upstox Order ID: {order_id})")
-        ref_text = f" (Upstox Order #{order_id})" if order_id else ""
-        raise HTTPException(status_code=400, detail=f"Upstox Broker Rejection{ref_text}: {reason}")
+        logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}) order rejected by broker ({broker_rejection}). Executing and tracking independently in Terminal @ ₹{entry_price:.2f}.")
+        trade_msg = (
+            f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} Active in Terminal: "
+            f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f}) "
+            f"[Broker Status: {broker_rejection}]"
+        )
+    send_alert(uid, trade_msg)
+
+    return {
+        "status": "success",
+        "terminal_executed": True,
+        "broker_confirmed": is_broker_filled,
+        "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+        "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
+        "order_id": broker_order_id,
+        "symbol": body.symbol,
+        "side": side,
+        "qty": body.qty,
+        "price": entry_price,
+        "sl": sl,
+        "target": target,
+        "order_type": order_type,
+        "radar_type": body.radar_type
+    }
 
 class ManualSLUpdate(BaseModel):
     trade_id:  str

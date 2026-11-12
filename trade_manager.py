@@ -521,7 +521,7 @@ class TradeManager:
         rounded_current_sl = round(trade['sl'] * 20) / 20.0
 
         # If a physically new SL triggers, process it on the server
-        is_paper = trade.get('metadata', {}).get('paper_trade', False)
+        is_paper = trade.get('metadata', {}).get('paper_trade', False) or trade.get('metadata', {}).get('is_virtual', False)
 
         # If a physically new SL triggers, process it on the server (unless it is a paper trade)
         if abs(rounded_new_sl - rounded_current_sl) >= 0.05:
@@ -636,6 +636,16 @@ class TradeManager:
             else:
                 trade_logger.info(f"TRAILED {'PAPER' if is_paper else 'LOCAL'} SL (2-Stage): {trade['symbol']} | Old: {rounded_current_sl} | New: {rounded_new_sl}")
                 trade['sl'] = rounded_new_sl
+                db = SessionLocal()
+                try:
+                    db_trade = db.query(Trade).filter(Trade.id == trade['id']).first()
+                    if db_trade:
+                        db_trade.sl_price = rounded_new_sl
+                        db.commit()
+                except Exception as e:
+                    logger.error(f"Failed to update trailed SL in DB: {e}")
+                finally:
+                    db.close()
                 # Dispatch local trailing alert
                 try:
                     from telegram_alert import alert_trailing_sl_updated
