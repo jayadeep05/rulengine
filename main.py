@@ -3370,6 +3370,18 @@ async def api_manual_trade(
         except Exception:
             pass
             
+        from telegram_alert import alert_manual_trade_entry
+        alert_manual_trade_entry(
+            symbol=body.symbol,
+            side=side,
+            qty=qty,
+            price=entry_price,
+            sl=sl,
+            target=target,
+            radar_type="MANUAL",
+            order_type="MARKET",
+            user_id=uid
+        )
         send_alert(uid, f"⚡ Manual {side} Order Executed for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
         return {"status": "success", "order_id": order_id, "symbol": body.symbol, "side": side, "qty": qty, "price": entry_price}
     else:
@@ -3572,6 +3584,19 @@ async def api_prime_radar_execute(
             _shared_timestamps[body.symbol] = _tm.time()
         except Exception as sub_err:
             logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
+
+        from telegram_alert import alert_manual_trade_entry
+        alert_manual_trade_entry(
+            symbol=body.symbol,
+            side=side,
+            qty=body.qty,
+            price=entry_price,
+            sl=sl,
+            target=target,
+            radar_type=body.radar_type,
+            order_type=order_type,
+            user_id=uid
+        )
 
         trade_msg = (
             f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "

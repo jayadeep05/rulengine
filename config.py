@@ -139,8 +139,8 @@ class Config:
     ACTIVE_AI_EVALUATOR = os.getenv("ACTIVE_AI_EVALUATOR", "second_ai" if SECOND_AI_API_KEY or _prov == "ollama" else ("claude" if os.getenv("ANTHROPIC_API_KEY") else "local_rule"))
 
     # ── Telegram Alerting ─────────────────────────────────────────────────────
-    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "")
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8667639705:AAEtYGnATPAUDU1lTo0qnyXFEAK1_hmk3LM")
+    TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID", "5796294433")
 
     # Symbols mapping (User friendly name -> Upstox Format)
 

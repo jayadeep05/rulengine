@@ -19,10 +19,18 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 
 import time as _time
 import threading
+from typing import Optional
+
+_cached_token: Optional[str] = None
+_cached_chat_id: Optional[str] = None
 
 def _get_telegram_creds():
-    token = Config.TELEGRAM_BOT_TOKEN or os.getenv("TELEGRAM_BOT_TOKEN", "")
-    chat_id = Config.TELEGRAM_CHAT_ID or os.getenv("TELEGRAM_CHAT_ID", "")
+    global _cached_token, _cached_chat_id
+    if _cached_token and _cached_chat_id:
+        return _cached_token, _cached_chat_id
+
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "") or getattr(Config, "TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "") or getattr(Config, "TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:
         try:
             from database import SessionLocal, SystemConfigDB
@@ -37,6 +45,17 @@ def _get_telegram_creds():
                         chat_id = row.config_value.strip()
         except Exception:
             pass
+
+    # Fallback to configured bot credentials if not found elsewhere
+    if not token:
+        token = "8667639705:AAEtYGnATPAUDU1lTo0qnyXFEAK1_hmk3LM"
+    if not chat_id:
+        chat_id = "5796294433"
+
+    if token and chat_id:
+        _cached_token = token
+        _cached_chat_id = chat_id
+
     return token, chat_id
 
 def _send_telegram_blocking(message: str, parse_mode: str = "HTML", retries: int = 1) -> bool:
@@ -107,19 +126,51 @@ def alert_token_refresh_failed():
 def alert_watchlist_refreshed(time_str: str, count: int):
     pass  # User requested to disable this notification
 
-def alert_trade_entry(direction: str, symbol: str, fill_price: float, sl: float, target: float, qty: int, confidence: int, reasoning: str):
-    emoji = "📈" if direction == "LONG" else "📉"
-    send_telegram(
-        f"{emoji} {direction} ENTERED: {symbol} @ ₹{fill_price:.2f}\n"
-        f"Qty: {qty} | SL: ₹{sl:.2f} | Target: ₹{target:.2f}\n"
-        f"Confidence: {confidence}/5 | Reason: {reasoning}"
+def alert_trade_entry(direction: str, symbol: str, fill_price: float, sl: float, target: float, qty: int, confidence: int = 5, reasoning: str = ""):
+    emoji = "🟢" if direction.upper() in ("LONG", "BUY") else "🔴"
+    reason_line = f"\n• <b>Reason:</b> {reasoning}" if reasoning else ""
+    send_telegram_critical(
+        f"{emoji} <b>ALGO TRADE ENTERED: {symbol}</b>\n"
+        f"• <b>Side:</b> {direction.upper()} | <b>Qty:</b> {qty} @ ₹{fill_price:.2f}\n"
+        f"• <b>SL:</b> ₹{sl:.2f} | <b>Target:</b> ₹{target:.2f}\n"
+        f"• <b>Confidence:</b> {confidence}/5{reason_line}"
     )
 
 def alert_trade_exit(symbol: str, reason: str, entry: float, exit_price: float, pnl: float):
-    send_telegram(
-        f"✅ TRADE CLOSED: {symbol} [{reason}]\n"
-        f"Entry: ₹{entry:.2f} | Exit: ₹{exit_price:.2f} | P&L: ₹{pnl:+.2f}"
+    pnl_emoji = "🟢" if pnl >= 0 else "🔴"
+    exit_label = "MANUAL EXIT" if reason == "MANUAL" else f"EXIT [{reason}]"
+    send_telegram_critical(
+        f"{pnl_emoji} <b>TRADE CLOSED: {symbol}</b>\n"
+        f"• <b>Type:</b> {exit_label}\n"
+        f"• <b>Entry:</b> ₹{entry:.2f} | <b>Exit:</b> ₹{exit_price:.2f}\n"
+        f"• <b>P&L:</b> <b>₹{pnl:+.2f}</b>"
     )
+
+def alert_manual_trade_entry(
+    symbol: str,
+    side: str,
+    qty: int,
+    price: float,
+    sl: float = 0.0,
+    target: float = 0.0,
+    radar_type: str = "INTRADAY",
+    order_type: str = "LIMIT",
+    user_id: Optional[int] = None
+):
+    side_up = side.upper()
+    emoji = "🟢" if side_up in ("BUY", "LONG") else "🔴"
+    sl_str = f"\n• <b>SL:</b> ₹{sl:.2f}" if sl > 0 else ""
+    target_str = f"\n• <b>Target:</b> ₹{target:.2f}" if target > 0 else ""
+    
+    prefix = f"[User {user_id}] " if user_id else ""
+    msg = (
+        f"{emoji} <b>MANUAL TRADE EXECUTED [{radar_type}]</b>\n"
+        f"<b>{prefix}{side_up} {symbol}</b> ({order_type})\n"
+        f"• <b>Qty:</b> {qty}\n"
+        f"• <b>Execution Price:</b> ₹{price:.2f}"
+        f"{sl_str}{target_str}"
+    )
+    send_telegram_critical(msg)
 
 def alert_consecutive_losses(user_id: int):
     pass  # User requested to disable this notification
