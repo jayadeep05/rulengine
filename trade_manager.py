@@ -166,6 +166,27 @@ class TradeManager:
         }
         if metadata is not None and token:
             metadata['instrument_token'] = token
+
+        # Defence-in-depth trade quota validation against DB single source of truth
+        db_chk = SessionLocal()
+        try:
+            today_d = get_ist_date()
+            cfg_q = db_chk.query(UserConfig).filter(UserConfig.user_id == self.user_id).first()
+            max_quota_q = int(cfg_q.max_trades_per_day if (cfg_q and cfg_q.max_trades_per_day is not None) else 5)
+            trades_today_q = db_chk.query(Trade).filter(
+                Trade.user_id == self.user_id,
+                Trade.trade_date == today_d
+            ).count()
+            if trades_today_q >= max_quota_q:
+                logger.warning(f"[USER {self.user_id}] Defence-in-depth blocked add_trade: Quota exhausted ({trades_today_q}/{max_quota_q}).")
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=403,
+                    detail="Trade quota exhausted. Please contact the administrator to increase your quota."
+                )
+        finally:
+            db_chk.close()
+
         self.active_trades.append(trade)
         logger.info(f"Trade added: {trade}")
         trade_logger.info(f"EXECUTED NEW TRADE: [symbol={symbol}, side={side}, qty={qty}, entry={entry_price}, sl={sl}, target={target}, sl_order_id={sl_order_id}]")

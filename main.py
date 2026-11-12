@@ -2879,13 +2879,19 @@ def api_get_status(user: dict = Depends(require_auth), db=Depends(get_db)):
     live_daily_pnl = round(history_pnl + active_pnl, 2)
     trades_taken_today = bot.tm.get_trades_taken_today()
     bot.state.trades_taken = trades_taken_today
+    
+    # Dynamic live quota from DB as single source of truth
+    from database import UserConfig
+    cfg = db.query(UserConfig).filter(UserConfig.user_id == uid).first()
+    live_max_trades = int(cfg.max_trades_per_day if (cfg and cfg.max_trades_per_day is not None) else (bot.config.get('MAX_TRADES_PER_DAY') or 5))
+    bot.config['MAX_TRADES_PER_DAY'] = live_max_trades
 
     return {
         "is_running":         bot.state.is_running,
         "kill_switch_active": bot.state.kill_switch_active,
         "daily_pnl":          live_daily_pnl,
         "trades_taken":       trades_taken_today,
-        "max_trades":         int(bot.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5),
+        "max_trades":         live_max_trades,
         "market_condition":   bot.state.market_condition,
         "active_capital":     bot.state.active_capital,
         "account_balance":    bot.state.account_balance,
@@ -3241,6 +3247,36 @@ def api_get_logs(limit: int = 100, user: dict = Depends(require_auth), db=Depend
         "level": l.log_level, "event": l.event_type, "message": l.message,
     } for l in logs]
 
+_user_quota_locks: Dict[int, asyncio.Lock] = {}
+
+def get_user_quota_lock(user_id: int) -> asyncio.Lock:
+    if user_id not in _user_quota_locks:
+        _user_quota_locks[user_id] = asyncio.Lock()
+    return _user_quota_locks[user_id]
+
+def check_and_enforce_trade_quota(db: Session, user_id: int) -> Tuple[int, int]:
+    """
+    Enforces trade quota for user_id against the database configuration as single source of truth.
+    Raises HTTPException(403) with the required exact error message if quota is exhausted.
+    """
+    from database import UserConfig, Trade, get_ist_date
+    today = get_ist_date()
+    cfg = db.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+    max_quota = int(cfg.max_trades_per_day if (cfg and cfg.max_trades_per_day is not None) else 5)
+    
+    trades_today = db.query(Trade).filter(
+        Trade.user_id == user_id,
+        Trade.trade_date == today
+    ).count()
+    
+    if trades_today >= max_quota:
+        logger.warning(f"[USER {user_id}] Trade quota exhausted: {trades_today} taken >= {max_quota} allowed. Blocking trade execution.")
+        raise HTTPException(
+            status_code=403,
+            detail="Trade quota exhausted. Please contact the administrator to increase your quota."
+        )
+    return trades_today, max_quota
+
 class ManualTradeRequest(BaseModel):
     symbol: str
     side:   str
@@ -3256,161 +3292,165 @@ async def api_manual_trade(
     uid = user["uid"]
     role = user.get("role", "user")
 
-    symbol_key = Config.SYMBOLS_MAPPING.get(body.symbol)
-    if not symbol_key:
+    async with get_user_quota_lock(uid):
+        # Enforce quota against DB as single source of truth
+        check_and_enforce_trade_quota(db, uid)
+
+        symbol_key = Config.SYMBOLS_MAPPING.get(body.symbol)
+        if not symbol_key:
+            try:
+                from nifty500_instruments import get_universe
+                symbol_key = get_universe().get(body.symbol)
+            except Exception:
+                pass
+        if not symbol_key:
+            symbol_key = f"NSE_EQ|{body.symbol}"
+            
+        side = body.side.upper()
+        if side not in ("BUY", "SELL"):
+            raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
+
+        # Check if Multi-Account Trading is enabled and user is Master Admin
+        from multi_account_manager import MultiAccountManager
+        if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
+            order_payload = {
+                "symbol": body.symbol,
+                "instrument_key": symbol_key,
+                "side": side,
+                "qty": body.qty or 1,
+                "price": body.price or 0.0,
+                "trigger_price": 0.0,
+                "sl": 0.0,
+                "target": 0.0,
+                "order_type": "MARKET",
+                "radar_type": "ACTION_SIGNAL",
+                "product": "I"
+            }
+            return await MultiAccountManager.execute_multi_account_trade(
+                master_user_id=uid,
+                order_payload=order_payload,
+                db=db
+            )
+
+        bot = get_or_create_bot(uid, db)
+        
+        max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
+        if len(bot.tm.active_trades) >= max_open:
+            logger.warning(f"[USER {uid}] Manual trade: Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with user manual placement.")
+            
+        # Always fetch the verified real-time live market LTP
+        live_ltp = bot.engine.get_ltp(symbol_key)
+        if live_ltp <= 0:
+            live_ltp = float(_shared_prices.get(body.symbol, 0.0))
+        if live_ltp <= 0 and body.price and body.price > 0:
+            live_ltp = float(body.price)
+        if live_ltp <= 0:
+            raise HTTPException(status_code=400, detail=f"Unable to fetch real-time market price for {body.symbol}.")
+
+        # Dynamic Capital Allocation & 5x Intraday Leverage
+        manual_capital = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
+        capital_per_trade = manual_capital / max(max_open, 1)
+        leverage_multiplier = 5.0
+        effective_buying_power = capital_per_trade * leverage_multiplier
+        leveraged_qty = max(1, math.floor(effective_buying_power / live_ltp))
+
+        if body.qty and int(body.qty) > 0:
+            qty = int(body.qty)
+        else:
+            qty = leveraged_qty
+
+        logger.info(
+            f"[USER {uid}] Manual trade: {side} {qty} shares of {body.symbol} @ Rs{live_ltp:.2f} "
+            f"(Slot Capital: Rs{capital_per_trade:.0f}, 5x Buying Power: Rs{effective_buying_power:.0f})"
+        )
+            
+        order_type = "MARKET"
         try:
-            from nifty500_instruments import get_universe
-            symbol_key = get_universe().get(body.symbol)
+            res = bot.engine.place_order_with_retry(
+                symbol_key, side, qty,
+                order_type=order_type, price=0.0
+            )
+        except Exception as broker_err:
+            logger.error(f"[USER {uid}] Exception during Upstox manual order submission: {broker_err}")
+            res = {"status": "error", "reason": str(broker_err)}
+        
+        import uuid as _uuid
+        order_status = res.get("status", "success")
+        order_id = res.get("order_id") or f"MAN_{int(_time.time()*1000)}"
+        is_broker_filled = order_status in ("success", "COMPLETE", "pending")
+        broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
+
+        entry_price = round(live_ltp, 2)
+        sl_pct = 0.01
+        sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+        target = round(entry_price * (1.0 - 2.0 * sl_pct) if side == "SELL" else entry_price * (1.0 + 2.0 * sl_pct), 2)
+
+        is_virtual = not is_broker_filled or bot.engine.is_paper
+        sl_order_id = order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
+
+        bot.tm.add_trade(
+            symbol=body.symbol,
+            side=side,
+            entry_price=entry_price,
+            qty=qty,
+            sl=sl,
+            target=target,
+            probability=0.75,
+            score=80,
+            sl_order_id=sl_order_id,
+            metadata={
+                "manual_execution": True,
+                "paper_trade": is_virtual,
+                "is_virtual": is_virtual,
+                "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+                "broker_rejection": broker_rejection,
+                "broker_order_id": order_id,
+                "instrument_token": symbol_key
+            }
+        )
+        if bot.tm.active_trades:
+            bot.tm.active_trades[-1]['instrument_token'] = symbol_key
+            bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
+            
+        try:
+            market_feed.subscribe_symbol(body.symbol, symbol_key)
+            _shared_prices[body.symbol] = entry_price
+            _shared_prices[symbol_key] = entry_price
+            _shared_timestamps[body.symbol] = _tm.time()
         except Exception:
             pass
-    if not symbol_key:
-        symbol_key = f"NSE_EQ|{body.symbol}"
-        
-    side = body.side.upper()
-    if side not in ("BUY", "SELL"):
-        raise HTTPException(status_code=400, detail=f"Invalid order side: '{body.side}'. Must be BUY or SELL.")
-
-    # Check if Multi-Account Trading is enabled and user is Master Admin
-    from multi_account_manager import MultiAccountManager
-    if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
-        order_payload = {
-            "symbol": body.symbol,
-            "instrument_key": symbol_key,
-            "side": side,
-            "qty": body.qty or 1,
-            "price": body.price or 0.0,
-            "trigger_price": 0.0,
-            "sl": 0.0,
-            "target": 0.0,
-            "order_type": "MARKET",
-            "radar_type": "ACTION_SIGNAL",
-            "product": "I"
-        }
-        return await MultiAccountManager.execute_multi_account_trade(
-            master_user_id=uid,
-            order_payload=order_payload,
-            db=db
+            
+        from telegram_alert import alert_manual_trade_entry
+        alert_manual_trade_entry(
+            symbol=body.symbol,
+            side=side,
+            qty=qty,
+            price=entry_price,
+            sl=sl,
+            target=target,
+            radar_type="MANUAL",
+            order_type="MARKET",
+            user_id=uid
         )
+        if is_broker_filled:
+            send_alert(uid, f"⚡ Manual {side} Order Executed on Broker & Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
+        else:
+            send_alert(uid, f"⚡ Manual {side} Order Active in Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f}) [Broker: {broker_rejection}]")
 
-    bot = get_or_create_bot(uid, db)
-    
-    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
-    if len(bot.tm.active_trades) >= max_open:
-        logger.warning(f"[USER {uid}] Manual trade: Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with user manual placement.")
-        
-    # Always fetch the verified real-time live market LTP
-    live_ltp = bot.engine.get_ltp(symbol_key)
-    if live_ltp <= 0:
-        live_ltp = float(_shared_prices.get(body.symbol, 0.0))
-    if live_ltp <= 0 and body.price and body.price > 0:
-        live_ltp = float(body.price)
-    if live_ltp <= 0:
-        raise HTTPException(status_code=400, detail=f"Unable to fetch real-time market price for {body.symbol}.")
-
-    # Dynamic Capital Allocation & 5x Intraday Leverage
-    manual_capital = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
-    capital_per_trade = manual_capital / max(max_open, 1)
-    leverage_multiplier = 5.0
-    effective_buying_power = capital_per_trade * leverage_multiplier
-    leveraged_qty = max(1, math.floor(effective_buying_power / live_ltp))
-
-    if body.qty and int(body.qty) > 0:
-        qty = int(body.qty)
-    else:
-        qty = leveraged_qty
-
-    logger.info(
-        f"[USER {uid}] Manual trade: {side} {qty} shares of {body.symbol} @ Rs{live_ltp:.2f} "
-        f"(Slot Capital: Rs{capital_per_trade:.0f}, 5x Buying Power: Rs{effective_buying_power:.0f})"
-    )
-        
-    order_type = "MARKET"
-    try:
-        res = bot.engine.place_order_with_retry(
-            symbol_key, side, qty,
-            order_type=order_type, price=0.0
-        )
-    except Exception as broker_err:
-        logger.error(f"[USER {uid}] Exception during Upstox manual order submission: {broker_err}")
-        res = {"status": "error", "reason": str(broker_err)}
-    
-    import uuid as _uuid
-    order_status = res.get("status", "success")
-    order_id = res.get("order_id") or f"MAN_{int(_time.time()*1000)}"
-    is_broker_filled = order_status in ("success", "COMPLETE", "pending")
-    broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
-
-    entry_price = round(live_ltp, 2)
-    sl_pct = 0.01
-    sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
-    target = round(entry_price * (1.0 - 2.0 * sl_pct) if side == "SELL" else entry_price * (1.0 + 2.0 * sl_pct), 2)
-
-    is_virtual = not is_broker_filled or bot.engine.is_paper
-    sl_order_id = order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
-
-    bot.tm.add_trade(
-        symbol=body.symbol,
-        side=side,
-        entry_price=entry_price,
-        qty=qty,
-        sl=sl,
-        target=target,
-        probability=0.75,
-        score=80,
-        sl_order_id=sl_order_id,
-        metadata={
-            "manual_execution": True,
-            "paper_trade": is_virtual,
-            "is_virtual": is_virtual,
+        return {
+            "status": "success",
+            "terminal_executed": True,
+            "broker_confirmed": is_broker_filled,
             "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
-            "broker_rejection": broker_rejection,
-            "broker_order_id": order_id,
-            "instrument_token": symbol_key
+            "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
+            "order_id": order_id,
+            "symbol": body.symbol,
+            "side": side,
+            "qty": qty,
+            "price": entry_price,
+            "sl": sl,
+            "target": target
         }
-    )
-    if bot.tm.active_trades:
-        bot.tm.active_trades[-1]['instrument_token'] = symbol_key
-        bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
-        
-    try:
-        market_feed.subscribe_symbol(body.symbol, symbol_key)
-        _shared_prices[body.symbol] = entry_price
-        _shared_prices[symbol_key] = entry_price
-        _shared_timestamps[body.symbol] = _tm.time()
-    except Exception:
-        pass
-        
-    from telegram_alert import alert_manual_trade_entry
-    alert_manual_trade_entry(
-        symbol=body.symbol,
-        side=side,
-        qty=qty,
-        price=entry_price,
-        sl=sl,
-        target=target,
-        radar_type="MANUAL",
-        order_type="MARKET",
-        user_id=uid
-    )
-    if is_broker_filled:
-        send_alert(uid, f"⚡ Manual {side} Order Executed on Broker & Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
-    else:
-        send_alert(uid, f"⚡ Manual {side} Order Active in Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f}) [Broker: {broker_rejection}]")
-
-    return {
-        "status": "success",
-        "terminal_executed": True,
-        "broker_confirmed": is_broker_filled,
-        "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
-        "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
-        "order_id": order_id,
-        "symbol": body.symbol,
-        "side": side,
-        "qty": qty,
-        "price": entry_price,
-        "sl": sl,
-        "target": target
-    }
 
 class PrimeRadarTradeRequest(BaseModel):
     symbol: str
@@ -3436,249 +3476,253 @@ async def api_prime_radar_execute(
     uid = user["uid"]
     role = user.get("role", "user")
 
-    # Multi-Account Trade Replication (Master Admin Only)
-    from multi_account_manager import MultiAccountManager
-    if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
-        return await MultiAccountManager.execute_multi_account_trade(
-            master_user_id=uid,
-            order_payload=body.dict(),
-            db=db
+    async with get_user_quota_lock(uid):
+        # Enforce quota against DB as single source of truth
+        check_and_enforce_trade_quota(db, uid)
+
+        # Multi-Account Trade Replication (Master Admin Only)
+        from multi_account_manager import MultiAccountManager
+        if role in ("admin", "master_admin") and MultiAccountManager.is_multi_account_enabled(db):
+            return await MultiAccountManager.execute_multi_account_trade(
+                master_user_id=uid,
+                order_payload=body.dict(),
+                db=db
+            )
+
+        bot = get_or_create_bot(uid, db)
+
+        # 1. Side & Order Type validation
+        side = body.side.upper()
+        if side not in ("BUY", "SELL"):
+            raise HTTPException(status_code=400, detail=f"Invalid side '{body.side}'. Must be BUY or SELL.")
+
+        order_type = body.order_type.upper()
+        if order_type not in ("LIMIT", "SL-M", "MARKET"):
+            raise HTTPException(status_code=400, detail=f"Invalid order type '{body.order_type}'. Must be LIMIT, SL-M, or MARKET.")
+
+        # 2. Quantity & Lot size validation
+        if body.qty <= 0:
+            raise HTTPException(status_code=400, detail="Quantity must be greater than 0.")
+
+        lot_size = 1
+        if body.contract_info and "lot_size" in body.contract_info:
+            try:
+                lot_size = int(body.contract_info["lot_size"])
+            except (ValueError, TypeError):
+                lot_size = 1
+        elif body.radar_type == "OPTIONS":
+            inst = instrument_service.get_instrument_by_key(body.instrument_key)
+            if inst and "lot_size" in inst:
+                lot_size = int(inst["lot_size"])
+
+        if lot_size > 1 and body.qty % lot_size != 0:
+            raise HTTPException(status_code=400, detail=f"Options quantity ({body.qty}) must be a multiple of lot size ({lot_size}).")
+
+        # 3. Price & Trigger validation
+        if order_type == "LIMIT":
+            if body.price <= 0:
+                raise HTTPException(status_code=400, detail="Limit Price must be greater than 0 for LIMIT orders.")
+            if side == "BUY":
+                if body.sl > 0 and body.sl >= body.price:
+                    raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Limit Price.")
+                if body.target > 0 and body.target <= body.price:
+                    raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Limit Price.")
+            elif side == "SELL":
+                if body.sl > 0 and body.sl <= body.price:
+                    raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Limit Price.")
+                if body.target > 0 and body.target >= body.price:
+                    raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Limit Price.")
+
+        elif order_type == "SL-M":
+            if body.trigger_price <= 0:
+                raise HTTPException(status_code=400, detail="SL Trigger Price must be greater than 0 for SL-M orders.")
+            if side == "BUY":
+                if body.sl > 0 and body.sl >= body.trigger_price:
+                    raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Trigger Price.")
+                if body.target > 0 and body.target <= body.trigger_price:
+                    raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Trigger Price.")
+            elif side == "SELL":
+                if body.sl > 0 and body.sl <= body.trigger_price:
+                    raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Trigger Price.")
+                if body.target > 0 and body.target >= body.trigger_price:
+                    raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Trigger Price.")
+
+        # 4. Check max open trades limit (Log warning for manual PrimeRadar orders, never block)
+        max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 5)
+        if len(bot.tm.active_trades) >= max_open:
+            logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}): Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with manual submission to broker.")
+
+        # 5. Resolve Live LTP
+        live_ltp = 0.0
+        if body.symbol in _shared_prices:
+            live_ltp = float(_shared_prices[body.symbol])
+        elif body.instrument_key in _shared_prices:
+            live_ltp = float(_shared_prices[body.instrument_key])
+
+        if live_ltp <= 0:
+            try:
+                live_ltp = float(bot.engine.get_ltp(body.instrument_key))
+            except Exception:
+                pass
+
+        if live_ltp <= 0:
+            live_ltp = body.price if (order_type == "LIMIT" and body.price > 0) else (body.trigger_price if body.trigger_price > 0 else 0.0)
+
+        if live_ltp <= 0 and not bot.engine.is_paper:
+            raise HTTPException(status_code=400, detail=f"Unable to retrieve verified market quote for {body.symbol}.")
+
+        if live_ltp <= 0:
+            live_ltp = 100.0  # Fallback for paper testing when market is offline
+
+        # Dynamic Quantity calculation fallback if qty omitted or <= 0
+        if not body.qty or int(body.qty) <= 0:
+            usable_cap = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
+            if bot.config.get('USE_LIVE_CAPITAL'):
+                usable_cap = float(getattr(bot.state, 'account_balance', 0) or getattr(bot.state, 'usable_balance', 0) or usable_cap)
+            if usable_cap <= 0:
+                usable_cap = 10000.0
+            max_open_cfg = max(1, int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2))
+            lev = float(bot.config.get('LEVERAGE', getattr(Config, 'INTRADAY_LEVERAGE', 5.0)) or 5.0)
+            cap_per_trade = usable_cap / max_open_cfg
+            effective_trade_val = cap_per_trade * lev
+            body.qty = max(1, math.floor(effective_trade_val / live_ltp))
+
+        # 6. Execute Order via Broker Engine
+        logger.info(
+            f"[USER {uid}] PrimeRadar ({body.radar_type}): Submitting {side} {order_type} for "
+            f"{body.symbol} ({body.qty} qty) Price: {body.price}, Trigger: {body.trigger_price}"
         )
 
-    bot = get_or_create_bot(uid, db)
-
-    # 1. Side & Order Type validation
-    side = body.side.upper()
-    if side not in ("BUY", "SELL"):
-        raise HTTPException(status_code=400, detail=f"Invalid side '{body.side}'. Must be BUY or SELL.")
-
-    order_type = body.order_type.upper()
-    if order_type not in ("LIMIT", "SL-M", "MARKET"):
-        raise HTTPException(status_code=400, detail=f"Invalid order type '{body.order_type}'. Must be LIMIT, SL-M, or MARKET.")
-
-    # 2. Quantity & Lot size validation
-    if body.qty <= 0:
-        raise HTTPException(status_code=400, detail="Quantity must be greater than 0.")
-
-    lot_size = 1
-    if body.contract_info and "lot_size" in body.contract_info:
         try:
-            lot_size = int(body.contract_info["lot_size"])
-        except (ValueError, TypeError):
-            lot_size = 1
-    elif body.radar_type == "OPTIONS":
-        inst = instrument_service.get_instrument_by_key(body.instrument_key)
-        if inst and "lot_size" in inst:
-            lot_size = int(inst["lot_size"])
+            res = bot.engine.place_order_with_retry(
+                symbol=body.instrument_key,
+                side=side,
+                qty=body.qty,
+                order_type=order_type,
+                price=body.price,
+                trigger_price=body.trigger_price,
+                product=body.product
+            )
+        except Exception as broker_err:
+            logger.error(f"[USER {uid}] Exception during Upstox order submission: {broker_err}")
+            res = {"status": "error", "reason": str(broker_err)}
 
-    if lot_size > 1 and body.qty % lot_size != 0:
-        raise HTTPException(status_code=400, detail=f"Options quantity ({body.qty}) must be a multiple of lot size ({lot_size}).")
+        import uuid as _uuid
+        order_status = res.get("status", "success")
+        broker_order_id = res.get("order_id") or f"PRIME_{int(_time.time()*1000)}"
+        is_broker_filled = order_status in ("success", "COMPLETE", "pending")
+        broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
 
-    # 3. Price & Trigger validation
-    if order_type == "LIMIT":
-        if body.price <= 0:
-            raise HTTPException(status_code=400, detail="Limit Price must be greater than 0 for LIMIT orders.")
-        if side == "BUY":
-            if body.sl > 0 and body.sl >= body.price:
-                raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Limit Price.")
-            if body.target > 0 and body.target <= body.price:
-                raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Limit Price.")
-        elif side == "SELL":
-            if body.sl > 0 and body.sl <= body.price:
-                raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Limit Price.")
-            if body.target > 0 and body.target >= body.price:
-                raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Limit Price.")
+        # Portal Independent Execution:
+        # Use the price at which the user initiated the trade as entry price (or broker fill price if filled)
+        if is_broker_filled and float(res.get("average_price", 0.0)) > 0:
+            entry_price = float(res.get("average_price"))
+        elif order_type == "LIMIT" and body.price > 0:
+            entry_price = float(body.price)
+        elif order_type == "SL-M" and body.trigger_price > 0:
+            entry_price = float(body.trigger_price)
+        else:
+            entry_price = float(live_ltp)
 
-    elif order_type == "SL-M":
-        if body.trigger_price <= 0:
-            raise HTTPException(status_code=400, detail="SL Trigger Price must be greater than 0 for SL-M orders.")
-        if side == "BUY":
-            if body.sl > 0 and body.sl >= body.trigger_price:
-                raise HTTPException(status_code=400, detail="For BUY orders, Stop-Loss must be lower than Trigger Price.")
-            if body.target > 0 and body.target <= body.trigger_price:
-                raise HTTPException(status_code=400, detail="For BUY orders, Target Price must be higher than Trigger Price.")
-        elif side == "SELL":
-            if body.sl > 0 and body.sl <= body.trigger_price:
-                raise HTTPException(status_code=400, detail="For SELL orders, Stop-Loss must be higher than Trigger Price.")
-            if body.target > 0 and body.target >= body.trigger_price:
-                raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Trigger Price.")
+        if entry_price <= 0:
+            entry_price = round(live_ltp, 2) if live_ltp > 0 else 100.0
 
-    # 4. Check max open trades limit (Log warning for manual PrimeRadar orders, never block)
-    max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 5)
-    if len(bot.tm.active_trades) >= max_open:
-        logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}): Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with manual submission to broker.")
+        # Fallback SL & Target if omitted
+        sl = body.sl
+        target = body.target
+        if sl <= 0:
+            sl_pct = 0.01
+            sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+        if target <= 0:
+            target_pct = 0.02
+            target = round(entry_price * (1.0 - target_pct) if side == "SELL" else entry_price * (1.0 + target_pct), 2)
 
-    # 5. Resolve Live LTP
-    live_ltp = 0.0
-    if body.symbol in _shared_prices:
-        live_ltp = float(_shared_prices[body.symbol])
-    elif body.instrument_key in _shared_prices:
-        live_ltp = float(_shared_prices[body.instrument_key])
+        is_virtual = not is_broker_filled or bot.engine.is_paper
+        sl_order_id = broker_order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
 
-    if live_ltp <= 0:
+        bot.tm.add_trade(
+            symbol=body.symbol,
+            side=side,
+            entry_price=entry_price,
+            qty=body.qty,
+            sl=sl,
+            target=target,
+            probability=0.85,
+            score=88,
+            sl_order_id=sl_order_id,
+            metadata={
+                "prime_radar": True,
+                "radar_type": body.radar_type,
+                "order_type": order_type,
+                "limit_price": body.price,
+                "trigger_price": body.trigger_price,
+                "paper_trade": is_virtual,
+                "is_virtual": is_virtual,
+                "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+                "broker_rejection": broker_rejection,
+                "broker_order_id": broker_order_id,
+                "instrument_token": body.instrument_key,
+                "product": getattr(body, "product", "I"),
+                "contract_info": body.contract_info or {}
+            }
+        )
+        if bot.tm.active_trades:
+            bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
+            bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
+            bot.tm.active_trades[-1]['product'] = getattr(body, "product", "I")
+
+        # Automatically register & subscribe to real-time WebSocket ticks for this symbol
         try:
-            live_ltp = float(bot.engine.get_ltp(body.instrument_key))
-        except Exception:
-            pass
+            market_feed.subscribe_symbol(body.symbol, body.instrument_key)
+            _shared_prices[body.symbol] = entry_price
+            _shared_prices[body.instrument_key] = entry_price
+            _shared_timestamps[body.symbol] = _tm.time()
+        except Exception as sub_err:
+            logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
 
-    if live_ltp <= 0:
-        live_ltp = body.price if (order_type == "LIMIT" and body.price > 0) else (body.trigger_price if body.trigger_price > 0 else 0.0)
-
-    if live_ltp <= 0 and not bot.engine.is_paper:
-        raise HTTPException(status_code=400, detail=f"Unable to retrieve verified market quote for {body.symbol}.")
-
-    if live_ltp <= 0:
-        live_ltp = 100.0  # Fallback for paper testing when market is offline
-
-    # Dynamic Quantity calculation fallback if qty omitted or <= 0
-    if not body.qty or int(body.qty) <= 0:
-        usable_cap = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
-        if bot.config.get('USE_LIVE_CAPITAL'):
-            usable_cap = float(getattr(bot.state, 'account_balance', 0) or getattr(bot.state, 'usable_balance', 0) or usable_cap)
-        if usable_cap <= 0:
-            usable_cap = 10000.0
-        max_open_cfg = max(1, int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2))
-        lev = float(bot.config.get('LEVERAGE', getattr(Config, 'INTRADAY_LEVERAGE', 5.0)) or 5.0)
-        cap_per_trade = usable_cap / max_open_cfg
-        effective_trade_val = cap_per_trade * lev
-        body.qty = max(1, math.floor(effective_trade_val / live_ltp))
-
-    # 6. Execute Order via Broker Engine
-    logger.info(
-        f"[USER {uid}] PrimeRadar ({body.radar_type}): Submitting {side} {order_type} for "
-        f"{body.symbol} ({body.qty} qty) Price: {body.price}, Trigger: {body.trigger_price}"
-    )
-
-    try:
-        res = bot.engine.place_order_with_retry(
-            symbol=body.instrument_key,
+        from telegram_alert import alert_manual_trade_entry
+        alert_manual_trade_entry(
+            symbol=body.symbol,
             side=side,
             qty=body.qty,
+            price=entry_price,
+            sl=sl,
+            target=target,
+            radar_type=body.radar_type,
             order_type=order_type,
-            price=body.price,
-            trigger_price=body.trigger_price,
-            product=body.product
+            user_id=uid
         )
-    except Exception as broker_err:
-        logger.error(f"[USER {uid}] Exception during Upstox order submission: {broker_err}")
-        res = {"status": "error", "reason": str(broker_err)}
 
-    import uuid as _uuid
-    order_status = res.get("status", "success")
-    broker_order_id = res.get("order_id") or f"PRIME_{int(_time.time()*1000)}"
-    is_broker_filled = order_status in ("success", "COMPLETE", "pending")
-    broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
+        if is_broker_filled:
+            trade_msg = (
+                f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "
+                f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f})"
+            )
+        else:
+            logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}) order rejected by broker ({broker_rejection}). Executing and tracking independently in Terminal @ ₹{entry_price:.2f}.")
+            trade_msg = (
+                f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} Active in Terminal: "
+                f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f}) "
+                f"[Broker Status: {broker_rejection}]"
+            )
+        send_alert(uid, trade_msg)
 
-    # Portal Independent Execution:
-    # Use the price at which the user initiated the trade as entry price (or broker fill price if filled)
-    if is_broker_filled and float(res.get("average_price", 0.0)) > 0:
-        entry_price = float(res.get("average_price"))
-    elif order_type == "LIMIT" and body.price > 0:
-        entry_price = float(body.price)
-    elif order_type == "SL-M" and body.trigger_price > 0:
-        entry_price = float(body.trigger_price)
-    else:
-        entry_price = float(live_ltp)
-
-    if entry_price <= 0:
-        entry_price = round(live_ltp, 2) if live_ltp > 0 else 100.0
-
-    # Fallback SL & Target if omitted
-    sl = body.sl
-    target = body.target
-    if sl <= 0:
-        sl_pct = 0.01
-        sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
-    if target <= 0:
-        target_pct = 0.02
-        target = round(entry_price * (1.0 - target_pct) if side == "SELL" else entry_price * (1.0 + target_pct), 2)
-
-    is_virtual = not is_broker_filled or bot.engine.is_paper
-    sl_order_id = broker_order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
-
-    bot.tm.add_trade(
-        symbol=body.symbol,
-        side=side,
-        entry_price=entry_price,
-        qty=body.qty,
-        sl=sl,
-        target=target,
-        probability=0.85,
-        score=88,
-        sl_order_id=sl_order_id,
-        metadata={
-            "prime_radar": True,
-            "radar_type": body.radar_type,
-            "order_type": order_type,
-            "limit_price": body.price,
-            "trigger_price": body.trigger_price,
-            "paper_trade": is_virtual,
-            "is_virtual": is_virtual,
+        return {
+            "status": "success",
+            "terminal_executed": True,
+            "broker_confirmed": is_broker_filled,
             "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
-            "broker_rejection": broker_rejection,
-            "broker_order_id": broker_order_id,
-            "instrument_token": body.instrument_key,
-            "product": getattr(body, "product", "I"),
-            "contract_info": body.contract_info or {}
+            "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
+            "order_id": broker_order_id,
+            "symbol": body.symbol,
+            "side": side,
+            "qty": body.qty,
+            "price": entry_price,
+            "sl": sl,
+            "target": target,
+            "order_type": order_type,
+            "radar_type": body.radar_type
         }
-    )
-    if bot.tm.active_trades:
-        bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
-        bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
-        bot.tm.active_trades[-1]['product'] = getattr(body, "product", "I")
-
-    # Automatically register & subscribe to real-time WebSocket ticks for this symbol
-    try:
-        market_feed.subscribe_symbol(body.symbol, body.instrument_key)
-        _shared_prices[body.symbol] = entry_price
-        _shared_prices[body.instrument_key] = entry_price
-        _shared_timestamps[body.symbol] = _tm.time()
-    except Exception as sub_err:
-        logger.debug(f"Auto-subscribe error for {body.symbol}: {sub_err}")
-
-    from telegram_alert import alert_manual_trade_entry
-    alert_manual_trade_entry(
-        symbol=body.symbol,
-        side=side,
-        qty=body.qty,
-        price=entry_price,
-        sl=sl,
-        target=target,
-        radar_type=body.radar_type,
-        order_type=order_type,
-        user_id=uid
-    )
-
-    if is_broker_filled:
-        trade_msg = (
-            f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} executed: "
-            f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f})"
-        )
-    else:
-        logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}) order rejected by broker ({broker_rejection}). Executing and tracking independently in Terminal @ ₹{entry_price:.2f}.")
-        trade_msg = (
-            f"⚡ PrimeRadar [{body.radar_type}] {side} {order_type} Active in Terminal: "
-            f"{body.qty} of {body.symbol} @ ₹{entry_price:.2f} (SL: ₹{sl:.2f}, Target: ₹{target:.2f}) "
-            f"[Broker Status: {broker_rejection}]"
-        )
-    send_alert(uid, trade_msg)
-
-    return {
-        "status": "success",
-        "terminal_executed": True,
-        "broker_confirmed": is_broker_filled,
-        "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
-        "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
-        "order_id": broker_order_id,
-        "symbol": body.symbol,
-        "side": side,
-        "qty": body.qty,
-        "price": entry_price,
-        "sl": sl,
-        "target": target,
-        "order_type": order_type,
-        "radar_type": body.radar_type
-    }
 
 class ManualSLUpdate(BaseModel):
     trade_id:  str

@@ -574,6 +574,13 @@ def update_user_trading_config_and_permissions(
 
     db.commit()
 
+    # Hot-reload in-memory bot configuration so quota and risk changes take effect immediately
+    try:
+        from user_bot_registry import reload_user_config
+        reload_user_config(user.id, db)
+    except Exception as r_err:
+        logger.warning(f"Could not hot-reload user bot config for user #{user.id}: {r_err}")
+
     log_system_event(
         db, admin_user_id, "INFO", "CONFIG_UPDATED",
         f"Super Admin updated trading configuration & permissions for user #{user.id} ({user.username})"

@@ -5715,8 +5715,20 @@
 
                 const trades = state.trades_taken || 0;
                 const maxT = state.max_trades || (config && config.MAX_TRADES_PER_DAY) || 5;
-                document.getElementById('v-trades').textContent = `${trades} / ${maxT}`;
-                document.getElementById('v-trades-sub').textContent = `${Math.max(0, maxT - trades)} Trades remaining`;
+                const isExhausted = trades >= maxT;
+                const vTradesEl = document.getElementById('v-trades');
+                const vTradesSubEl = document.getElementById('v-trades-sub');
+                if (vTradesEl) {
+                    vTradesEl.textContent = `${trades} / ${maxT}`;
+                    vTradesEl.className = `stat-val ${isExhausted ? 'r' : ''}`;
+                }
+                if (vTradesSubEl) {
+                    if (isExhausted) {
+                        vTradesSubEl.innerHTML = `<span style="color:var(--red); font-weight:700;">Quota Exhausted</span>`;
+                    } else {
+                        vTradesSubEl.textContent = `${Math.max(0, maxT - trades)} Trades remaining`;
+                    }
+                }
 
                 const mc = state.market_condition || 'WAITING';
                 const nifty = state.indices ? state.indices["NSE_INDEX|Nifty 50"] : 0;
@@ -8781,12 +8793,30 @@
             document.getElementById('conf-total-val').textContent = `₹${order.est_val.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
             const errBox = document.getElementById('prime-confirm-err');
-            if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
-
             const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            
+            const currentTradesTaken = state.trades_taken || 0;
+            const currentMaxQuota = state.max_trades || (config && config.MAX_TRADES_PER_DAY) || 5;
+            const quotaExhausted = currentTradesTaken >= currentMaxQuota;
+
+            if (errBox) {
+                if (quotaExhausted) {
+                    errBox.innerHTML = `⚠️ <b>Trade quota exhausted. Please contact the administrator to increase your quota.</b>`;
+                    errBox.style.display = 'block';
+                } else {
+                    errBox.style.display = 'none';
+                    errBox.textContent = '';
+                }
+            }
+
             if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+                if (quotaExhausted) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⛔ Quota Exhausted';
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+                }
             }
 
             // Multi-Account Active Banner Indicator

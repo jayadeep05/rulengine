@@ -73,7 +73,7 @@ class SignalScanner:
             logger.info("[Layer 3] Global trading halted — skipping scan.")
             return []
 
-        max_trades = Config.MAX_TRADES_PER_DAY
+        max_trades = int(self.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5)
         trades_today = get_trades_count_today(self.user_id)
         if trades_today >= max_trades:
             logger.info(f"[Layer 3] Daily trade limit reached ({trades_today}/{max_trades}) — skipping scan.")

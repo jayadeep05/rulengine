@@ -255,7 +255,7 @@ class OpeningRangeBreakout:
         if not get_global_trading_enabled():
             return []
 
-        max_trades = Config.MAX_TRADES_PER_DAY
+        max_trades = int(self.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5)
         if get_trades_count_today(self.user_id) >= max_trades:
             return []
 
