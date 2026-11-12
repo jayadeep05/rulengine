@@ -1733,8 +1733,9 @@ async def user_trading_cycle(user_id: int):
         bot.state.trades_taken = bot.tm.get_trades_taken_today()
 
         daily_pnl = bot.tm.get_daily_pnl()
-        if daily_pnl <= -abs(Config.DAILY_LOSS_LIMIT):
-            logger.critical(f"[USER {user_id}] KILL SWITCH! Daily Loss ={daily_pnl:.2f}")
+        configured_loss_limit = float(bot.config.get('DAILY_LOSS_LIMIT') or getattr(Config, 'DAILY_LOSS_LIMIT', 5000.0) or 5000.0)
+        if daily_pnl <= -abs(configured_loss_limit):
+            logger.critical(f"[USER {user_id}] KILL SWITCH! Daily Loss ={daily_pnl:.2f} exceeded limit -{configured_loss_limit:.2f}")
             bot.state.kill_switch_active = True
             bot.state.is_running = False
             if not bot.engine.is_paper:
