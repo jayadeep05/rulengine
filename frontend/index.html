@@ -8806,10 +8806,16 @@
             const modal = document.getElementById('m-prime-confirm');
             if (modal) modal.classList.remove('open');
             pendingPrimeOrder = null;
+            const submitBtn = document.getElementById('btn-prime-confirm-submit');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Confirm & Submit Order';
+            }
         }
 
         async function submitPrimeOrderConfirmed() {
             if (!pendingPrimeOrder) return;
+            const orderRef = { ...pendingPrimeOrder };
 
             const submitBtn = document.getElementById('btn-prime-confirm-submit');
             const errBox = document.getElementById('prime-confirm-err');
@@ -8824,18 +8830,18 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        symbol: pendingPrimeOrder.symbol,
-                        instrument_key: pendingPrimeOrder.instrument_key,
-                        side: pendingPrimeOrder.side,
-                        order_type: pendingPrimeOrder.order_type,
-                        qty: pendingPrimeOrder.qty,
-                        price: pendingPrimeOrder.price || 0.0,
-                        trigger_price: pendingPrimeOrder.trigger_price || 0.0,
-                        sl: pendingPrimeOrder.sl || 0.0,
-                        target: pendingPrimeOrder.target || 0.0,
-                        radar_type: pendingPrimeOrder.radar_type,
-                        product: pendingPrimeOrder.product || 'I',
-                        contract_info: pendingPrimeOrder.contract_info || null
+                        symbol: orderRef.symbol,
+                        instrument_key: orderRef.instrument_key,
+                        side: orderRef.side,
+                        order_type: orderRef.order_type,
+                        qty: orderRef.qty,
+                        price: orderRef.price || 0.0,
+                        trigger_price: orderRef.trigger_price || 0.0,
+                        sl: orderRef.sl || 0.0,
+                        target: orderRef.target || 0.0,
+                        radar_type: orderRef.radar_type,
+                        product: orderRef.product || 'I',
+                        contract_info: orderRef.contract_info || null
                     })
                 });
 
@@ -8851,16 +8857,17 @@
                     if (data.multi_account === true) {
                         if (typeof openMultiTradeResultsModal === 'function') openMultiTradeResultsModal(data);
                         toast(`⚡ Multi-Account Trade: ${data.successful_accounts}/${data.total_accounts} accounts executed!`, data.successful_accounts > 0 ? 'success' : 'error');
-                        addTimeline(`MULTI-ACCOUNT TRADE`, `${pendingPrimeOrder.side} ${pendingPrimeOrder.qty} ${pendingPrimeOrder.symbol} replicated across ${data.successful_accounts}/${data.total_accounts} accounts`, 'exec');
-                        pushAlert(`⚡ Multi-Account ${pendingPrimeOrder.side} executed: ${data.successful_accounts}/${data.total_accounts} accounts succeeded`, 'trade');
+                        addTimeline(`MULTI-ACCOUNT TRADE`, `${orderRef.side} ${orderRef.qty} ${orderRef.symbol} replicated across ${data.successful_accounts}/${data.total_accounts} accounts`, 'exec');
+                        pushAlert(`⚡ Multi-Account ${orderRef.side} executed: ${data.successful_accounts}/${data.total_accounts} accounts succeeded`, 'trade');
                     } else {
                         toast(`✅ Order Executed: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (ID: ${data.order_id})`, 'success');
                         addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)}`, 'exec');
                         pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed for ${data.symbol} (${data.qty} qty)`, 'trade');
                     }
-                    appendEngineLog('TRIGGER', `PrimeRadar [${pendingPrimeOrder.radar_type}] execution confirmed for ${pendingPrimeOrder.symbol} (${pendingPrimeOrder.side})`);
+                    appendEngineLog('TRIGGER', `PrimeRadar [${orderRef.radar_type}] execution confirmed for ${orderRef.symbol} (${orderRef.side})`);
 
                     if (typeof fetchTrades === 'function') fetchTrades();
+                    if (typeof fetchActiveTrades === 'function') fetchActiveTrades();
                     if (typeof fetchStatus === 'function') fetchStatus();
                     if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
                 } else {
