@@ -3477,10 +3477,10 @@ async def api_prime_radar_execute(
             if body.target > 0 and body.target >= body.trigger_price:
                 raise HTTPException(status_code=400, detail="For SELL orders, Target Price must be lower than Trigger Price.")
 
-    # 4. Check max open trades limit
+    # 4. Check max open trades limit (Log warning for manual PrimeRadar orders, never block)
     max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 5)
     if len(bot.tm.active_trades) >= max_open:
-        raise HTTPException(status_code=400, detail=f"Order rejected: Max open trades limit ({max_open}) reached.")
+        logger.warning(f"[USER {uid}] PrimeRadar ({body.radar_type}): Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with manual submission to broker.")
 
     # 5. Resolve Live LTP
     live_ltp = 0.0
@@ -3616,8 +3616,10 @@ async def api_prime_radar_execute(
         }
     else:
         reason = res.get("reason", "Order rejected by broker.")
-        logger.error(f"[USER {uid}] PrimeRadar order rejected: {reason}")
-        raise HTTPException(status_code=400, detail=f"Order rejected: {reason}")
+        order_id = res.get("order_id", "")
+        logger.error(f"[USER {uid}] PrimeRadar order rejected by Upstox: {reason} (Upstox Order ID: {order_id})")
+        ref_text = f" (Upstox Order #{order_id})" if order_id else ""
+        raise HTTPException(status_code=400, detail=f"Upstox Broker Rejection{ref_text}: {reason}")
 
 class ManualSLUpdate(BaseModel):
     trade_id:  str

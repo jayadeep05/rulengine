@@ -8821,7 +8821,7 @@
             const errBox = document.getElementById('prime-confirm-err');
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '⏳ Transmitting to Broker...';
+                submitBtn.innerHTML = '⏳ Transmitting to Upstox...';
             }
             if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
 
@@ -8860,23 +8860,23 @@
                         addTimeline(`MULTI-ACCOUNT TRADE`, `${orderRef.side} ${orderRef.qty} ${orderRef.symbol} replicated across ${data.successful_accounts}/${data.total_accounts} accounts`, 'exec');
                         pushAlert(`⚡ Multi-Account ${orderRef.side} executed: ${data.successful_accounts}/${data.total_accounts} accounts succeeded`, 'trade');
                     } else {
-                        toast(`✅ Order Executed: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (ID: ${data.order_id})`, 'success');
+                        toast(`✅ Executed on Upstox: ${data.side} ${data.qty} of ${data.symbol} @ ₹${data.price.toFixed(2)} (Ref: ${data.order_id})`, 'success');
                         addTimeline(`PRIME RADAR [${data.radar_type}]`, `${data.side} ${data.qty} ${data.symbol} (${data.order_type}) @ ₹${data.price.toFixed(2)} | SL: ₹${data.sl.toFixed(2)}`, 'exec');
-                        pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed for ${data.symbol} (${data.qty} qty)`, 'trade');
+                        pushAlert(`⚡ PrimeRadar ${data.radar_type} ${data.side} Order Executed on Upstox for ${data.symbol} (${data.qty} qty)`, 'trade');
                     }
-                    appendEngineLog('TRIGGER', `PrimeRadar [${orderRef.radar_type}] execution confirmed for ${orderRef.symbol} (${orderRef.side})`);
+                    appendEngineLog('TRIGGER', `PrimeRadar [${orderRef.radar_type}] execution confirmed on Upstox for ${orderRef.symbol} (${orderRef.side})`);
 
                     if (typeof fetchTrades === 'function') fetchTrades();
                     if (typeof fetchActiveTrades === 'function') fetchActiveTrades();
                     if (typeof fetchStatus === 'function') fetchStatus();
                     if (typeof fetchV2Pipeline === 'function') fetchV2Pipeline();
                 } else {
-                    const errMsg = data.detail || data.message || 'Order submission was rejected by the broker.';
+                    const errMsg = data.detail || data.message || 'Order submission was rejected by Upstox.';
                     if (errBox) {
-                        errBox.textContent = `⚠️ Execution Failed: ${errMsg}`;
+                        errBox.innerHTML = `⚠️ <b>${errMsg}</b>`;
                         errBox.style.display = 'block';
                     }
-                    toast(`Order rejected: ${errMsg}`, 'error');
+                    toast(`${errMsg}`, 'error');
                 }
             } catch (err) {
                 console.error("submitPrimeOrderConfirmed network error:", err);
