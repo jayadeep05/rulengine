@@ -660,48 +660,45 @@ class TradeManager:
         trade['exit_time'] = get_ist_now().isoformat()
         
         sl_order_id = trade.get('sl_order_id')
-        is_paper = trade.get('metadata', {}).get('paper_trade', False)
         
-        if execution_engine and not is_paper:
-            # BUG FIX 3: Check is_virtual from trade metadata FIRST.
-            # Previously, only is_virtual_sl (derived from SL order ID prefix) was checked.
-            # But if a rejected Upstox SL order returned a real-looking order ID (due to Bug 2),
-            # is_virtual_sl would be False for virtual trades, causing real square-off
-            # orders to be placed at 3:15 PM against non-existent positions.
-            is_virtual_trade = trade.get('metadata', {}).get('is_virtual', False)
-            if is_virtual_trade:
-                logger.info(f"Virtual trade close for {trade['symbol']} ({reason}) — skipping all Upstox order actions.")
-            else:
-                # 1. Cancel pending SL order on Upstox (skip if SL Hit because it's already filled/completed)
-                if reason != "SL Hit" and sl_order_id and not str(sl_order_id).startswith("virtual_"):
+        # Dual-Track Exit: Always attempt to submit the exit / square-off order to Upstox
+        if execution_engine and getattr(execution_engine, 'mode', '') != "TEST":
+            # 1. Cancel pending SL order on Upstox (skip if SL Hit or virtual SL)
+            if reason != "SL Hit" and sl_order_id and not str(sl_order_id).startswith("virtual_"):
+                try:
+                    logger.info(f"Canceling pending SL order {sl_order_id} for {trade['symbol']} due to trade close ({reason})")
+                    execution_engine.cancel_order(sl_order_id)
+                except Exception as e:
+                    logger.error(f"Failed to cancel {sl_order_id}: {e}")
+
+            # 2. Place actual market exit order so it logs in Upstox
+            is_virtual_sl = not sl_order_id or str(sl_order_id).startswith("virtual_")
+            skip_market_exit = False
+
+            if reason == "EMERGENCY_SKIPPED_SL_EXIT":
+                skip_market_exit = True
+            elif reason == "SL Hit" and not is_virtual_sl:
+                # Real broker SL order already executed on the exchange
+                skip_market_exit = True
+
+            if not skip_market_exit:
+                symbol_key = trade.get('instrument_token') or Config.SYMBOLS_MAPPING.get(trade['symbol'])
+                if not symbol_key:
+                    from instrument_resolver import get_instrument_key
+                    symbol_key = get_instrument_key(trade['symbol'])
+                if symbol_key:
+                    counter_side = "SELL" if trade['side'] == "BUY" else "BUY"
+                    logger.info(f"Submitting square-off exit order to Upstox for {trade['symbol']} ({reason}) [Key: {symbol_key}, Side: {counter_side}, Qty: {trade['qty']}]")
                     try:
-                        logger.info(f"Canceling pending SL order {sl_order_id} for {trade['symbol']} due to trade close ({reason})")
-                        execution_engine.cancel_order(sl_order_id)
+                        exit_res = execution_engine.place_order_with_retry(
+                            symbol=symbol_key,
+                            side=counter_side,
+                            qty=trade['qty'],
+                            order_type='MARKET'
+                        )
+                        logger.info(f"Upstox exit order response for {trade['symbol']}: {exit_res}")
                     except Exception as e:
-                        logger.error(f"Failed to cancel {sl_order_id}: {e}")
-
-                # 2. Place actual market exit order so it logs in Upstox
-                is_virtual_sl = not sl_order_id or str(sl_order_id).startswith("virtual_")
-                skip_market_exit = False
-
-                if reason == "EMERGENCY_SKIPPED_SL_EXIT":
-                    skip_market_exit = True
-                elif reason == "SL Hit" and not is_virtual_sl:
-                    # Broker already executed the real SL order
-                    skip_market_exit = True
-
-                if not skip_market_exit:
-                    symbol_key = trade.get('instrument_token') or Config.SYMBOLS_MAPPING.get(trade['symbol'])
-                    if not symbol_key:
-                        from instrument_resolver import get_instrument_key
-                        symbol_key = get_instrument_key(trade['symbol'])
-                    if symbol_key:
-                        counter_side = "SELL" if trade['side'] == "BUY" else "BUY"
-                        logger.info(f"Submitting square-off order to Upstox for {trade['symbol']} ({reason}, virtual_sl={is_virtual_sl})")
-                        try:
-                            execution_engine.place_order_with_retry(symbol_key, counter_side, trade['qty'], order_type='MARKET')
-                        except Exception as e:
-                            logger.error(f"Failed to place exit order on broker: {e}")
+                        logger.error(f"Failed to place exit order on Upstox for {trade['symbol']}: {e}")
 
         
         # Consecutive Losses Tracking (Now isolated by TradeManager instance)
