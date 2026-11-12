@@ -336,13 +336,8 @@ async def dynamic_discovery_loop():
                 continue
 
             universe = get_universe()
-            # Resolve to keys using Config
-            keys_to_symbols = {}
-            for sym in universe:
-                k = Config.SYMBOLS_MAPPING.get(sym.upper())
-                if k:
-                    keys_to_symbols[k] = sym
-
+            # Resolve to keys directly from universe
+            keys_to_symbols = {ik: sym for sym, ik in universe.items() if ik}
             all_keys = list(keys_to_symbols.keys())
             
             # Fetch Nifty and Sector Data for Relative Strength

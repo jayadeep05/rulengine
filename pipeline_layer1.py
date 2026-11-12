@@ -38,30 +38,45 @@ class MorningPreFilter:
         universe = get_universe()
         qualifying = []
 
-        # Fetch Nifty 500 index 5-day return for relative strength comparison
+        # Fetch Nifty 50 5-day return for relative strength comparison
         nifty_5day_return = self._get_nifty_5day_return()
-        logger.info(f"[Layer 1] Nifty 5-day return: {nifty_5day_return:.2f}%")
+        logger.info(f"[Layer 1] Nifty 5-day return: {nifty_5day_return:.2f}% | Evaluating {len(universe)} Nifty 500 stocks...")
 
-        processed = 0
-        for symbol, instrument_key in universe.items():
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _eval_single(item):
+            sym, ik = item
             try:
-                df = self.engine.get_historical_candles_daily(instrument_key, days=45)
+                df = self.engine.get_historical_candles_daily(ik, days=45)
                 if df.empty or len(df) < 21:
-                    continue
-
-                result = self._evaluate_stock(symbol, instrument_key, df, nifty_5day_return)
-                if result:
-                    qualifying.append(result)
-                    
-                processed += 1
-                if processed % 50 == 0:
-                    logger.info(f"[Layer 1] Processed {processed}/{len(universe)} stocks, {len(qualifying)} qualifying so far...")
-
+                    return None
+                return self._evaluate_stock(sym, ik, df, nifty_5day_return)
             except Exception as e:
-                logger.error(f"[Layer 1] Error processing {symbol}: {e}")
-                continue
+                logger.debug(f"[Layer 1] Error processing {sym}: {e}")
+                return None
 
-        logger.info(f"[Layer 1] Pre-filter complete. {len(qualifying)} stocks qualified out of {processed} processed.")
+        items = list(universe.items())
+        processed = 0
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            future_to_sym = {executor.submit(_eval_single, it): it[0] for it in items}
+            for future in as_completed(future_to_sym):
+                processed += 1
+                res = future.result()
+                if res:
+                    qualifying.append(res)
+                if processed % 100 == 0 or processed == len(items):
+                    logger.info(f"[Layer 1] Processed {processed}/{len(items)} Nifty 500 stocks ({len(qualifying)} qualified so far)...")
+
+        # Rank and sort qualifying stocks by composite momentum score
+        qualifying.sort(
+            key=lambda x: (
+                float(x.get("relative_strength_5day") or 0.0) * 1.5 + 
+                float(x.get("vol_ratio_20day") or 1.0) * 10.0
+            ),
+            reverse=True
+        )
+
+        logger.info(f"[Layer 1] Pre-filter complete. {len(qualifying)} stocks qualified out of {processed} Nifty 500 stocks processed.")
 
         # ── Gracefully append scraped breakout stocks (fail-safe) ─────────────
         try:
