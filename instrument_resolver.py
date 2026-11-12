@@ -16,6 +16,10 @@ def get_instrument_key(symbol: str) -> str:
     
     try:
         from instrument_service import instrument_service
+        key = instrument_service.resolve_instrument_token(sym)
+        if key:
+            Config.SYMBOLS_MAPPING[sym] = key
+            return key
         st = instrument_service.get_stock(sym)
         if st and "instrument_key" in st:
             key = st["instrument_key"]

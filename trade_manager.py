@@ -54,6 +54,15 @@ class TradeManager:
                     elif not is_buy and sl <= entry:
                         breakeven_triggered = True
 
+                    from instrument_resolver import get_instrument_key
+                    inst_token = getattr(t, 'instrument_token', None) or get_instrument_key(t.symbol)
+                    if inst_token and not getattr(t, 'instrument_token', None):
+                        try:
+                            t.instrument_token = inst_token
+                            db.commit()
+                        except Exception:
+                            pass
+
                     self.active_trades.append({
                         'id': t.id,
                         'timestamp': to_ist_iso(t.entry_time) if t.entry_time else get_ist_now().isoformat(),
@@ -61,7 +70,7 @@ class TradeManager:
                         'side': t.side,
                         'entry_price': t.entry_price,
                         'current_price': t.entry_price, # placeholder until LTP fetch
-                        'max_favorable_price': t.entry_price,
+                        'max_favorable_price': getattr(t, 'mfe', None) or t.entry_price,
                         'qty': t.quantity,
                         'sl': t.sl_price,
                         'initial_sl': t.sl_price,
@@ -71,9 +80,10 @@ class TradeManager:
                         'score': t.ai_score or 0.0,
                         'pnl': 0.0,
                         'status': 'OPEN',
-                        'metadata': {},
+                        'metadata': {'instrument_token': inst_token},
                         'breakeven_triggered': breakeven_triggered,
-                        'sl_order_id': None
+                        'sl_order_id': t.sl_order_id,
+                        'instrument_token': inst_token
                     })
                 except Exception as loop_ex:
                     logger.error(f"Failed to recover specific trade {t.id} from DB: {loop_ex}")
@@ -124,6 +134,13 @@ class TradeManager:
         
     def add_trade(self, symbol: str, side: str, entry_price: float, qty: int, sl: float, target: float, probability: float, score: int, sl_order_id: str = None, metadata: dict = None):
         trade_id = str(uuid.uuid4())[:8]  # Shorter UUID for easy reading
+        from instrument_resolver import get_instrument_key
+        token = None
+        if metadata:
+            token = metadata.get('instrument_token') or metadata.get('instrument_key')
+        if not token:
+            token = get_instrument_key(symbol)
+
         trade = {
             'id': trade_id,
             'timestamp': get_ist_now().isoformat(),
@@ -143,9 +160,12 @@ class TradeManager:
             'status': 'OPEN',
             'metadata': metadata or {},
             'sl_order_id': sl_order_id,
+            'instrument_token': token,
             'mfe': entry_price,
             'mae': entry_price
         }
+        if metadata is not None and token:
+            metadata['instrument_token'] = token
         self.active_trades.append(trade)
         logger.info(f"Trade added: {trade}")
         trade_logger.info(f"EXECUTED NEW TRADE: [symbol={symbol}, side={side}, qty={qty}, entry={entry_price}, sl={sl}, target={target}, sl_order_id={sl_order_id}]")
@@ -166,6 +186,8 @@ class TradeManager:
                 entry_time=get_ist_now(),
                 status='OPEN',
                 ai_score=float(score),
+                sl_order_id=sl_order_id,
+                instrument_token=token,
                 mfe=entry_price,
                 mae=entry_price,
                 discovery_score=metadata.get('discovery_score') if metadata else None,
@@ -660,6 +682,9 @@ class TradeManager:
 
                 if not skip_market_exit:
                     symbol_key = trade.get('instrument_token') or Config.SYMBOLS_MAPPING.get(trade['symbol'])
+                    if not symbol_key:
+                        from instrument_resolver import get_instrument_key
+                        symbol_key = get_instrument_key(trade['symbol'])
                     if symbol_key:
                         counter_side = "SELL" if trade['side'] == "BUY" else "BUY"
                         logger.info(f"Submitting square-off order to Upstox for {trade['symbol']} ({reason}, virtual_sl={is_virtual_sl})")

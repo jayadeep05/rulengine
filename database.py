@@ -203,6 +203,7 @@ class Trade(Base):
     status       = Column(String(20), default="OPEN", index=True)
     ai_score     = Column(Float, nullable=True)
     sl_order_id  = Column(String(100), nullable=True)
+    instrument_token = Column(String(100), nullable=True)
 
     # v2 columns (Section 11)
     confidence           = Column(Integer, nullable=True)

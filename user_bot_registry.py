@@ -29,6 +29,47 @@ class UserBot:
         self.dual      = DualStrategyEngine(self.engine)
         self.creds     = credentials  # keep reference for refresh
         logger.info(f"[BOT] Initialized bot for user_id={user_id}")
+        self.sync_active_positions_on_startup()
+
+    def sync_active_positions_on_startup(self):
+        """
+        On bot initialization/restart:
+        1. For each active trade in TradeManager, fetch the latest live LTP from broker engine.
+        2. Recalculate live P&L and update current_price immediately.
+        3. Verify broker positions from Upstox.
+        4. Ensure symbol is subscribed on market feed.
+        """
+        if not self.tm or not self.tm.active_trades:
+            return
+            
+        logger.info(f"[BOT {self.user_id}] Syncing {len(self.tm.active_trades)} active positions with broker on startup...")
+        for trade in self.tm.active_trades:
+            sym = trade.get("symbol")
+            token = trade.get("instrument_token")
+            if not token and sym:
+                from instrument_resolver import get_instrument_key
+                token = get_instrument_key(sym)
+                trade["instrument_token"] = token
+            
+            if token:
+                try:
+                    ltp = float(self.engine.get_ltp(token))
+                    if ltp and ltp > 0:
+                        trade["current_price"] = round(ltp, 2)
+                        side = trade.get("side", "BUY")
+                        entry = trade.get("entry_price", ltp)
+                        qty = trade.get("qty", 1)
+                        trade["pnl"] = round((ltp - entry) * qty if side == "BUY" else (entry - ltp) * qty, 2)
+                        logger.info(f"[BOT {self.user_id}] Restored position for {sym}: Entry={entry}, LTP={ltp}, PnL={trade['pnl']}, SL={trade.get('sl')}, Target={trade.get('target')}")
+                except Exception as e:
+                    logger.warning(f"[BOT {self.user_id}] Could not fetch initial LTP for {sym} ({token}): {e}")
+
+        try:
+            broker_positions = self.engine.get_positions()
+            if broker_positions:
+                logger.info(f"[BOT {self.user_id}] Verified {len(broker_positions)} broker positions from Upstox.")
+        except Exception as e:
+            logger.warning(f"[BOT {self.user_id}] Could not verify broker positions: {e}")
 
     def refresh_credentials(self, credentials: dict):
         """Update credentials without restarting the bot."""

@@ -286,6 +286,7 @@ class UpstoxExecutionEngine:
                     return {
                         "status": "success",
                         "order_status": o.get('status'),
+                        "status_message": o.get('status_message', ''),
                         "filled_quantity": int(o.get('filled_quantity', 0)),
                         "quantity": int(o.get('quantity', 0)),
                         "average_price": float(o.get('average_price', 0.0))
@@ -420,6 +421,15 @@ class UpstoxExecutionEngine:
                     filled_qty = qty  # Default to requested qty
                     avg_price = 0.0
                     if status_res.get('status') == 'success':
+                        order_st = str(status_res.get('order_status', '')).lower()
+                        if order_st in ('rejected', 'cancelled'):
+                            rej_msg = status_res.get('status_message') or f"Order was {order_st} by broker/exchange."
+                            logger.error(f"Upstox Order {order_id} immediately {order_st}: {rej_msg}")
+                            return {
+                                "status": "rejected",
+                                "order_id": order_id,
+                                "reason": rej_msg
+                            }
                         filled_qty = status_res.get('filled_quantity', qty)
                         avg_price = status_res.get('average_price', 0.0)
                     
@@ -736,15 +746,15 @@ class UpstoxExecutionEngine:
         if self.mode == "TEST":
             return []
         try:
-            url = f"{self.api_v2}/portfolio/net-positions"
+            url = f"{self.api_v2}/portfolio/short-term-positions"
             response = requests.get(url, headers=self._get_headers(), timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 return data.get('data', [])
             else:
-                logger.error(f"Failed to fetch net positions: {response.text}")
+                logger.error(f"Failed to fetch short-term positions: {response.text}")
         except Exception as e:
-            logger.error(f"Error fetching net positions: {e}")
+            logger.error(f"Error fetching short-term positions: {e}")
         return []
 
     def check_intraday_leverage(self, instrument_key: str, price: float, qty: int = 100) -> dict:

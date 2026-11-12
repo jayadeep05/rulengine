@@ -12,7 +12,7 @@ from datetime import datetime, time
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, Tuple
 
 # ── Auth imports ──────────────────────────────────────────────────────────────
 from auth import (
@@ -2018,6 +2018,7 @@ async def _execute_v2_trade(user_id: int, bot, decision: dict, layer3_signals: l
             'paper_trade': is_paper,
             'atr_14': l3_signal.get('atr_14', 0),
             'market_condition': 'TRENDING',
+            'instrument_token': symbol_key,
             'discovery_score': decision.get('discovery_score'),
             'discovery_rank': decision.get('discovery_rank')
         }

@@ -36,6 +36,7 @@ class InstrumentService:
         self.stocks: List[Dict[str, Any]] = []
         self.stocks_by_symbol: Dict[str, Dict[str, Any]] = {}
         self.instruments_by_key: Dict[str, Dict[str, Any]] = {}
+        self.options_by_symbol: Dict[str, Dict[str, Any]] = {}
         
         # Options index: { underlying_symbol: { expiry_epoch: [contract_dict, ...] } }
         self.options_by_underlying: Dict[str, Dict[int, List[Dict[str, Any]]]] = {}
@@ -140,6 +141,7 @@ class InstrumentService:
                     }
 
                     self.instruments_by_key[inst_key] = opt_entry
+                    self.options_by_symbol[trading_symbol.upper()] = opt_entry
 
                     if underlying_upper not in options_dict:
                         options_dict[underlying_upper] = {}
@@ -313,6 +315,35 @@ class InstrumentService:
     def get_instrument_by_key(self, instrument_key: str) -> Optional[Dict[str, Any]]:
         """Lookup instrument info by token/instrument_key."""
         return self.instruments_by_key.get(instrument_key)
+
+    def resolve_instrument_token(self, symbol_or_key: str) -> str:
+        """
+        Given a trading symbol (e.g. 'RELIANCE', 'NIFTY 25250 PE 17 NOV 26')
+        or an instrument key (e.g. 'NSE_EQ|INE002A01018', 'NSE_FO|45401'),
+        returns the Upstox instrument_key.
+        """
+        if not symbol_or_key:
+            return ""
+        s = str(symbol_or_key).strip()
+        if "|" in s:
+            return s
+        
+        s_upper = s.upper()
+        # 1. Direct stock lookup
+        if s_upper in self.stocks_by_symbol:
+            return self.stocks_by_symbol[s_upper].get("instrument_key", "")
+        
+        # 2. Direct option lookup
+        if s_upper in self.options_by_symbol:
+            return self.options_by_symbol[s_upper].get("instrument_key", "")
+            
+        # 3. Normalized whitespace lookup
+        norm_s = " ".join(s_upper.split())
+        for opt_sym, opt_data in self.options_by_symbol.items():
+            if " ".join(opt_sym.split()) == norm_s:
+                return opt_data.get("instrument_key", "")
+
+        return ""
 
 
 # Global singleton instance
