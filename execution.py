@@ -1,6 +1,7 @@
 import os
 import logging
-import time as _time
+import time
+_time = time
 import requests
 import pandas as pd
 from datetime import datetime, date, timedelta
@@ -206,46 +207,54 @@ class UpstoxExecutionEngine:
         Fetch historical candles using Intraday Candle Data V3 API.
         Unit: minutes, Interval: 1
         """
-        try:
-            url = f"{self.api_v3}/historical-candle/intraday/{instrument_key}/minutes/1"
-            
-            response = requests.get(url, headers=self._get_headers(True), timeout=10) # OHLC often works with analytics token
-            response.raise_for_status()
-            data = response.json()
-            
-            if 'data' in data and 'candles' in data['data']:
-                candles = data['data']['candles']
+        url = f"{self.api_v3}/historical-candle/intraday/{instrument_key}/minutes/1"
+        headers = self._get_headers(True)
+        for attempt in range(3):
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+                if response.status_code == 429:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                data = response.json()
                 
-                # Format: [timestamp, open, high, low, close, volume, open_interest]
-                df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'oi'])
-                
-                # Upstox V3 returns chronological newest first, reverse it to oldest first for pandas rolling features
-                df = df.iloc[::-1].reset_index(drop=True)
-                
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
-                for col in ['open', 'high', 'low', 'close', 'volume']:
-                    df[col] = df[col].astype(float)
+                if 'data' in data and 'candles' in data['data']:
+                    candles = data['data']['candles']
                     
-                if interval != "1minute":
-                    resample_map = {"5minute": "5min", "15minute": "15min", "30minute": "30min", "60minute": "60min"}
-                    if interval in resample_map:
-                        df = df.set_index('timestamp').resample(resample_map[interval]).agg({
-                            'open': 'first',
-                            'high': 'max',
-                            'low': 'min',
-                            'close': 'last',
-                            'volume': 'sum',
-                            'oi': 'last'
-                        }).dropna().reset_index()
+                    # Format: [timestamp, open, high, low, close, volume, open_interest]
+                    df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'oi'])
+                    
+                    # Upstox V3 returns chronological newest first, reverse it to oldest first for pandas rolling features
+                    df = df.iloc[::-1].reset_index(drop=True)
+                    
+                    df['timestamp'] = pd.to_datetime(df['timestamp'])
+                    for col in ['open', 'high', 'low', 'close', 'volume']:
+                        df[col] = df[col].astype(float)
                         
-                return df
-            else:
-                logger.error(f"No candlestick data returned for {instrument_key}: {data}")
-                return pd.DataFrame()
-        except requests.exceptions.HTTPError as he:
-            logger.error(f"HTTP Error fetching OHLC for {instrument_key}: {he.response.text}")
-        except Exception as e:
-            logger.error(f"Error fetching OHLC for {instrument_key}: {e}")
+                    if interval != "1minute":
+                        resample_map = {"5minute": "5min", "15minute": "15min", "30minute": "30min", "60minute": "60min"}
+                        if interval in resample_map:
+                            df = df.set_index('timestamp').resample(resample_map[interval]).agg({
+                                'open': 'first',
+                                'high': 'max',
+                                'low': 'min',
+                                'close': 'last',
+                                'volume': 'sum',
+                                'oi': 'last'
+                            }).dropna().reset_index()
+                            
+                    return df
+                else:
+                    logger.error(f"No candlestick data returned for {instrument_key}: {data}")
+                    return pd.DataFrame()
+            except requests.exceptions.HTTPError as he:
+                if attempt == 2:
+                    logger.error(f"HTTP Error fetching OHLC for {instrument_key}: {he.response.text}")
+                time.sleep(0.5)
+            except Exception as e:
+                if attempt == 2:
+                    logger.error(f"Error fetching OHLC for {instrument_key}: {e}")
+                time.sleep(0.5)
         
         return pd.DataFrame()
 
@@ -674,29 +683,37 @@ class UpstoxExecutionEngine:
     # ── v2 Pipeline Methods ────────────────────────────────────────────────────
 
     def get_historical_candles_daily(self, instrument_key: str, days: int = 30) -> pd.DataFrame:
-        """Fetch daily historical candles for Layer 1 pre-filter."""
-        try:
-            to_date = date.today().isoformat()
-            from_date = (date.today() - timedelta(days=days)).isoformat()
-            url = f"{self.api_v3}/historical-candle/{instrument_key}/days/1/{to_date}/{from_date}"
-            response = requests.get(url, headers=self._get_headers(True), timeout=15)
-            response.raise_for_status()
-            data = response.json()
+        """Fetch daily historical candles for Layer 1 pre-filter with rate-limit retries."""
+        to_date = date.today().isoformat()
+        from_date = (date.today() - timedelta(days=days)).isoformat()
+        url = f"{self.api_v3}/historical-candle/{instrument_key}/days/1/{to_date}/{from_date}"
+        headers = self._get_headers(True)
 
-            if 'data' in data and 'candles' in data['data']:
-                candles = data['data']['candles']
-                df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'oi'])
-                df = df.iloc[::-1].reset_index(drop=True)  # Oldest first
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
-                for col in ['open', 'high', 'low', 'close', 'volume']:
-                    df[col] = df[col].astype(float)
-                return df
-            else:
-                logger.error(f"No daily candle data for {instrument_key}: {data}")
-                return pd.DataFrame()
-        except Exception as e:
-            logger.error(f"Error fetching daily candles for {instrument_key}: {e}")
-            return pd.DataFrame()
+        for attempt in range(4):
+            try:
+                response = requests.get(url, headers=headers, timeout=15)
+                if response.status_code == 429:
+                    # Cloudflare / Upstox rate limit exceeded: back off progressively
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                data = response.json()
+
+                if 'data' in data and 'candles' in data['data']:
+                    candles = data['data']['candles']
+                    df = pd.DataFrame(candles, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'oi'])
+                    df = df.iloc[::-1].reset_index(drop=True)  # Oldest first
+                    df['timestamp'] = pd.to_datetime(df['timestamp'])
+                    for col in ['open', 'high', 'low', 'close', 'volume']:
+                        df[col] = df[col].astype(float)
+                    return df
+                else:
+                    return pd.DataFrame()
+            except Exception as e:
+                if attempt == 3:
+                    logger.debug(f"Failed to fetch daily candles for {instrument_key}: {e}")
+                time.sleep(0.3)
+        return pd.DataFrame()
 
     def get_trade_book(self) -> list:
         """Fetch today's trade book from Upstox for reconciliation (Section 10)."""

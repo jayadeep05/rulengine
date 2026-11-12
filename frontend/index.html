@@ -6024,7 +6024,13 @@
                     _isFetchingIndices = false;
                     return;
                 }
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 const prices = data.prices || {};
                 const prevClose = data.prev_close || {};
                 window._latestIndices = prices;
@@ -6316,7 +6322,13 @@
                         price: 0.0 // 0.0 instructs backend to execute at true verified live market price
                     })
                 });
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 if (res.ok && (data.status === 'success' || data.status === 'COMPLETE' || data.order_id || data.multi_account === true)) {
                     if (data.multi_account === true) {
                         if (typeof openMultiTradeResultsModal === 'function') openMultiTradeResultsModal(data);
@@ -6729,7 +6741,13 @@
         async function fetchStrategyPerformance() {
             try {
                 const res = await fetch(`${API}/trades/strategy-performance`);
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
 
                 // Update Momentum Strategy
                 document.getElementById('perf-mom-winrate').textContent = `${data.momentum.win_rate}%`;
@@ -6762,7 +6780,13 @@
 
             try {
                 const res = await fetch(`${API}/performance/report`);
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
 
                 if (data.total_trades === 0) {
                     body.innerHTML = '<div style="text-align:center; padding: 20px; color:var(--muted)">No trades found in database history. Start paper trading to generate stats!</div>';
@@ -8039,7 +8063,13 @@
             try {
                 const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeIntraState.instrument_key)}&symbol=${encodeURIComponent(primeIntraState.symbol)}`);
                 if (res.ok) {
-                    const data = await res.json();
+                    let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                     const ltp = parseFloat(data.ltp || 0);
                     if (ltp > 0) {
                         primeIntraState.ltp = ltp;
@@ -8430,7 +8460,13 @@
             try {
                 const res = await fetch(`/api/market/ltp?instrument_key=${encodeURIComponent(primeOptState.selectedContract.instrument_key)}&symbol=${encodeURIComponent(primeOptState.selectedContract.trading_symbol)}`);
                 if (res.ok) {
-                    const data = await res.json();
+                    let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                     const ltp = parseFloat(data.ltp || 0);
                     primeOptState.ltp = ltp;
 
@@ -8803,7 +8839,13 @@
                     })
                 });
 
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 if (res.ok && (data.status === 'success' || data.multi_account === true)) {
                     closePrimeConfirmModal();
                     if (data.multi_account === true) {
@@ -9768,7 +9810,13 @@
             try {
                 const res = await fetch('/api/admin/multi-account/config');
                 if (!res.ok) return;
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
 
                 multiAccountState.enabled = !!data.multi_account_enabled;
                 multiAccountState.linkedAccounts = data.linked_accounts || [];
@@ -9819,7 +9867,13 @@
                     body: JSON.stringify({ enabled: newTarget })
                 });
                 if (res.ok) {
-                    const data = await res.json();
+                    let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                     multiAccountState.enabled = data.multi_account_enabled;
                     updateMultiAccountNavUI();
                     if (multiAccountState.enabled) {
@@ -9973,7 +10027,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ target_user_id: targetUid })
                 });
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 if (res.ok) {
                     toast(data.message || 'Account linked successfully.', 'success');
                     await fetchMultiAccountConfig();
@@ -9992,7 +10052,13 @@
                 const res = await fetch(`/api/admin/multi-account/unlink/${userId}`, {
                     method: 'DELETE'
                 });
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 if (res.ok) {
                     toast(data.message || 'Account unlinked.', 'info');
                     await fetchMultiAccountConfig();
@@ -10012,7 +10078,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ target_user_id: userId, is_active: !currentActive })
                 });
-                const data = await res.json();
+                let data;
+                try {
+                    data = await res.json();
+                } catch (jsonErr) {
+                    const text = await res.text().catch(() => '');
+                    data = { detail: text || `HTTP ${res.status} Error` };
+                }
                 if (res.ok) {
                     toast(data.message, 'info');
                     await fetchMultiAccountConfig();

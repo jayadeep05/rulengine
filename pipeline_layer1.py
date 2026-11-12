@@ -43,10 +43,12 @@ class MorningPreFilter:
         logger.info(f"[Layer 1] Nifty 5-day return: {nifty_5day_return:.2f}% | Evaluating {len(universe)} Nifty 500 stocks...")
 
         from concurrent.futures import ThreadPoolExecutor, as_completed
+        import time
 
         def _eval_single(item):
             sym, ik = item
             try:
+                time.sleep(0.08)  # Safe pacing (3-4 req/sec total) to stay strictly under Cloudflare/Upstox rate limits
                 df = self.engine.get_historical_candles_daily(ik, days=45)
                 if df.empty or len(df) < 21:
                     return None
@@ -57,7 +59,7 @@ class MorningPreFilter:
 
         items = list(universe.items())
         processed = 0
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_sym = {executor.submit(_eval_single, it): it[0] for it in items}
             for future in as_completed(future_to_sym):
                 processed += 1

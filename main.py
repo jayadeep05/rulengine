@@ -1267,6 +1267,7 @@ async def user_trading_cycle(user_id: int):
                         total_expected_15min_vol += avg_vol * (15 / 375)
                         
                         df = bot.engine.get_ohlc(s["instrument_key"], interval="5minute")
+                        await asyncio.sleep(0.08)  # Rate-limit safety pacing
                         if not df.empty:
                             df['ist_time'] = df['timestamp'].dt.tz_convert('Asia/Kolkata') if df['timestamp'].dt.tz else df['timestamp'].dt.tz_localize('Asia/Kolkata')
                             mask = (df['ist_time'].dt.time >= time(9, 15)) & (df['ist_time'].dt.time < time(9, 30))
