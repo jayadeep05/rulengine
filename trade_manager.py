@@ -686,19 +686,18 @@ class TradeManager:
                 if not symbol_key:
                     from instrument_resolver import get_instrument_key
                     symbol_key = get_instrument_key(trade['symbol'])
-                if symbol_key:
-                    counter_side = "SELL" if trade['side'] == "BUY" else "BUY"
-                    logger.info(f"Submitting square-off exit order to Upstox for {trade['symbol']} ({reason}) [Key: {symbol_key}, Side: {counter_side}, Qty: {trade['qty']}]")
-                    try:
-                        exit_res = execution_engine.place_order_with_retry(
-                            symbol=symbol_key,
-                            side=counter_side,
-                            qty=trade['qty'],
-                            order_type='MARKET'
-                        )
-                        logger.info(f"Upstox exit order response for {trade['symbol']}: {exit_res}")
-                    except Exception as e:
-                        logger.error(f"Failed to place exit order on Upstox for {trade['symbol']}: {e}")
+                
+                try:
+                    logger.info(f"Initiating targeted position close on Upstox for {trade['symbol']} ({reason})")
+                    exit_res = execution_engine.square_off_broker_position(
+                        symbol_key=symbol_key,
+                        symbol_name=trade.get('symbol'),
+                        trade_side=trade.get('side'),
+                        trade_qty=trade.get('qty')
+                    )
+                    logger.info(f"Upstox square-off response for {trade['symbol']}: {exit_res}")
+                except Exception as e:
+                    logger.error(f"Failed to square off position on Upstox for {trade['symbol']}: {e}")
 
         
         # Consecutive Losses Tracking (Now isolated by TradeManager instance)

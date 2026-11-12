@@ -757,6 +757,124 @@ class UpstoxExecutionEngine:
             logger.error(f"Error fetching short-term positions: {e}")
         return []
 
+    def square_off_broker_position(
+        self,
+        symbol_key: str,
+        symbol_name: str = None,
+        trade_side: str = None,
+        trade_qty: int = None
+    ) -> dict:
+        """
+        Precisely targets and closes an existing position on Upstox:
+        1. Identifies the exact existing position in Upstox by instrument key/token or symbol name.
+        2. If no open position exists on Upstox (net_qty == 0 or position not found),
+           it skips order placement so no unintended separate or opposite position is created.
+        3. If an open position exists on Upstox:
+           - Matches the broker's exact open net quantity.
+           - Matches the broker's exact product type ('I', 'D', 'MIS', etc.).
+           - Derives the exact counter transaction type ('SELL' if net_qty > 0, 'BUY' if net_qty < 0).
+           - Submits the market square-off order directly to Upstox.
+        4. Re-checks the Upstox positions API to verify that the final net quantity is 0 (closed).
+        """
+        if self.is_paper or self.mode == "TEST":
+            logger.info(f"PAPER/TEST mode: Simulated position square-off for {symbol_name or symbol_key}.")
+            return {"status": "success", "broker_action": "simulated", "closed": True}
+
+        try:
+            positions = self.get_positions()
+            matched_pos = None
+
+            # 1. Locate the exact position in Upstox position book
+            for pos in positions:
+                token = pos.get('instrument_token') or pos.get('instrument_key')
+                trading_sym = pos.get('trading_symbol', '')
+                if token and symbol_key and (token == symbol_key or token.replace(':', '|') == symbol_key.replace(':', '|')):
+                    matched_pos = pos
+                    break
+                if symbol_name and trading_sym:
+                    norm_sym = symbol_name.replace(" ", "").upper()
+                    norm_ts = trading_sym.replace(" ", "").upper()
+                    if norm_sym in norm_ts or norm_ts in norm_sym:
+                        matched_pos = pos
+                        break
+
+            # 2. Prevent unintended separate orders if no open position exists on Upstox
+            if not matched_pos:
+                logger.info(
+                    f"No active position for {symbol_name or symbol_key} found in Upstox position book. "
+                    f"Skipping broker order to prevent creating an unintended separate or opposite position."
+                )
+                return {
+                    "status": "success",
+                    "broker_action": "skipped_no_broker_position",
+                    "reason": "Position not open on Upstox (net quantity is 0).",
+                    "closed": True
+                }
+
+            net_qty = int(matched_pos.get('quantity', 0))
+            if net_qty == 0:
+                logger.info(
+                    f"Upstox net quantity for {symbol_name or symbol_key} is already 0. "
+                    f"Existing position is already closed in Upstox."
+                )
+                return {
+                    "status": "success",
+                    "broker_action": "already_closed",
+                    "reason": "Upstox net quantity is 0.",
+                    "closed": True
+                }
+
+            # 3. Use exact parameters from the verified existing Upstox position
+            open_qty = abs(net_qty)
+            counter_side = "SELL" if net_qty > 0 else "BUY"
+            product_type = matched_pos.get('product', 'I')
+            instrument_token = matched_pos.get('instrument_token') or matched_pos.get('instrument_key') or symbol_key
+
+            logger.info(
+                f"Closing exact existing Upstox position: {instrument_token} "
+                f"[Net Qty: {net_qty}, Counter Side: {counter_side}, Product: {product_type}]"
+            )
+
+            # 4. Place precise counter market order to close the position
+            exit_res = self.place_order_with_retry(
+                symbol=instrument_token,
+                side=counter_side,
+                qty=open_qty,
+                order_type='MARKET',
+                product=product_type
+            )
+            logger.info(f"Upstox exit order response: {exit_res}")
+
+            # 5. Verify final position status and quantity through Upstox API
+            _time.sleep(1.0)
+            post_positions = self.get_positions()
+            post_qty = 0
+            for pos in post_positions:
+                token = pos.get('instrument_token') or pos.get('instrument_key')
+                trading_sym = pos.get('trading_symbol', '')
+                if (token and instrument_token and token.replace(':', '|') == instrument_token.replace(':', '|')) or \
+                   (symbol_name and trading_sym and (symbol_name.replace(" ", "").upper() in trading_sym.replace(" ", "").upper())):
+                    post_qty = int(pos.get('quantity', 0))
+                    break
+
+            is_verified_closed = (post_qty == 0)
+            logger.info(
+                f"Upstox position post-exit verification for {symbol_name or symbol_key}: "
+                f"final net quantity = {post_qty} (Verified Closed: {is_verified_closed})"
+            )
+
+            return {
+                "status": "success" if is_verified_closed else exit_res.get('status', 'submitted'),
+                "broker_action": "squared_off",
+                "order_response": exit_res,
+                "verified_closed": is_verified_closed,
+                "remaining_qty": post_qty
+            }
+
+        except Exception as e:
+            logger.error(f"Error while squaring off position in Upstox: {e}")
+            return {"status": "error", "reason": str(e), "broker_action": "error"}
+
     def check_intraday_leverage(self, instrument_key: str, price: float, qty: int = 100) -> dict:
         """
         Calls /v2/charges/margin to calculate required margin for MIS (product='I')

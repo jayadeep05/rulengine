@@ -3618,12 +3618,14 @@ async def api_prime_radar_execute(
             "broker_rejection": broker_rejection,
             "broker_order_id": broker_order_id,
             "instrument_token": body.instrument_key,
+            "product": getattr(body, "product", "I"),
             "contract_info": body.contract_info or {}
         }
     )
     if bot.tm.active_trades:
         bot.tm.active_trades[-1]['instrument_token'] = body.instrument_key
         bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
+        bot.tm.active_trades[-1]['product'] = getattr(body, "product", "I")
 
     # Automatically register & subscribe to real-time WebSocket ticks for this symbol
     try:
