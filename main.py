@@ -3296,7 +3296,7 @@ async def api_manual_trade(
     
     max_open = int(bot.config.get('MAX_OPEN_TRADES', Config.MAX_OPEN_TRADES) or 2)
     if len(bot.tm.active_trades) >= max_open:
-        raise HTTPException(status_code=400, detail=f"Cannot place manual trade. Max open trades limit ({max_open}) reached.")
+        logger.warning(f"[USER {uid}] Manual trade: Current active trades ({len(bot.tm.active_trades)}) >= max_open ({max_open}). Proceeding with user manual placement.")
         
     # Always fetch the verified real-time live market LTP
     live_ltp = bot.engine.get_ltp(symbol_key)
@@ -3308,9 +3308,6 @@ async def api_manual_trade(
         raise HTTPException(status_code=400, detail=f"Unable to fetch real-time market price for {body.symbol}.")
 
     # Dynamic Capital Allocation & 5x Intraday Leverage
-    # Total Capital (e.g. ₹10,000) / Max Open Trades (e.g. 2) = ₹5,000 per trade
-    # 5x Intraday Leverage = ₹25,000 effective buying power
-    # Quantity = Math.floor(25,000 / live_ltp)
     manual_capital = float(bot.config.get('MANUAL_CAPITAL', Config.MANUAL_CAPITAL) or 10000.0)
     capital_per_trade = manual_capital / max(max_open, 1)
     leverage_multiplier = 5.0
@@ -3328,63 +3325,92 @@ async def api_manual_trade(
     )
         
     order_type = "MARKET"
-    res = bot.engine.place_order_with_retry(
-        symbol_key, side, qty,
-        order_type=order_type, price=0.0
-    )
+    try:
+        res = bot.engine.place_order_with_retry(
+            symbol_key, side, qty,
+            order_type=order_type, price=0.0
+        )
+    except Exception as broker_err:
+        logger.error(f"[USER {uid}] Exception during Upstox manual order submission: {broker_err}")
+        res = {"status": "error", "reason": str(broker_err)}
     
+    import uuid as _uuid
     order_status = res.get("status", "success")
     order_id = res.get("order_id") or f"MAN_{int(_time.time()*1000)}"
-    
-    if order_status in ("success", "COMPLETE"):
-        entry_price = round(live_ltp, 2)
-        sl_pct = 0.01
-        sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
-        target = round(entry_price * (1.0 - 2.0 * sl_pct) if side == "SELL" else entry_price * (1.0 + 2.0 * sl_pct), 2)
+    is_broker_filled = order_status in ("success", "COMPLETE", "pending")
+    broker_rejection = None if is_broker_filled else res.get("reason", "Broker order rejected")
+
+    entry_price = round(live_ltp, 2)
+    sl_pct = 0.01
+    sl = round(entry_price * (1.0 + sl_pct) if side == "SELL" else entry_price * (1.0 - sl_pct), 2)
+    target = round(entry_price * (1.0 - 2.0 * sl_pct) if side == "SELL" else entry_price * (1.0 + 2.0 * sl_pct), 2)
+
+    is_virtual = not is_broker_filled or bot.engine.is_paper
+    sl_order_id = order_id if is_broker_filled else f"virtual_sl_{body.symbol}_{str(_uuid.uuid4())[:6]}"
+
+    bot.tm.add_trade(
+        symbol=body.symbol,
+        side=side,
+        entry_price=entry_price,
+        qty=qty,
+        sl=sl,
+        target=target,
+        probability=0.75,
+        score=80,
+        sl_order_id=sl_order_id,
+        metadata={
+            "manual_execution": True,
+            "paper_trade": is_virtual,
+            "is_virtual": is_virtual,
+            "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+            "broker_rejection": broker_rejection,
+            "broker_order_id": order_id,
+            "instrument_token": symbol_key
+        }
+    )
+    if bot.tm.active_trades:
+        bot.tm.active_trades[-1]['instrument_token'] = symbol_key
+        bot.tm.active_trades[-1]['sl_order_id'] = sl_order_id
         
-        bot.tm.add_trade(
-            symbol=body.symbol,
-            side=side,
-            entry_price=entry_price,
-            qty=qty,
-            sl=sl,
-            target=target,
-            probability=0.75,
-            score=80,
-            metadata={
-                "manual_execution": True,
-                "paper_trade": bot.engine.is_paper,
-                "instrument_token": symbol_key
-            }
-        )
-        if bot.tm.active_trades:
-            bot.tm.active_trades[-1]['instrument_token'] = symbol_key
-            
-        try:
-            market_feed.subscribe_symbol(body.symbol, symbol_key)
-            _shared_prices[body.symbol] = entry_price
-            _shared_prices[symbol_key] = entry_price
-            _shared_timestamps[body.symbol] = _tm.time()
-        except Exception:
-            pass
-            
-        from telegram_alert import alert_manual_trade_entry
-        alert_manual_trade_entry(
-            symbol=body.symbol,
-            side=side,
-            qty=qty,
-            price=entry_price,
-            sl=sl,
-            target=target,
-            radar_type="MANUAL",
-            order_type="MARKET",
-            user_id=uid
-        )
-        send_alert(uid, f"⚡ Manual {side} Order Executed for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
-        return {"status": "success", "order_id": order_id, "symbol": body.symbol, "side": side, "qty": qty, "price": entry_price}
+    try:
+        market_feed.subscribe_symbol(body.symbol, symbol_key)
+        _shared_prices[body.symbol] = entry_price
+        _shared_prices[symbol_key] = entry_price
+        _shared_timestamps[body.symbol] = _tm.time()
+    except Exception:
+        pass
+        
+    from telegram_alert import alert_manual_trade_entry
+    alert_manual_trade_entry(
+        symbol=body.symbol,
+        side=side,
+        qty=qty,
+        price=entry_price,
+        sl=sl,
+        target=target,
+        radar_type="MANUAL",
+        order_type="MARKET",
+        user_id=uid
+    )
+    if is_broker_filled:
+        send_alert(uid, f"⚡ Manual {side} Order Executed on Broker & Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f})")
     else:
-        reason = res.get("reason", "Order rejected by broker.")
-        raise HTTPException(status_code=400, detail=f"Order rejected: {reason}")
+        send_alert(uid, f"⚡ Manual {side} Order Active in Terminal for {body.symbol} ({qty} qty @ ₹{entry_price:.2f}) [Broker: {broker_rejection}]")
+
+    return {
+        "status": "success",
+        "terminal_executed": True,
+        "broker_confirmed": is_broker_filled,
+        "broker_status": "CONFIRMED" if is_broker_filled else "REJECTED",
+        "broker_message": broker_rejection if not is_broker_filled else "Order Executed on Broker",
+        "order_id": order_id,
+        "symbol": body.symbol,
+        "side": side,
+        "qty": qty,
+        "price": entry_price,
+        "sl": sl,
+        "target": target
+    }
 
 class PrimeRadarTradeRequest(BaseModel):
     symbol: str
@@ -3427,8 +3453,8 @@ async def api_prime_radar_execute(
         raise HTTPException(status_code=400, detail=f"Invalid side '{body.side}'. Must be BUY or SELL.")
 
     order_type = body.order_type.upper()
-    if order_type not in ("LIMIT", "SL-M"):
-        raise HTTPException(status_code=400, detail=f"Invalid order type '{body.order_type}'. Must be LIMIT or SL-M.")
+    if order_type not in ("LIMIT", "SL-M", "MARKET"):
+        raise HTTPException(status_code=400, detail=f"Invalid order type '{body.order_type}'. Must be LIMIT, SL-M, or MARKET.")
 
     # 2. Quantity & Lot size validation
     if body.qty <= 0:
@@ -3523,15 +3549,19 @@ async def api_prime_radar_execute(
         f"{body.symbol} ({body.qty} qty) Price: {body.price}, Trigger: {body.trigger_price}"
     )
 
-    res = bot.engine.place_order_with_retry(
-        symbol=body.instrument_key,
-        side=side,
-        qty=body.qty,
-        order_type=order_type,
-        price=body.price,
-        trigger_price=body.trigger_price,
-        product=body.product
-    )
+    try:
+        res = bot.engine.place_order_with_retry(
+            symbol=body.instrument_key,
+            side=side,
+            qty=body.qty,
+            order_type=order_type,
+            price=body.price,
+            trigger_price=body.trigger_price,
+            product=body.product
+        )
+    except Exception as broker_err:
+        logger.error(f"[USER {uid}] Exception during Upstox order submission: {broker_err}")
+        res = {"status": "error", "reason": str(broker_err)}
 
     import uuid as _uuid
     order_status = res.get("status", "success")
