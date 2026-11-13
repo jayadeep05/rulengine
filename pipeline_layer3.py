@@ -22,7 +22,7 @@ import pytz
 from config import Config
 from database import (
     get_ist_now, get_ist_date, get_global_trading_enabled,
-    is_symbol_blacklisted, get_trades_count_today
+    is_symbol_blacklisted, get_trades_count_today, get_user_max_trades
 )
 import market_feed
 
@@ -73,7 +73,7 @@ class SignalScanner:
             logger.info("[Layer 3] Global trading halted — skipping scan.")
             return []
 
-        max_trades = int(self.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5)
+        max_trades = get_user_max_trades(self.user_id)
         trades_today = get_trades_count_today(self.user_id)
         if trades_today >= max_trades:
             logger.info(f"[Layer 3] Daily trade limit reached ({trades_today}/{max_trades}) — skipping scan.")

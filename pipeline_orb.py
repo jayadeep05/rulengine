@@ -30,7 +30,7 @@ from datetime import time
 import pytz
 
 from config import Config
-from database import get_ist_now, get_trades_count_today, get_global_trading_enabled
+from database import get_ist_now, get_trades_count_today, get_user_max_trades, get_global_trading_enabled
 
 IST = pytz.timezone('Asia/Kolkata')
 logger = logging.getLogger(__name__)
@@ -255,7 +255,7 @@ class OpeningRangeBreakout:
         if not get_global_trading_enabled():
             return []
 
-        max_trades = int(self.config.get('MAX_TRADES_PER_DAY', Config.MAX_TRADES_PER_DAY) or 5)
+        max_trades = get_user_max_trades(self.user_id)
         if get_trades_count_today(self.user_id) >= max_trades:
             return []
 

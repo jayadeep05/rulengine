@@ -495,6 +495,18 @@ def get_trades_count_today(user_id: int) -> int:
         db.close()
 
 
+def get_user_max_trades(user_id: int) -> int:
+    """Fetch user's configured maximum daily trades quota from DB."""
+    db = SessionLocal()
+    try:
+        cfg = db.query(UserConfig).filter(UserConfig.user_id == user_id).first()
+        return int(cfg.max_trades_per_day if (cfg and cfg.max_trades_per_day is not None) else Config.MAX_TRADES_PER_DAY)
+    except Exception:
+        return getattr(Config, 'MAX_TRADES_PER_DAY', 5)
+    finally:
+        db.close()
+
+
 def get_db():
     db = SessionLocal()
     try:
