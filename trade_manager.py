@@ -2,7 +2,7 @@ import logging
 import datetime
 import uuid
 from config import Config
-from database import SessionLocal, Trade, DailyStats, SystemLog, get_ist_now, get_ist_date, to_ist_iso
+from database import SessionLocal, Trade, UserConfig, DailyStats, SystemLog, get_ist_now, get_ist_date, to_ist_iso
 import pytz
 
 IST = pytz.timezone('Asia/Kolkata')
